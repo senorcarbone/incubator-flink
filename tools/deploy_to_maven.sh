@@ -54,7 +54,7 @@ function getVersion() {
 # this will take a while
 CURRENT_FLINK_VERSION=`getVersion`
 if [[ "$CURRENT_FLINK_VERSION" == *-SNAPSHOT ]]; then
-	CURRENT_FLINK_VERSION_YARN=${CURRENT_FLINK_VERSION/-SNAPSHOT/-hadoop2-SNAPSHOT}
+	CURRENT_FLINK_VERSION_YARN=${CURRENT_FLINK_VERSION/-incubating-SNAPSHOT/-hadoop2-incubating-SNAPSHOT}
 else
 	CURRENT_FLINK_VERSION_YARN="$CURRENT_FLINK_VERSION-hadoop2"
 fi
@@ -106,7 +106,7 @@ if [[ $TRAVIS_PULL_REQUEST == "false" ]] ; then
 	fi
 
 	#
-	# Deploy binaries to DOPA
+	# Deploy binaries to S3
 	# The TRAVIS_JOB_NUMBER here is kinda hacked. 
 	# Currently, there are Builds 1-6. Build 1 is deploying to maven sonatype
 	# Build 2 has no special meaning, it is the openjdk7, hadoop 1.2.1 build
@@ -121,23 +121,29 @@ if [[ $TRAVIS_PULL_REQUEST == "false" ]] ; then
 		#./tools/generate_specific_pom.sh $CURRENT_FLINK_VERSION $CURRENT_FLINK_VERSION_YARN pom.xml
 		#mvn -B -DskipTests clean install
 		CURRENT_FLINK_VERSION=$CURRENT_FLINK_VERSION_YARN
-		YARN_ARCHIVE="flink-dist/target/*yarn.tar.gz"
+		YARN_ARCHIVE="flink-dist/target/flink-*-bin/*yarn.tgz"
 	fi
 	if [[ $TRAVIS_JOB_NUMBER == *3 ]] || [[ $TRAVIS_JOB_NUMBER == *6 ]] ; then 
 	#	cd flink-dist
 	#	mvn -B -DskipTests -Pdebian-package package
 	#	cd ..
 		echo "Uploading build to amazon s3. Job Number: $TRAVIS_JOB_NUMBER"
-		mkdir flink
-		cp -r flink-dist/target/flink-dist-*-bin/flink*/* flink/
-		tar -czf flink-$CURRENT_FLINK_VERSION.tgz flink
+		#mkdir flink-$CURRENT_FLINK_VERSION
+		#cp -r flink-dist/target/flink-*-bin/flink*/* flink-$CURRENT_FLINK_VERSION/
+		#tar -czf flink-$CURRENT_FLINK_VERSION-bin.tgz flink-$CURRENT_FLINK_VERSION
 		
 		# upload the two in parallel
 		if [[ $TRAVIS_JOB_NUMBER == *6 ]] ; then
 			# move to current dir
 			mv $YARN_ARCHIVE .
-			travis-artifacts upload --path *yarn.tar.gz --target-path / 
+			travis-artifacts upload --path *yarn.tgz --target-path / 
 		fi
+	
+		mv flink-dist/target/flink-*-bin/flink*/flink-*.tgz .
+		echo "here, we have"
+		ls -lisah flink-dist/target/flink-*-bin/flink*/
+		echo "and really here"
+		ls -lisah
 		travis-artifacts upload --path flink-$CURRENT_FLINK_VERSION.tgz   --target-path / 
 	fi
 
