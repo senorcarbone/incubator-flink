@@ -114,16 +114,17 @@ if [[ $TRAVIS_PULL_REQUEST == "false" ]] ; then
 	# Please be sure not to use Build 1 as it will always be the yarn build.
 	#
 
-	YARN_ARCHIVE=""
-	if [[ $TRAVIS_JOB_NUMBER == *6 ]] ; then 
+	#YARN_ARCHIVE=""
+	#if [[ $TRAVIS_JOB_NUMBER == *6 ]] ; then
 		#generate yarn poms & build for yarn.
 		# it is not required to generate poms for this build.
 		#./tools/generate_specific_pom.sh $CURRENT_FLINK_VERSION $CURRENT_FLINK_VERSION_YARN pom.xml
 		#mvn -B -DskipTests clean install
 		#CURRENT_FLINK_VERSION=$CURRENT_FLINK_VERSION_YARN
 		#YARN_ARCHIVE="flink-dist/target/flink-*-bin/*yarn.tgz"
-	fi
-	if [[ $TRAVIS_JOB_NUMBER == *3 ]] || [[ $TRAVIS_JOB_NUMBER == *6 ]] ; then 
+	#fi
+
+	if [[ $TRAVIS_JOB_NUMBER == *3 ]] || [[ $TRAVIS_JOB_NUMBER == *6 ]] ; then
 	#	cd flink-dist
 	#	mvn -B -DskipTests -Pdebian-package package
 	#	cd ..

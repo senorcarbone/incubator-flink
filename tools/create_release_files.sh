@@ -41,6 +41,7 @@ GPG_KEY=${GPG_KEY:-XXX}
 GIT_BRANCH=${GIT_BRANCH:-branch-1.0}
 OLD_VERSION=${OLD_VERSION:-0.6-incubating-SNAPSHOT}
 RELEASE_VERSION=${NEW_VERSION}
+RELEASE_CANDIDATE=${RELEASE_CANDIDATE:-rc4}
 NEW_VERSION_HADOOP2=$RELEASE_VERSION"-hadoop2" # this is wrong! 
 USER_NAME=${USER_NAME:-pwendell}
 MVN=${MVN:-mvn}
@@ -139,11 +140,10 @@ make_binary_release "hadoop2" "-Dhadoop.profile=2"
 
 # Copy data
 echo "Copying release tarballs"
-folder=flink-$RELEASE_VERSION
-ssh $USER_NAME@people.apache.org \
-  mkdir /home/$USER_NAME/public_html/$folder
-scp flink-* \
-  $USER_NAME@people.apache.org:/home/$USER_NAME/public_html/$folder/
+folder=flink-$RELEASE_VERSION-$RELEASE_CANDIDATE
+ssh $USER_NAME@people.apache.org mkdir /home/$USER_NAME/public_html/$folder
+scp flink-* $USER_NAME@people.apache.org:/home/$USER_NAME/public_html/$folder/
+echo "copy done"
 
 echo "Deploying to repository.apache.org"
 
@@ -153,3 +153,5 @@ $MVN clean deploy -Prelease --settings deploysettings.xml -DskipTests -Dgpg.keyn
 ./tools/generate_specific_pom.sh $NEW_VERSION $NEW_VERSION_HADOOP2 pom.xml
 sleep 4
 $MVN clean deploy -Prelease --settings deploysettings.xml -DskipTests -Dgpg.keyname=$GPG_KEY -Dgpg.passphrase=$GPG_PASSPHRASE
+
+echo "Done. Don't forget to commit the release version"
