@@ -120,8 +120,8 @@ if [[ $TRAVIS_PULL_REQUEST == "false" ]] ; then
 		# it is not required to generate poms for this build.
 		#./tools/generate_specific_pom.sh $CURRENT_FLINK_VERSION $CURRENT_FLINK_VERSION_YARN pom.xml
 		#mvn -B -DskipTests clean install
-		CURRENT_FLINK_VERSION=$CURRENT_FLINK_VERSION_YARN
-		YARN_ARCHIVE="flink-dist/target/flink-*-bin/*yarn.tgz"
+		#CURRENT_FLINK_VERSION=$CURRENT_FLINK_VERSION_YARN
+		#YARN_ARCHIVE="flink-dist/target/flink-*-bin/*yarn.tgz"
 	fi
 	if [[ $TRAVIS_JOB_NUMBER == *3 ]] || [[ $TRAVIS_JOB_NUMBER == *6 ]] ; then 
 	#	cd flink-dist
@@ -135,16 +135,21 @@ if [[ $TRAVIS_PULL_REQUEST == "false" ]] ; then
 		# upload the two in parallel
 		if [[ $TRAVIS_JOB_NUMBER == *6 ]] ; then
 			# move to current dir
-			mv $YARN_ARCHIVE .
-			travis-artifacts upload --path *yarn.tgz --target-path / 
+			mkdir flink-$CURRENT_FLINK_VERSION-bin-yarn
+                	cp -r flink-dist/target/flink-*-bin/flink-yarn*/* flink-$CURRENT_FLINK_VERSION-bin-yarn/
+                	tar -czf flink-$CURRENT_FLINK_VERSION-bin-yarn.tgz flink-$CURRENT_FLINK_VERSION-bin-yarn
+			travis-artifacts upload --path flink-$CURRENT_FLINK_VERSION-bin-yarn.tgz --target-path / 
 		fi
-	
-		mv flink-dist/target/flink-*-bin/flink*/flink-*.tgz .
+
+		mkdir flink-$CURRENT_FLINK_VERSION-bin
+                cp -r flink-dist/target/flink-*-bin/flink-$CURRENT_FLINK_VERSION*/* flink-$CURRENT_FLINK_VERSION-bin/
+                tar -czf flink-$CURRENT_FLINK_VERSION-bin.tgz flink-$CURRENT_FLINK_VERSION-bin
+
 		echo "here, we have"
 		ls -lisah flink-dist/target/flink-*-bin/flink*/
 		echo "and really here"
 		ls -lisah
-		travis-artifacts upload --path flink-$CURRENT_FLINK_VERSION.tgz   --target-path / 
+		travis-artifacts upload --path flink-$CURRENT_FLINK_VERSION-bin.tgz   --target-path / 
 	fi
 
 fi # pull request check
