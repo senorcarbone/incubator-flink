@@ -2,6 +2,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 
 import org.apache.flink.api.common.JobExecutionResult;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.operators.util.UserCodeObjectWrapper;
 import org.apache.flink.api.common.typeutils.base.IntSerializer;
 import org.apache.flink.api.java.io.CollectionInputFormat;
@@ -13,8 +14,11 @@ import org.apache.flink.runtime.client.JobClient;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobInputVertex;
 import org.apache.flink.runtime.jobgraph.JobOutputVertex;
+import org.apache.flink.runtime.jobgraph.JobTaskVertex;
 import org.apache.flink.runtime.operators.DataSinkTask;
 import org.apache.flink.runtime.operators.DataSourceTask;
+import org.apache.flink.runtime.operators.DriverStrategy;
+import org.apache.flink.runtime.operators.RegularPactTask;
 import org.apache.flink.runtime.operators.util.TaskConfig;
 
 
@@ -69,7 +73,7 @@ public class HardCodeJobGraph {
 	public static void main(String args[]) throws Exception{
 		
 		//initially create the JobGraph
-		JobGraph jobGraph=buildJobGraph();
+		JobGraph jobGraph=buildJobGraph2();
 		
 		//start up Nephele
 		startNephele();
@@ -103,6 +107,68 @@ public class HardCodeJobGraph {
 		
 		//return the final JobGraph
 		return jg;
+	}
+	
+	public static JobGraph buildJobGraph2() throws Exception{
+		// initially create the JobGraph
+		JobGraph jg = new JobGraph("TEST2");
+
+		// create the vertices
+		JobInputVertex inputVertex=createTheInputVertex(jg);
+		JobTaskVertex middleVertex=createTheMiddleVertex(jg);
+		JobOutputVertex outputVertex=createTheOutputVertex(jg);
+
+		//connect vertexes
+		inputVertex.connectTo(middleVertex);
+		middleVertex.connectTo(outputVertex);
+		
+		//return the final JobGraph
+		return jg;
+	}
+	
+	public static JobTaskVertex createTheMiddleVertex(JobGraph jobGraph){
+		
+		//create a map function
+		@SuppressWarnings("serial")
+		MapFunction<Integer, Integer> mapFunction=new MapFunction<Integer, Integer>() {
+
+			@Override
+			public Integer map(Integer value) throws Exception {
+				return value+1;
+			}
+			
+		};
+		
+		//************************************************************************
+		//Begin: code inspired by NepheleJobGraphGenerator.createSingleInputVertex
+		
+		final JobTaskVertex vertex= new JobTaskVertex("manually created map vertex", jobGraph);
+		vertex.setInvokableClass(RegularPactTask.class);
+		
+		TaskConfig config = new TaskConfig(vertex.getConfiguration());
+		config.setDriver(DriverStrategy.MAP.getDriverClass());
+	
+		// set user code
+		config.setStubWrapper(new UserCodeObjectWrapper<MapFunction<Integer, Integer>>(mapFunction));
+		config.setStubParameters(new Configuration()); //Not 100% sure if this is correct);
+				
+		// set the driver strategy
+		config.setDriverStrategy(DriverStrategy.MAP);
+		
+		//End: code inspired by NepheleJobGraphGenerator.createSingleInputVertex
+		//**********************************************************************
+		
+		// set the serializers
+		config.setOutputSerializer(new RuntimeStatelessSerializerFactory<Integer>(new IntSerializer(), Integer.class));
+		config.setInputSerializer(new RuntimeStatelessSerializerFactory<Integer>(new IntSerializer(), Integer.class),0);
+		
+		//only for testing -> Hardcoded configurations
+		vertex.getConfiguration().setInteger("in.groupsize.0",1);
+		vertex.getConfiguration().setInteger("in.num", 1);
+		vertex.getConfiguration().setInteger("out.num", 1);
+		vertex.getConfiguration().setInteger("out.shipstrategy.0", 2);
+		
+		return vertex;
 	}
 	
 	/**
@@ -171,7 +237,7 @@ public class HardCodeJobGraph {
 		
 		//Values observed by debugging:
 		//node.getNodeName() = "DataSink(Print to System.out)"
-		//node.getDegreeOfParallelism() = 2  //changed it to 1 for testing
+		//node.getDegreeOfParallelism() = 2  //changed it to other value for testing
 		//node.getPactContract().getUserCodeWrapper()) = new UserCodeObjectWrapper(new PrintingOutputFormat())
 		//node.getPactContract().getParameters() = new Configuration()
 		
@@ -216,7 +282,7 @@ public class HardCodeJobGraph {
 			// configure the number of local slots equal to the parallelism of
 			// the local plan
 			if (taskManagerNumSlots == DEFAULT_TASK_MANAGER_NUM_SLOTS) {
-				int maxParallelism = 2;//plan.getMaximumParallelism();
+				int maxParallelism = 3;//plan.getMaximumParallelism();
 				if (maxParallelism > 0) {
 					taskManagerNumSlots = maxParallelism;
 				}
@@ -277,3 +343,4 @@ public class HardCodeJobGraph {
 	}
 	
 }
+
