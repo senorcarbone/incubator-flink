@@ -164,7 +164,7 @@ public class HardCodeJobGraph {
 		//make a converter task vertex
 		JobTaskVertex converterVertex=createConverterVertex(jg);
 		//make a stream sink
-		JobOutputVertex streamOutputVertex=null; //TODO create it!
+		JobOutputVertex streamOutputVertex=createStreamSinkVertex(jg);
 		
 		//connect vertexes
 		inputVertex.connectTo(middleVertex);
@@ -341,6 +341,15 @@ public class HardCodeJobGraph {
 		
 		//TODO implement this
 		
+		return vertex;
+	}
+	
+	public static JobOutputVertex createStreamSinkVertex(JobGraph jobGraph){
+		final JobOutputVertex vertex = new JobOutputVertex(
+				"StreamSink", jobGraph
+		);
+
+		//TODO implement this
 		return vertex;
 	}
 	
