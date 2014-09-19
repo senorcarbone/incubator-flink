@@ -10,18 +10,27 @@ import org.apache.flink.api.java.io.PrintingOutputFormat;
 import org.apache.flink.api.java.typeutils.runtime.RuntimeStatelessSerializerFactory;
 import org.apache.flink.client.minicluster.NepheleMiniCluster;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.core.io.IOReadableWritable;
 import org.apache.flink.runtime.client.JobClient;
+import org.apache.flink.runtime.io.network.api.RecordReader;
+import org.apache.flink.runtime.io.network.api.RecordWriter;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobInputVertex;
 import org.apache.flink.runtime.jobgraph.JobOutputVertex;
 import org.apache.flink.runtime.jobgraph.JobTaskVertex;
+import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.operators.DataSinkTask;
 import org.apache.flink.runtime.operators.DataSourceTask;
 import org.apache.flink.runtime.operators.DriverStrategy;
 import org.apache.flink.runtime.operators.RegularPactTask;
 import org.apache.flink.runtime.operators.util.TaskConfig;
+import org.apache.flink.runtime.types.IntegerRecord;
 
 
+/**
+ * This class is not designed to be published...
+ * It just holds as a playground for testing different functionalities.
+ */
 public class HardCodeJobGraph {
 
 	//Data
@@ -73,7 +82,15 @@ public class HardCodeJobGraph {
 	public static void main(String args[]) throws Exception{
 		
 		//initially create the JobGraph
+		
+		//Use this to build a Graph with Input- and OutputVertex only
+		//JobGraph jobGraph=buildJobGraph();
+		
+		//Use this to build a Graph with Input-, Task- and Outputvertex
 		JobGraph jobGraph=buildJobGraph2();
+		
+		//Use this to build a Graph which converts batch to stream
+		//JobGraph jobGraph=buildJobGraph3()
 		
 		//start up Nephele
 		startNephele();
@@ -93,7 +110,12 @@ public class HardCodeJobGraph {
 	}
 	
 	
-	
+	/**
+	 * This method builds a simple JobGraph including a Input- and OutputVertex
+	 * The Graph will NOT contain a TaskVertex
+	 * @return The JobGraph which can be executed by Nephele
+	 * @throws Exception any exception
+	 */
 	public static JobGraph buildJobGraph() throws Exception{
 		// initially create the JobGraph
 		JobGraph jg = new JobGraph("TEST");
@@ -109,6 +131,11 @@ public class HardCodeJobGraph {
 		return jg;
 	}
 	
+	/**
+	 * This method builds a simple JobGraph including a Input-, Task-, and OutputVertex
+	 * @return The JobGraph which can be executed by Nephele
+	 * @throws Exception any exception
+	 */
 	public static JobGraph buildJobGraph2() throws Exception{
 		// initially create the JobGraph
 		JobGraph jg = new JobGraph("TEST2");
@@ -126,6 +153,34 @@ public class HardCodeJobGraph {
 		return jg;
 	}
 	
+	public static JobGraph buildJobGraph3() throws Exception{
+		// initially create the JobGraph
+		JobGraph jg = new JobGraph("TEST3");
+		
+		//make a batch data source
+		JobInputVertex inputVertex=createTheInputVertex(jg);
+		//make a batch task
+		JobTaskVertex middleVertex=createTheMiddleVertex(jg);
+		//make a converter task vertex
+		JobTaskVertex converterVertex=createConverterVertex(jg);
+		//make a stream sink
+		JobOutputVertex streamOutputVertex=null; //TODO create it!
+		
+		//connect vertexes
+		inputVertex.connectTo(middleVertex);
+		middleVertex.connectTo(converterVertex);
+		converterVertex.connectTo(streamOutputVertex);
+		
+		//return the final JobGraph
+		return jg;
+	}
+	
+	/**
+	 * Started from the code at NepheleJobGraphGenerator.createSingleInputVertex.
+	 * Replaced all not working method calls with respective object creations.
+	 * @param jobGraph
+	 * @return
+	 */
 	public static JobTaskVertex createTheMiddleVertex(JobGraph jobGraph){
 		
 		//create a map function
@@ -269,7 +324,94 @@ public class HardCodeJobGraph {
 		return vertex;
 	}
 	
+	//*************************************************************************//
+	//																		   //
+	//       CONVERTING FROM BATCH TO STREAM							       //
+	//																		   //
+	//*************************************************************************//
 	
+	/**
+	 * This variable was added for testing. It is the name of the class field
+	 * which is used to pass a record type within the configuration
+	 */
+	public final static String RECORD_TYPE_NAME="TESTING.record.type.name";
+	
+	public static JobTaskVertex createConverterVertex(JobGraph jobGraph){
+		final JobTaskVertex vertex= new JobTaskVertex("Converter Vertex", jobGraph);
+		
+		//TODO implement this
+		
+		return vertex;
+	}
+	
+	class ConvertBatchToStreamTask extends AbstractInvokable
+	{
+
+		private RecordReader<IntegerRecord> input;
+	    private RecordWriter<IntegerRecord> output;
+		
+		@Override
+		public void registerInputOutput() {
+			this.input=new RecordReader<IntegerRecord>(this, IntegerRecord.class);
+			this.output=new RecordWriter<IntegerRecord>(this);
+		}
+
+		@Override
+		public void invoke() throws Exception {
+			//We can use this kind of termination because the batch has a fixed size.
+			//If the input has finished there won't come more data
+			while (input.hasNext()){
+				int inputValue=input.next().getValue();
+				
+				//TODO Do something with the input value...
+				//TODO Emit results in a streaming fashion...
+				output.emit(new IntegerRecord(inputValue)); //TODO replace this line!
+			}
+		}
+		
+	}
+	
+	class ConvertBatchToStreamTask2<IN extends IOReadableWritable,OUT extends IOReadableWritable> extends AbstractInvokable{
+		private RecordReader<IN> input;
+		private RecordWriter<OUT> output;
+		
+		@Override
+		public void registerInputOutput() {
+			//initialize the input
+			try{
+				@SuppressWarnings("unchecked") //Cannot be checked, but the exceptions are catched...
+				Class<IN> ioReadableWritableClass = (Class<IN>)getTaskConfiguration().getClass(RECORD_TYPE_NAME, null);
+				this.input=new RecordReader<IN>(this,ioReadableWritableClass);
+			} catch (ClassCastException | NullPointerException e){
+				RuntimeException ex=new RuntimeException(
+						"The IOReadableWritableClass have to be set as parameter to the task configuration in field "+
+						RECORD_TYPE_NAME
+				);
+				ex.addSuppressed(e);
+				throw ex;
+			}
+			//initialize the output
+			this.output=new RecordWriter<OUT>(this);
+		}
+		@Override
+		public void invoke() throws Exception {
+			//We can use this kind of termination because the batch has a fixed size.
+			//If the input has finished there won't come more data
+			while (input.hasNext()){
+				IN currentInput=input.next();
+				
+				//TODO do something with the input
+				input.hashCode();//TODO replace this line! (just added to some sample usage)
+				
+				//TODO write it to the output
+				output.emit(null);//TODO replace this line! (just added to some sample usage)
+			}
+		}
+	}
+	
+	class ConvertBatchToStreamTask3<T extends IOReadableWritable> extends ConvertBatchToStreamTask2<T,T>{
+		//nothing to do...
+	}
 	
 	//*************************************************************************//
 	//																		   //
