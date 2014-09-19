@@ -73,6 +73,11 @@ public class HardCodeJobGraph {
 	public static void main(String args[]) throws Exception{
 		
 		//initially create the JobGraph
+		
+		//Use this to build a Graph with Input- and OutputVertex only
+		//JobGraph jobGraph=buildJobGraph();
+		
+		//Use this to build a Graph with Input-, Task- and Outputvertex
 		JobGraph jobGraph=buildJobGraph2();
 		
 		//start up Nephele
@@ -93,7 +98,12 @@ public class HardCodeJobGraph {
 	}
 	
 	
-	
+	/**
+	 * This method builds a simple JobGraph including a Input- and OutputVertex
+	 * The Graph will NOT contain a TaskVertex
+	 * @return The JobGraph which can be executed by Nephele
+	 * @throws Exception any exception
+	 */
 	public static JobGraph buildJobGraph() throws Exception{
 		// initially create the JobGraph
 		JobGraph jg = new JobGraph("TEST");
@@ -109,6 +119,11 @@ public class HardCodeJobGraph {
 		return jg;
 	}
 	
+	/**
+	 * This method builds a simple JobGraph including a Input-, Task-, and OutputVertex
+	 * @return The JobGraph which can be executed by Nephele
+	 * @throws Exception any exception
+	 */
 	public static JobGraph buildJobGraph2() throws Exception{
 		// initially create the JobGraph
 		JobGraph jg = new JobGraph("TEST2");
@@ -126,6 +141,12 @@ public class HardCodeJobGraph {
 		return jg;
 	}
 	
+	/**
+	 * Started from the code at NepheleJobGraphGenerator.createSingleInputVertex.
+	 * Replaced all not working method calls with respective object creations.
+	 * @param jobGraph
+	 * @return
+	 */
 	public static JobTaskVertex createTheMiddleVertex(JobGraph jobGraph){
 		
 		//create a map function
