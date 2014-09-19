@@ -401,7 +401,7 @@ public class HardCodeJobGraph {
 				IN currentInput=input.next();
 				
 				//TODO do something with the input
-				input.hashCode();//TODO replace this line! (just added to some sample usage)
+				currentInput.hashCode();//TODO replace this line! (just added to some sample usage)
 				
 				//TODO write it to the output
 				output.emit(null);//TODO replace this line! (just added to some sample usage)
