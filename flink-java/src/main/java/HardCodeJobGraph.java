@@ -344,6 +344,13 @@ public class HardCodeJobGraph {
 		return vertex;
 	}
 	
+	/**
+	 * This is a first prototype with inflexible types. Don't use this class.
+	 * Use @link{ConvertBatchToStreamTask2} or @link{ConvertBatchToStreamTask3} instead.
+	 * 
+	 * This class is the invokable for the conversion from batch to stream. 
+	 */
+	@Deprecated
 	class ConvertBatchToStreamTask extends AbstractInvokable
 	{
 
@@ -371,6 +378,16 @@ public class HardCodeJobGraph {
 		
 	}
 	
+	/**
+	 * This class is the invokable for the conversion from batch to stream.
+	 * 
+	 * Remember to set {@link RECORD_TYPE_NAME} in the configuration.
+	 * It have to contain a {@link Class}<? extends {@link IOReadableWritable}> as value
+	 * which is of the same type like IN.
+	 * 
+	 * @param <IN> The type of the input (must extend {@link IOReadableWritable}
+	 * @param <OUT> The type of the output (must extend {@link IOReadableWritable}
+	 */
 	class ConvertBatchToStreamTask2<IN extends IOReadableWritable,OUT extends IOReadableWritable> extends AbstractInvokable{
 		private RecordReader<IN> input;
 		private RecordWriter<OUT> output;
@@ -409,8 +426,13 @@ public class HardCodeJobGraph {
 		}
 	}
 	
+	/**
+	 * The same as {@link ConvertBatchToStreamTask2} except that IN and OUT is of the same type
+	 * @param <T> see documentation of {@link ConvertBatchToStreamTask2}
+	 * @see ConvertBatchToStreamTask2
+	 */
 	class ConvertBatchToStreamTask3<T extends IOReadableWritable> extends ConvertBatchToStreamTask2<T,T>{
-		//nothing to do...
+		//nothing to do... see JavaDoc.
 	}
 	
 	//*************************************************************************//
