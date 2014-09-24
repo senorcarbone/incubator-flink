@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -55,6 +55,12 @@ public final class ConfigConstants {
 	 */
 	public static final String JOB_MANAGER_IPC_HANDLERS_KEY = "jobmanager.rpc.numhandler";
 
+	/**
+	 * The config parameter defining the number of seconds that a task manager heartbeat may be missing before it is
+	 * marked as failed.
+	 */
+	public static final String JOB_MANAGER_DEAD_TASKMANAGER_TIMEOUT_KEY = "jobmanager.max-heartbeat-delay-before-failure.sec";
+	
 	/**
 	 * The config parameter defining the task manager's IPC port from the configuration.
 	 */
@@ -309,14 +315,22 @@ public final class ConfigConstants {
 	public static final int DEFAULT_JOB_MANAGER_IPC_HANDLERS = 8;
 	
 	/**
-	 * The default network port the task manager expects incoming IPC connections.
+	 * Default number of seconds after which a task manager is marked as failed.
 	 */
-	public static final int DEFAULT_TASK_MANAGER_IPC_PORT = 6122;
+	// 30 seconds (its enough to get to mars, should be enough to detect failure)
+	public static final int DEFAULT_JOB_MANAGER_DEAD_TASKMANAGER_TIMEOUT = 30;
+	
+	/**
+	 * The default network port the task manager expects incoming IPC connections. The {@code -1} means that
+	 * the TaskManager searches for a free port.
+	 */
+	public static final int DEFAULT_TASK_MANAGER_IPC_PORT = -1;
 
 	/**
-	 * The default network port the task manager expects to receive transfer envelopes on.
+	 * The default network port the task manager expects to receive transfer envelopes on. The {@code -1} means that
+	 * the TaskManager searches for a free port.
 	 */
-	public static final int DEFAULT_TASK_MANAGER_DATA_PORT = 6121;
+	public static final int DEFAULT_TASK_MANAGER_DATA_PORT = -1;
 
 	/**
 	 * The default directory for temporary files of the task manager.
@@ -370,9 +384,9 @@ public final class ConfigConstants {
 	public static final int DEFAULT_TASK_MANAGER_NET_NETTY_HIGH_WATER_MARK = -1;
 
 	/**
-	 * The default interval for TaskManager heart beats (2000 msecs).
+	 * The default interval for TaskManager heart beats (5000 msecs).
 	 */
-	public static final int DEFAULT_TASK_MANAGER_HEARTBEAT_INTERVAL = 2000;
+	public static final int DEFAULT_TASK_MANAGER_HEARTBEAT_INTERVAL = 5000;
 
 	/**
 	 * Flag indicating whether to start a thread, which repeatedly logs the memory usage of the JVM.

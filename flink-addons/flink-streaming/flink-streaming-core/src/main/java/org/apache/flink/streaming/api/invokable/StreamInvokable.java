@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -37,6 +37,7 @@ public abstract class StreamInvokable<OUT> implements Serializable {
 
 	protected Collector<OUT> collector;
 	protected Function userFunction;
+	protected volatile boolean isRunning;
 
 	public StreamInvokable(Function userFunction) {
 		this.userFunction = userFunction;
@@ -54,6 +55,7 @@ public abstract class StreamInvokable<OUT> implements Serializable {
 	 *            The configuration parameters for the operator
 	 */
 	public void open(Configuration parameters) throws Exception {
+		isRunning=true;
 		if (userFunction instanceof RichFunction) {
 			((RichFunction) userFunction).open(parameters);
 		}
@@ -65,6 +67,7 @@ public abstract class StreamInvokable<OUT> implements Serializable {
 	 * 
 	 */
 	public void close() throws Exception {
+		isRunning = false;
 		if (userFunction instanceof RichFunction) {
 			((RichFunction) userFunction).close();
 		}

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -102,8 +102,8 @@ public abstract class StreamOperatorInvokable<IN, OUT> extends StreamInvokable<O
 			callUserFunction();
 		} catch (Exception e) {
 			if (LOG.isErrorEnabled()) {
-				LOG.error(String.format("Calling user function failed due to: %s",
-						StringUtils.stringifyException(e)));
+				LOG.error("Calling user function failed due to: {}",
+						StringUtils.stringifyException(e));
 			}
 		}
 	}

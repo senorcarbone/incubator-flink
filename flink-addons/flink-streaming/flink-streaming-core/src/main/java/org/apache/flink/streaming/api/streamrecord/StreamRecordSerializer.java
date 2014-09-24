@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -20,10 +20,10 @@ package org.apache.flink.streaming.api.streamrecord;
 
 import java.io.IOException;
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.core.memory.DataInputView;
 import org.apache.flink.core.memory.DataOutputView;
-import org.apache.flink.types.TypeInformation;
 
 public final class StreamRecordSerializer<T> extends TypeSerializer<StreamRecord<T>> {
 
@@ -35,6 +35,10 @@ public final class StreamRecordSerializer<T> extends TypeSerializer<StreamRecord
 	public StreamRecordSerializer(TypeInformation<T> typeInfo) {
 		this.typeSerializer = typeInfo.createSerializer();
 		this.isTuple = typeInfo.isTupleType();
+	}
+
+	public TypeSerializer<T> getObjectSerializer() {
+		return typeSerializer;
 	}
 
 	@Override
@@ -88,7 +92,7 @@ public final class StreamRecordSerializer<T> extends TypeSerializer<StreamRecord
 
 	@Override
 	public void copy(DataInputView source, DataOutputView target) throws IOException {
-		//Needs to be implemented
+		// Needs to be implemented
 	}
 
 }

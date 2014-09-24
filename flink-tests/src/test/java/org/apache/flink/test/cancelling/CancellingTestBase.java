@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -196,11 +196,11 @@ public abstract class CancellingTestBase {
 						case CANCELED:
 							exitLoop = true;
 							break;
-						case SCHEDULED: // okay
 						case RUNNING:
+						case CANCELLING:
+						case FAILING:
+						case CREATED:
 							break;
-						default:
-							throw new Exception("Bug: Unrecognized Job Status.");
 						}
 					}
 

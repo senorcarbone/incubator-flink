@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -27,11 +27,11 @@ import org.apache.flink.api.common.Plan;
 import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.common.operators.util.FieldList;
 import org.apache.flink.api.java.DataSet;
-import org.apache.flink.api.java.DeltaIteration;
+import org.apache.flink.api.java.operators.DeltaIteration;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.functions.RichGroupReduceFunction;
-import org.apache.flink.api.java.functions.RichJoinFunction;
-import org.apache.flink.api.java.functions.RichMapFunction;
+import org.apache.flink.api.common.functions.RichGroupReduceFunction;
+import org.apache.flink.api.common.functions.RichJoinFunction;
+import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.compiler.plan.DualInputPlanNode;
 import org.apache.flink.compiler.plan.OptimizedPlan;
@@ -83,7 +83,7 @@ public class WorksetIterationsJavaApiCompilerTest extends CompilerTestBase {
 			
 			// verify reducer
 			assertEquals(ShipStrategyType.PARTITION_HASH, worksetReducer.getInput().getShipStrategy());
-			assertEquals(new FieldList(1, 2), worksetReducer.getKeys());
+			assertEquals(new FieldList(1, 2), worksetReducer.getKeys(0));
 			
 			// currently, the system may partition before or after the mapper
 			ShipStrategyType ss1 = deltaMapper.getInput().getShipStrategy();
@@ -129,7 +129,7 @@ public class WorksetIterationsJavaApiCompilerTest extends CompilerTestBase {
 			
 			// verify reducer
 			assertEquals(ShipStrategyType.PARTITION_HASH, worksetReducer.getInput().getShipStrategy());
-			assertEquals(new FieldList(1, 2), worksetReducer.getKeys());
+			assertEquals(new FieldList(1, 2), worksetReducer.getKeys(0));
 			
 			// verify solution delta
 			assertEquals(2, joinWithSolutionSetNode.getOutgoingChannels().size());
@@ -174,7 +174,7 @@ public class WorksetIterationsJavaApiCompilerTest extends CompilerTestBase {
 			
 			// verify reducer
 			assertEquals(ShipStrategyType.FORWARD, worksetReducer.getInput().getShipStrategy());
-			assertEquals(new FieldList(1, 2), worksetReducer.getKeys());
+			assertEquals(new FieldList(1, 2), worksetReducer.getKeys(0));
 			
 			
 			// verify solution delta

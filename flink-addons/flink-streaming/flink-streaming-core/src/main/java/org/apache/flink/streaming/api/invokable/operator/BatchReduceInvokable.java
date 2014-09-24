@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -17,114 +17,193 @@
 
 package org.apache.flink.streaming.api.invokable.operator;
 
-import java.io.IOException;
-import java.util.ArrayList;
+import java.io.Serializable;
 import java.util.Iterator;
 
 import org.apache.commons.math.util.MathUtils;
-import org.apache.flink.api.common.functions.GroupReduceFunction;
+import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.invokable.StreamOperatorInvokable;
 import org.apache.flink.streaming.api.streamrecord.StreamRecord;
-import org.apache.flink.streaming.state.SlidingWindowState;
+import org.apache.flink.streaming.state.NullableCircularBuffer;
 
-public class BatchReduceInvokable<IN, OUT> extends StreamOperatorInvokable<IN, OUT> {
+public class BatchReduceInvokable<OUT> extends StreamOperatorInvokable<OUT, OUT> {
 
 	private static final long serialVersionUID = 1L;
-	protected GroupReduceFunction<IN, OUT> reducer;
-	protected BatchIterator<IN> userIterator;
-	protected Iterable<IN> userIterable;
-	protected long slideSize;
-	protected long granularity;
-	protected int listSize;
-	protected transient SlidingWindowState<IN> state;
-	
-	private long batchSize;
-	private int counter = 0;
+	protected ReduceFunction<OUT> reducer;
+	protected TypeSerializer<OUT> typeSerializer;
 
-	public BatchReduceInvokable(GroupReduceFunction<IN, OUT> reduceFunction, long batchSize,
-			long slideSize) {
+	protected long slideSize;
+
+	protected long batchSize;
+	protected int granularity;
+	protected long batchPerSlide;
+	protected long numberOfBatches;
+	protected StreamBatch batch;
+	protected StreamBatch currentBatch;
+
+	public BatchReduceInvokable(ReduceFunction<OUT> reduceFunction, long batchSize, long slideSize) {
 		super(reduceFunction);
 		this.reducer = reduceFunction;
 		this.batchSize = batchSize;
 		this.slideSize = slideSize;
-		this.granularity = MathUtils.gcd(batchSize, slideSize);
-		this.listSize = (int) granularity;
-	}
-
-	@Override
-	protected void mutableInvoke() throws Exception {
-		throw new RuntimeException("Reducing mutable sliding batch is not supported.");
+		this.granularity = (int) MathUtils.gcd(batchSize, slideSize);
+		this.batchPerSlide = slideSize / granularity;
+		this.numberOfBatches = batchSize / granularity;
+		this.batch = new StreamBatch();
 	}
 
 	@Override
 	protected void immutableInvoke() throws Exception {
 		if ((reuse = recordIterator.next(reuse)) == null) {
 			throw new RuntimeException("DataStream must not be empty");
-		}
-	
-		while (reuse != null && !state.isFull()) {
-			collectOneUnit();
-		}
-		reduce();
-	
-		while (reuse != null) {
-			for (int i = 0; i < slideSize / granularity; i++) {
-				if (reuse != null) {
-					collectOneUnit();
-				}
-			}
-			reduce();
-		}
-	}
 
-	protected void collectOneUnit() throws IOException {
-		ArrayList<StreamRecord<IN>> list;
-		list = new ArrayList<StreamRecord<IN>>(listSize);
-	
-		do {
-			list.add(reuse);
+		}
+
+		while (reuse != null) {		
+			StreamBatch batch = getBatch(reuse);
+
+			batch.reduceToBuffer(reuse);
+
 			resetReuse();
-		} while ((reuse = recordIterator.next(reuse)) != null && batchNotFull());
-		state.pushBack(list);
-	}
-
-	
-	protected boolean batchNotFull() {
-		counter++;
-		if (counter < granularity) {
-			return true;
-		} else {
-			counter = 0;
-			return false;
+			reuse = recordIterator.next(reuse);
 		}
+		
+		reduceLastBatch();
+
 	}
 
-	protected void reduce() {
-		userIterator = state.getIterator();
+	protected void reduceLastBatch() throws Exception {
+		batch.reduceLastBatch();		
+	}
+
+	protected StreamBatch getBatch(StreamRecord<OUT> next) {
+		return batch;
+	}
+
+	@Override
+	// TODO: implement mutableInvoke for reduce
+	protected void mutableInvoke() throws Exception {
+		System.out.println("Immutable setting is used");
+		immutableInvoke();
+	}
+
+	protected void reduce(StreamBatch batch) {
+		this.currentBatch = batch;
 		callUserFunctionAndLogException();
 	}
-	
+
 	@Override
 	protected void callUserFunction() throws Exception {
-		reducer.reduce(userIterable, collector);
+		Iterator<OUT> reducedIterator = currentBatch.getIterator();
+		OUT reduced = null;
+
+		while (reducedIterator.hasNext() && reduced == null) {
+			reduced = reducedIterator.next();
+		}
+
+		while (reducedIterator.hasNext()) {
+			OUT next = reducedIterator.next();
+			if (next != null) {
+				reduced = reducer.reduce(reduced, next);
+			}
+		}
+		if (reduced != null) {
+			collector.collect(reduced);
+		}
 	}
-	
+
 	@Override
-	public void open(Configuration parameters) throws Exception {
-		super.open(parameters);
-		this.state = new SlidingWindowState<IN>(batchSize, slideSize, granularity);
-		userIterable = new BatchIterable();
+	public void open(Configuration config) throws Exception {
+		super.open(config);
+		this.typeSerializer = serializer.getObjectSerializer();
 	}
 
-	protected class BatchIterable implements Iterable<IN> {
+	protected class StreamBatch implements Serializable {
 
-		@Override
-		public Iterator<IN> iterator() {
-			return userIterator;
+		private static final long serialVersionUID = 1L;
+		protected long counter;
+		protected long minibatchCounter;
+		protected OUT currentValue;
+
+		protected NullableCircularBuffer circularBuffer;
+
+		public StreamBatch() {
+
+			this.circularBuffer = new NullableCircularBuffer((int) (batchSize / granularity));
+			this.counter = 0;
+			this.minibatchCounter = 0;
+
+		}
+
+		public void reduceToBuffer(StreamRecord<OUT> next) throws Exception {
+			OUT nextValue = next.getObject();
+			if (currentValue != null) {
+				currentValue = reducer.reduce(currentValue, nextValue);
+			} else {
+				currentValue = nextValue;
+			}
+
+			counter++;
+
+			if (miniBatchEnd()) {
+				addToBuffer();
+				if (batchEnd()) {
+					reduceBatch();
+				}
+			}
+
+		}
+
+		protected void addToBuffer() {
+			circularBuffer.add(currentValue);
+			minibatchCounter++;
+			currentValue = null;
+		}
+
+		protected boolean miniBatchEnd() {
+			return (counter % granularity) == 0;
+		}
+
+		public boolean batchEnd() {
+			if (counter == batchSize) {
+				counter -= slideSize;
+				minibatchCounter -= batchPerSlide;
+				return true;
+			}
+			return false;
+		}
+
+		public void reduceLastBatch() throws Exception {
+			if (miniBatchInProgress()) {
+				addToBuffer();
+			}
+
+			if (minibatchCounter >= 0) {
+				for (long i = 0; i < (numberOfBatches - minibatchCounter); i++) {
+					circularBuffer.remove();
+				}
+				if (!circularBuffer.isEmpty()) {
+					reduce(this);
+				}
+			}
+
+		}
+		
+		public boolean miniBatchInProgress(){
+			return currentValue != null;
+		}
+
+		public void reduceBatch() {
+			reduce(this);
+		}
+
+		@SuppressWarnings("unchecked")
+		public Iterator<OUT> getIterator() {
+			return circularBuffer.iterator();
 		}
 
 	}
-
 
 }

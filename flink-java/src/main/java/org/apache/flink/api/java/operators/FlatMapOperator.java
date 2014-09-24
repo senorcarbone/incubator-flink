@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -22,8 +22,7 @@ import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.operators.Operator;
 import org.apache.flink.api.common.operators.UnaryOperatorInformation;
 import org.apache.flink.api.common.operators.base.FlatMapOperatorBase;
-import org.apache.flink.api.java.typeutils.TypeExtractor;
-
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.DataSet;
 
 /**
@@ -37,16 +36,27 @@ public class FlatMapOperator<IN, OUT> extends SingleInputUdfOperator<IN, OUT, Fl
 	
 	protected final FlatMapFunction<IN, OUT> function;
 	
+	protected PartitionedDataSet<IN> partitionedDataSet;
 	
-	public FlatMapOperator(DataSet<IN> input, FlatMapFunction<IN, OUT> function) {
-		super(input, TypeExtractor.getFlatMapReturnTypes(function, input.getType()));
+	public FlatMapOperator(DataSet<IN> input, TypeInformation<OUT> resultType, FlatMapFunction<IN, OUT> function) {
+		super(input, resultType);
 		
 		this.function = function;
 		extractSemanticAnnotationsFromUdf(function.getClass());
 	}
+	
+	public FlatMapOperator(PartitionedDataSet<IN> input, TypeInformation<OUT> resultType, FlatMapFunction<IN, OUT> function) {
+		this(input.getDataSet(), resultType, function);
+		this.partitionedDataSet = input;
+	}
 
 	@Override
 	protected org.apache.flink.api.common.operators.base.FlatMapOperatorBase<IN, OUT, FlatMapFunction<IN,OUT>> translateToDataFlow(Operator<IN> input) {
+		
+		// inject partition operator if necessary
+		if(this.partitionedDataSet != null) {
+			input = this.partitionedDataSet.translateToDataFlow(input, this.getParallelism());
+		}
 		
 		String name = getName() != null ? getName() : function.getClass().getName();
 		// create operator

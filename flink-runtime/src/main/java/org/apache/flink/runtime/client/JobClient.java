@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 
 package org.apache.flink.runtime.client;
 
@@ -45,29 +44,19 @@ import org.apache.flink.util.StringUtils;
 
 /**
  * The job client is able to submit, control, and abort jobs.
- * <p>
- * This class is thread-safe.
  */
 public class JobClient {
 
-	/**
-	 * The logging object used for debugging.
-	 */
+	/** The logging object used for debugging. */
 	private static final Logger LOG = LoggerFactory.getLogger(JobClient.class);
 
-	/**
-	 * The job management server stub.
-	 */
+	/** The job management server stub.*/
 	private final JobManagementProtocol jobSubmitClient;
 
-	/**
-	 * The accumulator protocol stub to request accumulators from JobManager
-	 */
+	/** The accumulator protocol stub to request accumulators from JobManager */
 	private AccumulatorProtocol accumulatorProtocolProxy;
 
-	/**
-	 * The job graph assigned with this job client.
-	 */
+	/** The job graph assigned with this job client. */
 	private final JobGraph jobGraph;
 
 	/**
@@ -121,7 +110,7 @@ public class JobClient {
 
 	/**
 	 * Constructs a new job client object and instantiates a local
-	 * RPC proxy for the {@link JobSubmissionProtocol}.
+	 * RPC proxy for the JobSubmissionProtocol
 	 * 
 	 * @param jobGraph
 	 *        the job graph to run
@@ -134,7 +123,7 @@ public class JobClient {
 
 	/**
 	 * Constructs a new job client object and instantiates a local
-	 * RPC proxy for the {@link JobSubmissionProtocol}.
+	 * RPC proxy for the JobSubmissionProtocol
 	 * 
 	 * @param jobGraph
 	 *        the job graph to run
@@ -160,7 +149,7 @@ public class JobClient {
 
 	/**
 	 * Constructs a new job client object and instantiates a local
-	 * RPC proxy for the {@link JobSubmissionProtocol}.
+	 * RPC proxy for the JobSubmissionProtocol
 	 * 
 	 * @param jobGraph
 	 *        the job graph to run
@@ -335,7 +324,7 @@ public class JobClient {
 				if (event instanceof JobEvent) {
 					final JobEvent jobEvent = (JobEvent) event;
 					final JobStatus jobStatus = jobEvent.getCurrentJobStatus();
-					if (jobStatus == JobStatus.SCHEDULED) {
+					if (jobStatus == JobStatus.RUNNING) {
 						startTimestamp = jobEvent.getTimestamp();
 					}
 					if (jobStatus == JobStatus.FINISHED) {

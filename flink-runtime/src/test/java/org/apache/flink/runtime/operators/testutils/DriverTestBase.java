@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,20 +16,18 @@
  * limitations under the License.
  */
 
-
 package org.apache.flink.runtime.operators.testutils;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Assert;
-
 import org.apache.flink.api.common.functions.Function;
 import org.apache.flink.api.common.functions.util.FunctionUtils;
 import org.apache.flink.api.common.typeutils.TypeComparator;
 import org.apache.flink.api.common.typeutils.TypeSerializerFactory;
-import org.apache.flink.api.java.typeutils.runtime.record.RecordComparator;
-import org.apache.flink.api.java.typeutils.runtime.record.RecordSerializerFactory;
+import org.apache.flink.api.common.typeutils.record.RecordComparator;
+import org.apache.flink.api.common.typeutils.record.RecordSerializerFactory;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
@@ -120,7 +118,7 @@ public class DriverTestBase<S extends Function> implements PactTaskContext<S, Re
 		this.inputs.add(null);
 	}
 	
-	public void addInputComparator(RecordComparator comparator) {
+	public void addDriverComparator(RecordComparator comparator) {
 		this.comparators.add(comparator);
 	}
 
@@ -285,7 +283,7 @@ public class DriverTestBase<S extends Function> implements PactTaskContext<S, Re
 	}
 
 	@Override
-	public <X> TypeComparator<X> getInputComparator(int index) {
+	public <X> TypeComparator<X> getDriverComparator(int index) {
 		@SuppressWarnings("unchecked")
 		TypeComparator<X> comparator = (TypeComparator<X>) this.comparators.get(index);
 		return comparator;

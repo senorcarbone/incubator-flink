@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -71,7 +71,7 @@ public class RemoteStreamEnvironment extends StreamExecutionEnvironment {
 	@Override
 	public void execute() {
 		if (LOG.isInfoEnabled()) {
-			LOG.info("Running remotely at " + host + ":" + port);
+			LOG.info("Running remotely at {}:{}", host, port);
 		}
 
 		JobGraph jobGraph = jobGraphBuilder.getJobGraph();

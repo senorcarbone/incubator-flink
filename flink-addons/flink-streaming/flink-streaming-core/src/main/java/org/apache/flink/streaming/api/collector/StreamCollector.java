@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -44,7 +44,7 @@ public class StreamCollector<OUT> implements Collector<OUT> {
 
 	protected StreamRecord<OUT> streamRecord;
 	protected int channelID;
-	private List<RecordWriter<SerializationDelegate<StreamRecord<OUT>>>> outputs;
+	protected List<RecordWriter<SerializationDelegate<StreamRecord<OUT>>>> outputs;
 	protected Map<String, List<RecordWriter<SerializationDelegate<StreamRecord<OUT>>>>> outputMap;
 	protected SerializationDelegate<StreamRecord<OUT>> serializationDelegate;
 
@@ -59,6 +59,7 @@ public class StreamCollector<OUT> implements Collector<OUT> {
 	public StreamCollector(int channelID,
 			SerializationDelegate<StreamRecord<OUT>> serializationDelegate) {
 		this.serializationDelegate = serializationDelegate;
+
 		if (serializationDelegate != null) {
 			this.streamRecord = serializationDelegate.getInstance();
 		} else {
@@ -76,9 +77,16 @@ public class StreamCollector<OUT> implements Collector<OUT> {
 	 *            The RecordWriter object representing the output.
 	 * @param outputNames
 	 *            User defined names of the output.
+	 * @param isSelectAllOutput
+	 *            Marks whether all the outputs are selected.
 	 */
 	public void addOutput(RecordWriter<SerializationDelegate<StreamRecord<OUT>>> output,
-			List<String> outputNames) {
+			List<String> outputNames, boolean isSelectAllOutput) {
+		addOneOutput(output, outputNames, isSelectAllOutput);
+	}
+
+	protected void addOneOutput(RecordWriter<SerializationDelegate<StreamRecord<OUT>>> output,
+			List<String> outputNames, boolean isSelectAllOutput) {
 		outputs.add(output);
 		for (String outputName : outputNames) {
 			if (outputName != null) {
@@ -111,7 +119,7 @@ public class StreamCollector<OUT> implements Collector<OUT> {
 	}
 
 	/**
-	 * Emits a StreamRecord to all the outputs.
+	 * Emits a StreamRecord to the outputs.
 	 * 
 	 * @param streamRecord
 	 *            StreamRecord to emit.
@@ -119,13 +127,16 @@ public class StreamCollector<OUT> implements Collector<OUT> {
 	private void emit(StreamRecord<OUT> streamRecord) {
 		streamRecord.newId(channelID);
 		serializationDelegate.setInstance(streamRecord);
+		emitToOutputs();
+	}
+
+	protected void emitToOutputs() {
 		for (RecordWriter<SerializationDelegate<StreamRecord<OUT>>> output : outputs) {
 			try {
 				output.emit(serializationDelegate);
 			} catch (Exception e) {
 				if (LOG.isErrorEnabled()) {
-					LOG.error(String.format("Emit failed due to: %s",
-							StringUtils.stringifyException(e)));
+					LOG.error("Emit failed due to: {}", StringUtils.stringifyException(e));
 				}
 			}
 		}

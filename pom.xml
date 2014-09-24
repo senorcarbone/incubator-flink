@@ -84,20 +84,20 @@ under the License.
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 			<version>3.1</version>
+			</dependency>
+	
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>${slf4j.version}</version>
 		</dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>1.0.13</version>
-            <scope>runtime</scope>
-        </dependency>
+	
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>1.0.13</version>
+			<scope>runtime</scope>
+		</dependency>
 
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -522,8 +522,10 @@ under the License.
 						<exclude>**/*.creole</exclude>
 						<exclude>CONTRIBUTORS</exclude>
 						<exclude>DEPENDENCIES</exclude>
-						<!-- Build fiels -->
+						<!-- Build files -->
 						<exclude>tools/maven/checkstyle.xml</exclude>
+						<exclude>tools/maven/scalastyle-config.xml</exclude>
+						<exclude>**/scalastyle-output.xml</exclude>
 						<exclude>tools/maven/suppressions.xml</exclude>
 						<exclude>**/pom.xml</exclude>
 						<exclude>**/pom.hadoop2.xml</exclude>

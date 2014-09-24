@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -341,7 +341,7 @@ public abstract class SerializerTestBase<T> {
 	
 	// --------------------------------------------------------------------------------------------
 	
-	private TypeSerializer<T> getSerializer() {
+	protected TypeSerializer<T> getSerializer() {
 		TypeSerializer<T> serializer = createSerializer();
 		if (serializer == null) {
 			throw new RuntimeException("Test case corrupt. Returns null as serializer.");

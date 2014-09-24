@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -22,8 +22,7 @@ import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.operators.Operator;
 import org.apache.flink.api.common.operators.UnaryOperatorInformation;
 import org.apache.flink.api.common.operators.base.MapOperatorBase;
-import org.apache.flink.api.java.typeutils.TypeExtractor;
-
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.DataSet;
 
 /**
@@ -39,17 +38,29 @@ public class MapOperator<IN, OUT> extends SingleInputUdfOperator<IN, OUT, MapOpe
 	
 	protected final MapFunction<IN, OUT> function;
 	
+	protected PartitionedDataSet<IN> partitionedDataSet;
 	
-	public MapOperator(DataSet<IN> input, MapFunction<IN, OUT> function) {
+	
+	public MapOperator(DataSet<IN> input, TypeInformation<OUT> resultType, MapFunction<IN, OUT> function) {
 
-		super(input, TypeExtractor.getMapReturnTypes(function, input.getType()));
+		super(input, resultType);
 		
 		this.function = function;
 		extractSemanticAnnotationsFromUdf(function.getClass());
 	}
+	
+	public MapOperator(PartitionedDataSet<IN> input, TypeInformation<OUT> resultType, MapFunction<IN, OUT> function) {
+		this(input.getDataSet(), resultType, function);
+		this.partitionedDataSet = input;
+	}
 
 	@Override
 	protected org.apache.flink.api.common.operators.base.MapOperatorBase<IN, OUT, MapFunction<IN, OUT>> translateToDataFlow(Operator<IN> input) {
+		
+		// inject partition operator if necessary
+		if(this.partitionedDataSet != null) {
+			input = this.partitionedDataSet.translateToDataFlow(input, this.getParallelism());
+		}
 		
 		String name = getName() != null ? getName() : function.getClass().getName();
 		// create operator

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -42,13 +42,13 @@ public class ClusterUtil {
 	 * @param memorySize
 	 *            memorySize
 	 */
-	public static void runOnMiniCluster(JobGraph jobGraph, int numberOfTaskTrackers, long memorySize) {
+	public static void runOnMiniCluster(JobGraph jobGraph, int numberOfTaskTrackers, long memorySize) throws Exception  {
 
 		Configuration configuration = jobGraph.getJobConfiguration();
 
 		NepheleMiniCluster exec = new NepheleMiniCluster();
 		exec.setMemorySize(memorySize);
-		exec.setNumTaskTracker(numberOfTaskTrackers);
+		exec.setNumTaskManager(numberOfTaskTrackers);
 		if (LOG.isInfoEnabled()) {
 			LOG.info("Running on mini cluster");
 		}
@@ -59,15 +59,14 @@ public class ClusterUtil {
 			Client client = new Client(new InetSocketAddress("localhost",
 					exec.getJobManagerRpcPort()), configuration, ClusterUtil.class.getClassLoader());
 			client.run(jobGraph, true);
-
 		} catch (ProgramInvocationException e) {
 			if (e.getMessage().contains("GraphConversionException")) {
-				throw new RuntimeException(CANNOT_EXECUTE_EMPTY_JOB, e);
+				throw new Exception(CANNOT_EXECUTE_EMPTY_JOB, e);
 			} else {
-				throw new RuntimeException(e.getMessage(), e);
+				throw e;
 			}
 		} catch (Exception e) {
-			throw new RuntimeException(e.getMessage(), e);
+			throw e;
 		} finally {
 			try {
 				exec.stop();
@@ -76,7 +75,7 @@ public class ClusterUtil {
 		}
 	}
 
-	public static void runOnMiniCluster(JobGraph jobGraph, int numberOfTaskTrackers) {
+	public static void runOnMiniCluster(JobGraph jobGraph, int numberOfTaskTrackers) throws Exception {
 		runOnMiniCluster(jobGraph, numberOfTaskTrackers, -1);
 	}
 
