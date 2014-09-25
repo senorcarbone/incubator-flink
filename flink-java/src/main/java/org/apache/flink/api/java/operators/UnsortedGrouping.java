@@ -22,6 +22,7 @@ import org.apache.flink.api.common.InvalidProgramException;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.functions.util.FunctionUtils;
+import org.apache.flink.api.java.functions.FirstReducer;
 import org.apache.flink.api.common.operators.Order;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.aggregation.Aggregations;
@@ -138,6 +139,19 @@ public class UnsortedGrouping<T> extends Grouping<T> {
 		TypeInformation<R> resultType = TypeExtractor.getGroupReduceReturnTypes(reducer, this.getDataSet().getType());
 
 		return new GroupReduceOperator<T, R>(this, resultType, reducer);
+	}
+	
+	/**
+	 * Returns a new set containing the first n elements in this grouped {@link DataSet}.<br/>
+	 * @param n The desired number of elements for each group.
+	 * @return A ReduceGroupOperator that represents the DataSet containing the elements.
+	*/
+	public GroupReduceOperator<T, T> first(int n) {
+		if(n < 1) {
+			throw new InvalidProgramException("Parameter n of first(n) must be at least 1.");
+		}
+		
+		return reduceGroup(new FirstReducer<T>(n));
 	}
 
 	/**

@@ -15,24 +15,23 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.serialization;
+package org.apache.flink.streaming.api.function.aggregation;
 
-import java.io.Serializable;
+public class MaxByAggregationFunction<T> extends MinByAggregationFunction<T> {
 
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-
-public abstract class TypeSerializerWrapper<T>
-		implements Serializable {
 	private static final long serialVersionUID = 1L;
 
-	protected transient TypeInformation<T> typeInfo = null;
-	
-	public TypeInformation<T> getTypeInfo() {
-		if (typeInfo == null) {
-			throw new RuntimeException("There is no TypeInformation in the wrapper");
-		}
-		return typeInfo;
+	public MaxByAggregationFunction(int pos, boolean first) {
+		super(pos, first);
 	}
 
-	protected abstract void setTypeInfo();
+	@Override
+	public <R> boolean isExtremal(Comparable<R> o1, R o2) {
+		if (first) {
+			return o1.compareTo(o2) >= 0;
+		} else {
+			return o1.compareTo(o2) > 0;
+		}
+
+	}
 }

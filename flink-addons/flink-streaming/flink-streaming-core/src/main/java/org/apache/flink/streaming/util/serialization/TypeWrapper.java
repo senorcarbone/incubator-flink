@@ -15,30 +15,24 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util;
+package org.apache.flink.streaming.util.serialization;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.Serializable;
 
-public class TestDataUtilTest {
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 
-	@SuppressWarnings("resource")
-	public boolean compareFile(String file1, String file2) throws FileNotFoundException,
-			IOException {
+public abstract class TypeWrapper<T>
+		implements Serializable {
+	private static final long serialVersionUID = 1L;
 
-		BufferedReader myInput1 = new BufferedReader(new InputStreamReader(new FileInputStream(
-				file1)));
-		BufferedReader myInput2 = new BufferedReader(new InputStreamReader(new FileInputStream(
-				file2)));
-
-		String line1, line2;
-		while ((line1 = myInput1.readLine()) != null && (line2 = myInput2.readLine()) != null) {
-			if (!line1.equals(line2))
-				return false;
+	protected transient TypeInformation<T> typeInfo = null;
+	
+	public TypeInformation<T> getTypeInfo() {
+		if (typeInfo == null) {
+			throw new RuntimeException("There is no TypeInformation in the wrapper");
 		}
-		return true;
+		return typeInfo;
 	}
+
+	protected abstract void setTypeInfo();
 }

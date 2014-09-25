@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -17,25 +17,29 @@
 
 package org.apache.flink.streaming.api.invokable.operator;
 
-import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.java.tuple.Tuple;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.invokable.StreamInvokable;
+import org.apache.flink.streaming.util.serialization.TypeWrapper;
 
-public class FlatMapInvokable<IN, OUT> extends StreamInvokable<IN, OUT> {
+public class ProjectInvokable<IN, OUT extends Tuple> extends StreamInvokable<IN, OUT> {
 	private static final long serialVersionUID = 1L;
 
-	private FlatMapFunction<IN, OUT> flatMapper;
+	transient OUT outTuple;
+	TypeWrapper<OUT> outTypeWrapper;
+	int[] fields;
+	int numFields;
 
-	public FlatMapInvokable(FlatMapFunction<IN, OUT> flatMapper) {
-		super(flatMapper);
-		this.flatMapper = flatMapper;
+	public ProjectInvokable(int[] fields, TypeWrapper<OUT> outTypeWrapper) {
+		super(null);
+		this.fields = fields;
+		this.numFields = this.fields.length;
+		this.outTypeWrapper = outTypeWrapper;
 	}
 
 	@Override
 	protected void immutableInvoke() throws Exception {
-		while ((reuse = recordIterator.next(reuse)) != null) {
-			callUserFunctionAndLogException();
-			resetReuse();
-		}
+		mutableInvoke();
 	}
 
 	@Override
@@ -47,7 +51,15 @@ public class FlatMapInvokable<IN, OUT> extends StreamInvokable<IN, OUT> {
 
 	@Override
 	protected void callUserFunction() throws Exception {
-		flatMapper.flatMap(reuse.getObject(), collector);
+		for (int i = 0; i < this.numFields; i++) {
+			outTuple.setField(reuse.getField(fields[i]), i);
+		}
+		collector.collect(outTuple);
 	}
 
+	@Override
+	public void open(Configuration config) throws Exception {
+		super.open(config);
+		outTuple = outTypeWrapper.getTypeInfo().createSerializer().createInstance();
+	}
 }

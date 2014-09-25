@@ -24,11 +24,11 @@ import org.apache.commons.math.util.MathUtils;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.invokable.StreamOperatorInvokable;
+import org.apache.flink.streaming.api.invokable.StreamInvokable;
 import org.apache.flink.streaming.api.streamrecord.StreamRecord;
 import org.apache.flink.streaming.state.NullableCircularBuffer;
 
-public class BatchReduceInvokable<OUT> extends StreamOperatorInvokable<OUT, OUT> {
+public class BatchReduceInvokable<OUT> extends StreamInvokable<OUT, OUT> {
 
 	private static final long serialVersionUID = 1L;
 	protected ReduceFunction<OUT> reducer;
@@ -117,7 +117,7 @@ public class BatchReduceInvokable<OUT> extends StreamOperatorInvokable<OUT, OUT>
 	@Override
 	public void open(Configuration config) throws Exception {
 		super.open(config);
-		this.typeSerializer = serializer.getObjectSerializer();
+		this.typeSerializer = inSerializer.getObjectSerializer();
 	}
 
 	protected class StreamBatch implements Serializable {

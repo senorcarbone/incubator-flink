@@ -28,10 +28,10 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.collector.OutputSelector;
 import org.apache.flink.streaming.api.invokable.StreamInvokable;
-import org.apache.flink.streaming.api.streamcomponent.StreamComponentException;
+import org.apache.flink.streaming.api.streamvertex.StreamVertexException;
 import org.apache.flink.streaming.partitioner.ShufflePartitioner;
 import org.apache.flink.streaming.partitioner.StreamPartitioner;
-import org.apache.flink.streaming.util.serialization.TypeSerializerWrapper;
+import org.apache.flink.streaming.util.serialization.TypeWrapper;
 
 public class StreamConfig {
 	private static final String INPUT_TYPE = "inputType_";
@@ -46,7 +46,7 @@ public class StreamConfig {
 	private static final String DIRECTED_EMIT = "directedEmit";
 	private static final String FUNCTION_NAME = "operatorName";
 	private static final String FUNCTION = "operator";
-	private static final String COMPONENT_NAME = "componentName";
+	private static final String VERTEX_NAME = "vertexName";
 	private static final String SERIALIZEDUDF = "serializedudf";
 	private static final String USER_FUNCTION = "userfunction";
 	private static final String BUFFER_TIMEOUT = "bufferTimeout";
@@ -79,19 +79,19 @@ public class StreamConfig {
 	private static final String TYPE_WRAPPER_OUT_1 = "typeWrapper_out_1";
 	private static final String TYPE_WRAPPER_OUT_2 = "typeWrapper_out_2";
 
-	public void setTypeWrapperIn1(TypeSerializerWrapper<?> typeWrapper) {
+	public void setTypeWrapperIn1(TypeWrapper<?> typeWrapper) {
 		setTypeWrapper(TYPE_WRAPPER_IN_1, typeWrapper);
 	}
 
-	public void setTypeWrapperIn2(TypeSerializerWrapper<?> typeWrapper) {
+	public void setTypeWrapperIn2(TypeWrapper<?> typeWrapper) {
 		setTypeWrapper(TYPE_WRAPPER_IN_2, typeWrapper);
 	}
 
-	public void setTypeWrapperOut1(TypeSerializerWrapper<?> typeWrapper) {
+	public void setTypeWrapperOut1(TypeWrapper<?> typeWrapper) {
 		setTypeWrapper(TYPE_WRAPPER_OUT_1, typeWrapper);
 	}
 
-	public void setTypeWrapperOut2(TypeSerializerWrapper<?> typeWrapper) {
+	public void setTypeWrapperOut2(TypeWrapper<?> typeWrapper) {
 		setTypeWrapper(TYPE_WRAPPER_OUT_2, typeWrapper);
 	}
 
@@ -111,7 +111,7 @@ public class StreamConfig {
 		return getTypeInfo(TYPE_WRAPPER_OUT_2);
 	}
 
-	private void setTypeWrapper(String key, TypeSerializerWrapper<?> typeWrapper) {
+	private void setTypeWrapper(String key, TypeWrapper<?> typeWrapper) {
 		config.setBytes(key, SerializationUtils.serialize(typeWrapper));
 	}
 
@@ -123,10 +123,15 @@ public class StreamConfig {
 			throw new RuntimeException("TypeSerializationWrapper must be set");
 		}
 
-		TypeSerializerWrapper<T> typeWrapper = (TypeSerializerWrapper<T>) SerializationUtils
+		TypeWrapper<T> typeWrapper = (TypeWrapper<T>) SerializationUtils
 				.deserialize(serializedWrapper);
+		if (typeWrapper != null) {
+			return typeWrapper.getTypeInfo();
 
-		return typeWrapper.getTypeInfo();
+		} else {
+			return null;
+		}
+
 	}
 
 	public void setMutability(boolean isMutable) {
@@ -145,7 +150,7 @@ public class StreamConfig {
 		return config.getLong(BUFFER_TIMEOUT, DEFAULT_TIMEOUT);
 	}
 
-	public void setUserInvokable(StreamInvokable<?> invokableObject) {
+	public void setUserInvokable(StreamInvokable<?,?> invokableObject) {
 		if (invokableObject != null) {
 			config.setClass(USER_FUNCTION, invokableObject.getClass());
 
@@ -162,16 +167,16 @@ public class StreamConfig {
 		try {
 			return deserializeObject(config.getBytes(SERIALIZEDUDF, null));
 		} catch (Exception e) {
-			throw new StreamComponentException("Cannot instantiate user function", e);
+			throw new StreamVertexException("Cannot instantiate user function", e);
 		}
 	}
 
-	public void setComponentName(String componentName) {
-		config.setString(COMPONENT_NAME, componentName);
+	public void setVertexName(String vertexName) {
+		config.setString(VERTEX_NAME, vertexName);
 	}
 
-	public String getComponentName() {
-		return config.getString(COMPONENT_NAME, null);
+	public String getVertexName() {
+		return config.getString(VERTEX_NAME, null);
 	}
 
 	public void setFunction(byte[] serializedFunction, String functionName) {
@@ -212,7 +217,7 @@ public class StreamConfig {
 		try {
 			return deserializeObject(config.getBytes(OUTPUT_SELECTOR, null));
 		} catch (Exception e) {
-			throw new StreamComponentException("Cannot deserialize and instantiate OutputSelector",
+			throw new StreamVertexException("Cannot deserialize and instantiate OutputSelector",
 					e);
 		}
 	}

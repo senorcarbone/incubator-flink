@@ -15,38 +15,41 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.streamcomponent;
+package org.apache.flink.streaming.api.function.aggregation;
 
 import org.apache.flink.api.java.tuple.Tuple;
-import org.apache.flink.streaming.api.invokable.SourceInvokable;
 
-public class StreamSource<OUT extends Tuple> extends AbstractStreamComponent {
+public class MinByAggregationFunction<T> extends ComparableAggregationFunction<T> {
 
-	protected OutputHandler<OUT> outputHandler;
+	private static final long serialVersionUID = 1L;
+	protected boolean first;
 
-	private SourceInvokable<OUT> sourceInvokable;
-	
-	private static int numSources;
-
-	public StreamSource() {
-		sourceInvokable = null;
-		numSources = newComponent();
-		instanceID = numSources;
+	public MinByAggregationFunction(int pos, boolean first) {
+		super(pos);
+		this.first = first;
 	}
 
 	@Override
-	public void setInputsOutputs() {
-		outputHandler = new OutputHandler<OUT>(this);
+	public <R> void compare(Tuple tuple1, Tuple tuple2) throws InstantiationException,
+			IllegalAccessException {
+
+		Comparable<R> o1 = tuple1.getField(position);
+		R o2 = tuple2.getField(position);
+
+		if (isExtremal(o1, o2)) {
+			returnTuple = tuple1;
+		} else {
+			returnTuple = tuple2;
+		}
 	}
 
 	@Override
-	protected void setInvokable() {
-		sourceInvokable = configuration.getUserInvokable();
-		sourceInvokable.setCollector(outputHandler.getCollector());
-	}
+	public <R> boolean isExtremal(Comparable<R> o1, R o2) {
+		if (first) {
+			return o1.compareTo(o2) <= 0;
+		} else {
+			return o1.compareTo(o2) < 0;
+		}
 
-	@Override
-	public void invoke() throws Exception {
-		outputHandler.invokeUserFunction("SOURCE", sourceInvokable);
 	}
 }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.streamcomponent;
+package org.apache.flink.streaming.api.streamvertex;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -37,7 +37,7 @@ import org.apache.flink.streaming.api.function.source.SourceFunction;
 import org.apache.flink.util.Collector;
 import org.junit.Test;
 
-public class StreamComponentTest {
+public class StreamVertexTest {
 
 	private static Map<Integer, Integer> data = new HashMap<Integer, Integer>();
 
@@ -81,24 +81,11 @@ public class StreamComponentTest {
 	private static final int SOURCE_PARALELISM = 1;
 	private static final long MEMORYSIZE = 32;
 
-//	@Test
+	@Test
 	public void wrongJobGraph() {
 		LocalStreamEnvironment env = StreamExecutionEnvironment
 				.createLocalEnvironment(SOURCE_PARALELISM);
 
-		try {
-			env.execute();
-			fail();
-		} catch (Exception e) {
-		}
-
-		env.fromCollection(Arrays.asList("a", "b"));
-
-		try {
-			env.execute();
-			fail();
-		} catch (Exception e) {
-		}
 
 		try {
 			env.fromCollection(null);
@@ -128,6 +115,11 @@ public class StreamComponentTest {
 			env.setExecutionParallelism(-10);
 			fail();
 		} catch (IllegalArgumentException e) {
+		}
+		try {
+			env.generateSequence(1, 10).project(2);
+			fail();
+		} catch (RuntimeException e) {
 		}
 
 		try {
@@ -173,7 +165,7 @@ public class StreamComponentTest {
 		fromStringElements.connect(generatedSequence).map(new CoMap()).addSink(new SetSink());
 
 		resultSet = new HashSet<String>();
-		env.execute();
+		env.executeTest(MEMORYSIZE);
 
 		HashSet<String> expectedSet = new HashSet<String>(Arrays.asList("aa", "bb", "cc", "0", "1",
 				"2", "3"));
