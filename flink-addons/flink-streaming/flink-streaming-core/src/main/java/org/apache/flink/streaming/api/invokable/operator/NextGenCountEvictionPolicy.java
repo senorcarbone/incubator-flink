@@ -1,8 +1,6 @@
 package org.apache.flink.streaming.api.invokable.operator;
 
-import org.apache.flink.streaming.api.streamrecord.StreamRecord;
-
-public class NextGenCountEvictionPolicy<IN,FLAG> implements NextGenPolicy<StreamRecord<IN>, FLAG> {
+public class NextGenCountEvictionPolicy<IN,FLAG> implements NextGenPolicy<IN, FLAG> {
 
 	private static final int DEFAULT_START_VALUE=0;
 	
@@ -21,7 +19,7 @@ public class NextGenCountEvictionPolicy<IN,FLAG> implements NextGenPolicy<Stream
 	}
 	
 	@Override
-	public boolean addDataPoint(StreamRecord<IN> datapoint) {
+	public boolean addDataPoint(IN datapoint) {
 		if (counter==max){
 			//The current data point will be part of the next window!
 			//Therefore counter needs to be set to one already.
