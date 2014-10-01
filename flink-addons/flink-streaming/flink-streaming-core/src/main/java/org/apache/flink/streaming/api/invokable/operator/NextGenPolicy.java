@@ -1,6 +1,8 @@
 package org.apache.flink.streaming.api.invokable.operator;
 
-public interface NextGenPolicy<DATA,FLAG> {
+import java.io.Serializable;
+
+public interface NextGenPolicy<DATA,FLAG> extends Serializable{
 
 	/**
 	 * Proves and returns if a new window should be started

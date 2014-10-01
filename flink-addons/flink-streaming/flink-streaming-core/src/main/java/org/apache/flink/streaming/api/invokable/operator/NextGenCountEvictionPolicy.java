@@ -2,6 +2,11 @@ package org.apache.flink.streaming.api.invokable.operator;
 
 public class NextGenCountEvictionPolicy<IN,FLAG> implements NextGenPolicy<IN, FLAG> {
 
+	/**
+	 * Auto generated version ID
+	 */
+	private static final long serialVersionUID = -6357200688886103968L;
+
 	private static final int DEFAULT_START_VALUE=0;
 	
 	private int counter;
