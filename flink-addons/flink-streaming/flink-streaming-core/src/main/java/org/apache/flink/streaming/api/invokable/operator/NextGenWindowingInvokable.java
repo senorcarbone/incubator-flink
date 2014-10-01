@@ -1,6 +1,5 @@
 package org.apache.flink.streaming.api.invokable.operator;
 
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,15 +10,15 @@ import org.apache.flink.streaming.api.invokable.StreamInvokable;
 
 import com.amazonaws.services.sqs.model.UnsupportedOperationException;
 
-public class NextGenWindowingInvokable<IN,FLAG> extends StreamInvokable<IN, Tuple2<IN,Collection<FLAG>>>{
+public class NextGenWindowingInvokable<IN,FLAG> extends StreamInvokable<IN, Tuple2<IN,LinkedList<FLAG>>>{
 
 	/**
 	 * Auto-generated serial version UID
 	 */
 	private static final long serialVersionUID = -8038984294071650730L;
 	
-	private Collection<NextGenPolicy<IN,FLAG>> triggerPolicies;
-	private Collection<NextGenPolicy<IN,FLAG>> emitPolicies;
+	private LinkedList<NextGenPolicy<IN,FLAG>> triggerPolicies;
+	private LinkedList<NextGenPolicy<IN,FLAG>> emitPolicies;
 	private NextGenWindowType windowType;
     /*
      * TODO A LinkedList is obviously not the best possible way of buffering ;)
@@ -29,13 +28,13 @@ public class NextGenWindowingInvokable<IN,FLAG> extends StreamInvokable<IN, Tupl
      *      combiner in hadoop m/r.
      */   
 	private List<IN> buffer=new LinkedList<>();
-	private Collection<FLAG> currentEmittingPoliciesFlags=new LinkedList<>();
+	private LinkedList<FLAG> currentEmittingPoliciesFlags=new LinkedList<>();
 	private ReduceFunction<IN> reducer;
 	
 	public NextGenWindowingInvokable(
 			ReduceFunction<IN> userFunction,
-			Collection<NextGenPolicy<IN,FLAG>> triggerPolicies,
-			Collection<NextGenPolicy<IN,FLAG>> emitPolicies,
+			LinkedList<NextGenPolicy<IN,FLAG>> triggerPolicies,
+			LinkedList<NextGenPolicy<IN,FLAG>> emitPolicies,
 			NextGenWindowType windowType
 	) {
 		super(userFunction);
@@ -132,7 +131,7 @@ public class NextGenWindowingInvokable<IN,FLAG> extends StreamInvokable<IN, Tupl
 			}
 		}
 		if (reduced != null) {
-			collector.collect(new Tuple2<IN, Collection<FLAG>>(reduced, currentEmittingPoliciesFlags));
+			collector.collect(new Tuple2<IN, LinkedList<FLAG>>(reduced, currentEmittingPoliciesFlags));
 		}
 	}
 

@@ -1,6 +1,6 @@
 package org.apache.flink.streaming.examples.nextgen;
 
-import java.util.Collection;
+import java.util.LinkedList;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -36,9 +36,9 @@ public class NextGenBasicExample {
 				return value1+"|"+value2;
 			}
 			
-		};
+		}; Collection
 		
-		DataStream<Tuple2<String,Collection<Integer>>> stream = env.addSource(new BasicSource(), SOURCE_PARALLELISM)
+		DataStream<Tuple2<String,LinkedList<Integer>>> stream = env.addSource(new BasicSource(), SOURCE_PARALLELISM)
 				.nextGenWindow(policy,"sample").reduce(reducer);
 				
 		stream.print();

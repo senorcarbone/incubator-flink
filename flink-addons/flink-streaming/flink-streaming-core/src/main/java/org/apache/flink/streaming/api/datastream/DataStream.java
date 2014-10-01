@@ -19,7 +19,6 @@ package org.apache.flink.streaming.api.datastream;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -432,7 +431,7 @@ public class DataStream<OUT> {
 	 * @return The prototype of {@link NextGenDataStream}
 	 * @see DataStream#nextGenWindow(NextGenPolicy)
 	 */
-	public NextGenDataStream<OUT> nextGenWindow(Collection<NextGenPolicy<OUT, Integer>> policies, OUT sample){
+	public NextGenDataStream<OUT> nextGenWindow(LinkedList<NextGenPolicy<OUT, Integer>> policies, OUT sample){
 		return new NextGenDataStream<>(policies, this, sample);
 	}
 	

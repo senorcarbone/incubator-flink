@@ -1,6 +1,5 @@
 package org.apache.flink.streaming.api.datastream;
 
-import java.util.Collection;
 import java.util.LinkedList;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
@@ -15,26 +14,26 @@ public class NextGenDataStream<OUT> {
 	
 	private static final String FUNCTION_NAME="TEST";
 	
-	private Collection<NextGenPolicy<OUT, Integer>> emitPolicies;
+	private LinkedList<NextGenPolicy<OUT, Integer>> emitPolicies;
 	private DataStream<OUT> dataStream;
 	private OUT sampleOUT;
 	
-	public NextGenDataStream(Collection<NextGenPolicy<OUT, Integer>> emitPolicies, DataStream<OUT> dataStream, OUT sampleOUT){
+	public NextGenDataStream(LinkedList<NextGenPolicy<OUT, Integer>> emitPolicies, DataStream<OUT> dataStream, OUT sampleOUT){
 		this.emitPolicies=emitPolicies;
 		this.dataStream=dataStream;
 		this.sampleOUT=sampleOUT;
 	}
 	
-	public SingleOutputStreamOperator<Tuple2<OUT,Collection<Integer>>, ?> reduce(ReduceFunction<OUT> reducer){
+	public SingleOutputStreamOperator<Tuple2<OUT,LinkedList<Integer>>, ?> reduce(ReduceFunction<OUT> reducer){
 		
 		//create the samples for the ObjectTypeWrapper
-		Collection<Integer> sample=new LinkedList<Integer>(); sample.add(1);
+		LinkedList<Integer> sample=new LinkedList<Integer>(); sample.add(1);
 		
 		
 		
 		return dataStream.addFunction(FUNCTION_NAME, reducer,
 				new FunctionTypeWrapper<>(reducer, ReduceFunction.class, 0),
-				new ObjectTypeWrapper<Tuple2<OUT,Collection<Integer>>>(new Tuple2<OUT,Collection<Integer>>(sampleOUT,sample)),
+				new ObjectTypeWrapper<Tuple2<OUT,LinkedList<Integer>>>(new Tuple2<OUT,LinkedList<Integer>>(sampleOUT,sample)),
 				getReduceInvokable(reducer));
 		
 	}
