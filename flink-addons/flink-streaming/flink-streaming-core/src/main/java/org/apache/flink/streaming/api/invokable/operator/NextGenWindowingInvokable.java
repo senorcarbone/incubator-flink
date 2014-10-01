@@ -10,7 +10,7 @@ import org.apache.flink.streaming.api.invokable.StreamInvokable;
 
 import com.amazonaws.services.sqs.model.UnsupportedOperationException;
 
-public class NextGenWindowingInvokable<IN,FLAG> extends StreamInvokable<IN, Tuple2<IN,LinkedList<FLAG>>>{
+public class NextGenWindowingInvokable<IN,FLAG> extends StreamInvokable<IN, Tuple2<IN,Object[]>>{
 
 	/**
 	 * Auto-generated serial version UID
@@ -86,6 +86,8 @@ public class NextGenWindowingInvokable<IN,FLAG> extends StreamInvokable<IN, Tupl
 				
 				//clear the flag collection
 				currentEmittingPoliciesFlags.clear();
+				//clear the data buffer
+				buffer.clear();
 			}
 			
 			//Add the current element to the buffer
@@ -131,7 +133,7 @@ public class NextGenWindowingInvokable<IN,FLAG> extends StreamInvokable<IN, Tupl
 			}
 		}
 		if (reduced != null) {
-			collector.collect(new Tuple2<IN, LinkedList<FLAG>>(reduced, currentEmittingPoliciesFlags));
+			collector.collect(new Tuple2<IN, Object[]>(reduced, currentEmittingPoliciesFlags.toArray()));
 		}
 	}
 
