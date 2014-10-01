@@ -36,7 +36,7 @@ public class NextGenBasicExample {
 				return value1+"|"+value2;
 			}
 			
-		}; Collection
+		};
 		
 		DataStream<Tuple2<String,LinkedList<Integer>>> stream = env.addSource(new BasicSource(), SOURCE_PARALLELISM)
 				.nextGenWindow(policy,"sample").reduce(reducer);
