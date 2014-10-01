@@ -19,6 +19,8 @@ package org.apache.flink.streaming.api.datastream;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.lang3.SerializationException;
@@ -55,6 +57,7 @@ import org.apache.flink.streaming.api.invokable.operator.CounterInvokable;
 import org.apache.flink.streaming.api.invokable.operator.FilterInvokable;
 import org.apache.flink.streaming.api.invokable.operator.FlatMapInvokable;
 import org.apache.flink.streaming.api.invokable.operator.MapInvokable;
+import org.apache.flink.streaming.api.invokable.operator.NextGenPolicy;
 import org.apache.flink.streaming.api.invokable.operator.StreamReduceInvokable;
 import org.apache.flink.streaming.api.invokable.util.DefaultTimeStamp;
 import org.apache.flink.streaming.api.invokable.util.TimeStamp;
@@ -423,6 +426,28 @@ public class DataStream<OUT> {
 		return new GroupedDataStream<OUT>(this, keyPosition);
 	}
 
+	/**
+	 * Prototype of an interface for policy based windowing
+	 * @param policies The {@link Collection} with {@link NextGenPolicy}
+	 * @return The prototype of {@link NextGenDataStream}
+	 * @see DataStream#nextGenWindow(NextGenPolicy)
+	 */
+	public NextGenDataStream<OUT> nextGenWindow(Collection<NextGenPolicy<OUT, Integer>> policies, OUT sample){
+		return new NextGenDataStream<>(policies, this, sample);
+	}
+	
+	/**
+	 * Prototype of an interface for policy based windowing
+	 * @param policy The {@link NextGenPolicy}
+	 * @return The prototype of {@link NextGenDataStream}
+	 * @see DataStream#nextGenWindow(Collection)
+	 */
+	public NextGenDataStream<OUT> nextGenWindow(NextGenPolicy<OUT, Integer> policy, OUT sample){
+		LinkedList<NextGenPolicy<OUT, Integer>> policyList=new LinkedList<>();
+		policyList.add(policy);
+		return nextGenWindow(policyList,sample);
+	}
+	
 	/**
 	 * Collects the data stream elements into sliding batches creating a new
 	 * {@link BatchedDataStream}. The user can apply transformations like
