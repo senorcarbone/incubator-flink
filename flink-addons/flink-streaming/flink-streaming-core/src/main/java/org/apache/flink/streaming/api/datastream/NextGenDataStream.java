@@ -24,7 +24,7 @@ public class NextGenDataStream<OUT> {
 		this.sampleOUT=sampleOUT;
 	}
 	
-	public SingleOutputStreamOperator<Tuple2<OUT,LinkedList<Integer>>, ?> reduce(ReduceFunction<OUT> reducer){
+	public SingleOutputStreamOperator<Tuple2<OUT,Object[]>, ?> reduce(ReduceFunction<OUT> reducer){
 		
 		//create the samples for the ObjectTypeWrapper
 		LinkedList<Integer> sample=new LinkedList<Integer>(); sample.add(1);
@@ -33,9 +33,8 @@ public class NextGenDataStream<OUT> {
 		
 		return dataStream.addFunction(FUNCTION_NAME, reducer,
 				new FunctionTypeWrapper<>(reducer, ReduceFunction.class, 0),
-				new ObjectTypeWrapper<Tuple2<OUT,LinkedList<Integer>>>(new Tuple2<OUT,LinkedList<Integer>>(sampleOUT,sample)),
+				new ObjectTypeWrapper<Tuple2<OUT,Object[]>>(new Tuple2<OUT,Object[]>(sampleOUT,new Integer[0])),
 				getReduceInvokable(reducer));
-		
 	}
 	
 	protected NextGenWindowingInvokable<OUT, Integer> getReduceInvokable(ReduceFunction<OUT> reducer){

@@ -38,7 +38,7 @@ public class NextGenBasicExample {
 			
 		};
 		
-		DataStream<Tuple2<String,LinkedList<Integer>>> stream = env.addSource(new BasicSource(), SOURCE_PARALLELISM)
+		DataStream<Tuple2<String,Object[]>> stream = env.addSource(new BasicSource(), SOURCE_PARALLELISM)
 				.nextGenWindow(policy,"sample").reduce(reducer);
 				
 		stream.print();
