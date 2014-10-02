@@ -14,11 +14,11 @@ public class NextGenDataStream<OUT> {
 
     private static final String FUNCTION_NAME = "TEST";
 
-    private LinkedList<NextGenPolicy<OUT, Integer>> emitPolicies;
+    private LinkedList<NextGenPolicy<OUT>> emitPolicies;
     private DataStream<OUT> dataStream;
     private OUT sampleOUT;
 
-    public NextGenDataStream(LinkedList<NextGenPolicy<OUT, Integer>> emitPolicies, DataStream<OUT> dataStream, OUT sampleOUT) {
+    public NextGenDataStream(LinkedList<NextGenPolicy<OUT>> emitPolicies, DataStream<OUT> dataStream, OUT sampleOUT) {
         this.emitPolicies = emitPolicies;
         this.dataStream = dataStream;
         this.sampleOUT = sampleOUT;

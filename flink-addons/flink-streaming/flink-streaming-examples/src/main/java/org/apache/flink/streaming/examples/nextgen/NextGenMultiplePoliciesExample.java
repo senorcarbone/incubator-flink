@@ -1,7 +1,5 @@
 package org.apache.flink.streaming.examples.nextgen;
 
-import java.util.LinkedList;
-
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -9,6 +7,8 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.invokable.operator.NextGenCountEvictionPolicy;
 import org.apache.flink.streaming.api.invokable.operator.NextGenPolicy;
 import org.apache.flink.streaming.examples.basictopology.BasicTopology.BasicSource;
+
+import java.util.LinkedList;
 
 public class NextGenMultiplePoliciesExample {
 
@@ -21,9 +21,9 @@ public class NextGenMultiplePoliciesExample {
 		
 		//Right now I set the FLAG manually in the first parameter.
 		//In further versions the flags should be set automatically by the systems.
-		LinkedList<NextGenPolicy<String, Integer>> policies=new LinkedList<>();
-		policies.add(new NextGenCountEvictionPolicy<String, Integer>(1, 5));
-		policies.add(new NextGenCountEvictionPolicy<String, Integer>(2, 8));
+		LinkedList<NextGenPolicy<String>> policies=new LinkedList<>();
+		policies.add(new NextGenCountEvictionPolicy<String>(5));
+		policies.add(new NextGenCountEvictionPolicy<String>(8));
 		
 		//This reduce function does a String concat.
 		ReduceFunction<String> reducer=new ReduceFunction<String>() {
