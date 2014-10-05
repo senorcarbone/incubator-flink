@@ -4,8 +4,8 @@ import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.invokable.operator.NextGenCountEvictionPolicy;
-import org.apache.flink.streaming.api.invokable.operator.NextGenPolicy;
+import org.apache.flink.streaming.api.invokable.operator.NextGenCountTriggerPolicy;
+import org.apache.flink.streaming.api.invokable.operator.NextGenTriggerPolicy;
 import org.apache.flink.streaming.examples.basictopology.BasicTopology.BasicSource;
 
 import java.util.LinkedList;
@@ -21,9 +21,9 @@ public class NextGenMultiplePoliciesExample {
 		
 		//Right now I set the FLAG manually in the first parameter.
 		//In further versions the flags should be set automatically by the systems.
-		LinkedList<NextGenPolicy<String>> policies=new LinkedList<>();
-		policies.add(new NextGenCountEvictionPolicy<String>(5));
-		policies.add(new NextGenCountEvictionPolicy<String>(8));
+		LinkedList<NextGenTriggerPolicy<String>> policies=new LinkedList<>();
+		policies.add(new NextGenCountTriggerPolicy<String>(5));
+		policies.add(new NextGenCountTriggerPolicy<String>(8));
 		
 		//This reduce function does a String concat.
 		ReduceFunction<String> reducer=new ReduceFunction<String>() {
@@ -40,8 +40,8 @@ public class NextGenMultiplePoliciesExample {
 			
 		};
 		
-		DataStream<Tuple2<String,Object[]>> stream = env.addSource(new BasicSource(), SOURCE_PARALLELISM)
-				.nextGenWindow(policies,"sample").reduce(reducer);
+		DataStream<Tuple2<String,String[]>> stream = env.addSource(new BasicSource(), SOURCE_PARALLELISM)
+				.nextGenBatch(policies,"sample").reduce(reducer);
 				
 		stream.print();
 

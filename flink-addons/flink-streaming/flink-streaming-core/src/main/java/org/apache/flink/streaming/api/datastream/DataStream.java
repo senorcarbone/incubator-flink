@@ -379,27 +379,74 @@ public class DataStream<OUT> {
     }
 
     /**
-     * Prototype of an interface for policy based windowing
-     *
-     * @param policies The {@link Collection} with {@link NextGenPolicy}
-     * @return The prototype of {@link NextGenDataStream}
-     * @see DataStream#nextGenWindow(NextGenPolicy)
+     * This is a prototype implementation for new windowing features based
+     * on trigger and eviction policies
+     * 
+     * @param triggerPolicies A list of trigger policies
+     * @param evictionPolicies A list of eviction policies
+     * @param sample A sample of the OUT data type required to gather type information
+     * @return The NextGenDataStream
      */
-    public NextGenDataStream<OUT> nextGenWindow(LinkedList<NextGenPolicy<OUT>> policies, OUT sample) {
-        return new NextGenDataStream<>(policies, this, sample);
+    public NextGenDataStream<OUT> nextGenWindow(
+    		LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicies,
+    		LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicies,
+    		OUT sample) 
+    {
+        return new NextGenDataStream<>(triggerPolicies,evictionPolicies,this,sample);
     }
 
     /**
-     * Prototype of an interface for policy based windowing
-     *
-     * @param policy The {@link NextGenPolicy}
-     * @return The prototype of {@link NextGenDataStream}
-     * @see DataStream#nextGenWindow(Collection)
+     * This is a prototype implementation for new windowing features based
+     * on trigger and eviction policies
+     * 
+     * @see DataStream#nextGenWindow(LinkedList, LinkedList, Object)
      */
-    public NextGenDataStream<OUT> nextGenWindow(NextGenPolicy<OUT> policy, OUT sample) {
-        LinkedList<NextGenPolicy<OUT>> policyList = new LinkedList<>();
-        policyList.add(policy);
-        return nextGenWindow(policyList, sample);
+    public NextGenDataStream<OUT> nextGenWindow(
+    		NextGenTriggerPolicy<OUT> triggerPolicy,
+    		NextGenEvictionPolicy<OUT> evictionPolicy,
+    		OUT sample)
+    {
+        LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicyList = new LinkedList<>();
+        triggerPolicyList.add(triggerPolicy);
+        LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<>();
+        evictionPolicyList.add(evictionPolicy);
+        return nextGenWindow(triggerPolicyList,evictionPolicyList, sample);
+    }
+    
+    /**
+     * This is a prototype implementation for new windowing features based
+     * on trigger and eviction policies.
+     * 
+     * The eviction policy will be set to {@link NextGenClearAfterTriggerEvictionPolicy},
+     * which leads to the expected behavior for a tumbling window.
+     * 
+     * @param triggerPolicies A list of trigger policies
+     * @param sample A sample of the OUT data type required to gather type information
+     * @return TheNextGenDataStream
+     * @see DataStream#nextGenWindow(LinkedList, LinkedList, Object)
+     */
+    public NextGenDataStream<OUT> nextGenBatch(
+    		LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicies,
+    		OUT sample)
+    {
+    	LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<>();
+        evictionPolicyList.add(new NextGenClearAfterTriggerEvictionPolicy<>());
+        return nextGenWindow(triggerPolicies, evictionPolicyList, sample);
+    }
+    
+    /**
+     * This is a prototype implementation for new windowing features based
+     * on trigger and eviction policies.
+     * 
+     * @see DataStream#nextGenBatch(LinkedList, Object)
+     */
+    public NextGenDataStream<OUT> nextGenBatch(
+    		NextGenTriggerPolicy<OUT> triggerPolicy,
+    		OUT sample)
+    {
+    	LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicyList = new LinkedList<>();
+        triggerPolicyList.add(triggerPolicy);
+        return nextGenBatch(triggerPolicyList, sample);
     }
 
     /**

@@ -1,6 +1,6 @@
 package org.apache.flink.streaming.api.invokable.operator;
 
-public class NextGenCountEvictionPolicy<IN> implements NextGenPolicy<IN> {
+public class NextGenCountTriggerPolicy<IN> implements NextGenTriggerPolicy<IN> {
 
     /**
      * Auto generated version ID
@@ -12,11 +12,11 @@ public class NextGenCountEvictionPolicy<IN> implements NextGenPolicy<IN> {
     private int counter;
     private int max;
 
-    public NextGenCountEvictionPolicy(int max) {
+    public NextGenCountTriggerPolicy(int max) {
         this(max, DEFAULT_START_VALUE);
     }
 
-    public NextGenCountEvictionPolicy(int max, int startValue) {
+    public NextGenCountTriggerPolicy(int max, int startValue) {
         this.max = max;
         this.counter = startValue;
     }
@@ -25,10 +25,7 @@ public class NextGenCountEvictionPolicy<IN> implements NextGenPolicy<IN> {
     public boolean addDataPoint(IN datapoint) {
         if (counter == max) {
             //The current data point will be part of the next window!
-            //Therefore counter needs to be set to one already.
-            //TODO think about introducing different strategies for eviction:
-            //     1) including last data point: Better/faster for count eviction
-            //     2) excluding last data point: Essentially required for time based eviction and delta rules
+            //Therefore the counter needs to be set to one already.
             counter = 1;
             return true;
         } else {

@@ -1,53 +1,38 @@
 package org.apache.flink.streaming.api.invokable.operator;
 
 import com.amazonaws.services.sqs.model.UnsupportedOperationException;
+
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.invokable.StreamInvokable;
 
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
+import java.util.NoSuchElementException;
 
-public class NextGenWindowingInvokable<IN, FLAG> extends StreamInvokable<IN, Tuple2<IN, Object[]>> {
+public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN, String[]>> {
 
     /**
      * Auto-generated serial version UID
      */
     private static final long serialVersionUID = -8038984294071650730L;
 
-    private LinkedList<NextGenPolicy<IN>> triggerPolicies;
-    private LinkedList<NextGenPolicy<IN>> emitPolicies;
-    private NextGenWindowType windowType;
-    /*
-     * TODO A LinkedList is obviously not the best possible way of buffering ;)
-     *      Any ordered collection with flexible size might do the job as well.
-     *      In any case it doesn't make sense to always wait with the start of
-     *      reduce function until a window is full. We need something like a
-     *      combiner in hadoop m/r.
-     */
-    private List<IN> buffer = new LinkedList<>();
-    private LinkedList<NextGenPolicy<IN>> currentEmittingPolicies = new LinkedList<>();
+    private LinkedList<NextGenTriggerPolicy<IN>> triggerPolicies;
+    private LinkedList<NextGenEvictionPolicy<IN>> evictionPolicies;
+    private LinkedList<IN> buffer = new LinkedList<>();
+    private LinkedList<NextGenTriggerPolicy<IN>> currentTriggerPolicies = new LinkedList<>();
     private ReduceFunction<IN> reducer;
 
     public NextGenWindowingInvokable(
             ReduceFunction<IN> userFunction,
-            LinkedList<NextGenPolicy<IN>> triggerPolicies,
-            LinkedList<NextGenPolicy<IN>> emitPolicies,
-            NextGenWindowType windowType
+            LinkedList<NextGenTriggerPolicy<IN>> triggerPolicies,
+            LinkedList<NextGenEvictionPolicy<IN>> evictionPolicies
     ) {
         super(userFunction);
 
         this.reducer = userFunction;
         this.triggerPolicies = triggerPolicies;
-        this.emitPolicies = emitPolicies;
-
-        //TODO implement support for sliding windows
-        if (windowType != NextGenWindowType.TUMBLING) {
-            throw new UnsupportedOperationException("Only tumbling windows are implemented at the moment!");
-        }
-
-        this.windowType = windowType;
+        this.evictionPolicies = evictionPolicies;
     }
 
     @Override
@@ -58,36 +43,49 @@ public class NextGenWindowingInvokable<IN, FLAG> extends StreamInvokable<IN, Tup
         }
 
         while (reuse != null) {
+        	
+        	// Remember if a trigger occurred
+        	boolean isTriggered=false;
+        	
+			// Process the triggers (in case of multiple triggers compute only once!)
+			for (NextGenTriggerPolicy<IN> triggerPolicy : triggerPolicies) {
+				if (triggerPolicy.addDataPoint(reuse.getObject())) {
+					currentTriggerPolicies.add(triggerPolicy);
+				}
+			}
+        
+			if (!currentTriggerPolicies.isEmpty()) {
+	            //emit
+	            callUserFunctionAndLogException();
+	
+	            //clear the flag collection
+	            currentTriggerPolicies.clear();
+	            
+	            //remember trigger
+	            isTriggered=true;
+			}
 
-            //TODO There is no implementation for SLIDING windows right now.
-            //     Therefore, the trigger policy code is dead somehow...
-            if (this.windowType == NextGenWindowType.SLIDING) {
-                //Process the triggers (in case of multiple triggers compute only once!)
-                for (NextGenPolicy<IN> triggerPolicy : triggerPolicies) {
-                    if (triggerPolicy.addDataPoint(reuse.getObject())) {
-                        //TODO trigger
 
-                        //prevent multiple triggering on the same status as it would be computation of the same result again
-                        break;
-                    }
+            //Process the evictions and take care of double evictions
+	        //In case there are multiple eviction policies present,
+	        //only the one with the highest return value is recognized.
+            int currentMaxEviction=0;
+	        for (NextGenEvictionPolicy<IN> evictionPolicy : evictionPolicies) {
+                //use temporary variable to prevent multiple calls to addDataPoint
+	        	int tmp=evictionPolicy.addDataPoint(reuse.getObject(),isTriggered);
+	        	if (tmp>currentMaxEviction) {
+                    currentMaxEviction=tmp;
                 }
             }
-
-            //Process the emissions and take care of double emissions
-            for (NextGenPolicy<IN> emitPolicy : emitPolicies) {
-                if (emitPolicy.addDataPoint(reuse.getObject())) {
-                    currentEmittingPolicies.add(emitPolicy);
-                }
-            }
-            if (!currentEmittingPolicies.isEmpty()) {
-                //emit
-                callUserFunctionAndLogException();
-
-                //clear the flag collection
-                currentEmittingPolicies.clear();
-                //clear the data buffer
-                buffer.clear();
-            }
+	        for (int i=0;i<currentMaxEviction;i++){
+	        	try{
+	        		buffer.removeFirst();
+	        	} catch (NoSuchElementException e){
+	        		//In case no more elements are in the buffer:
+	        		//Prevent failure and stop deleting.
+	        		break;
+	        	}
+	        }
 
             //Add the current element to the buffer
             buffer.add(reuse.getObject());
@@ -97,13 +95,11 @@ public class NextGenWindowingInvokable<IN, FLAG> extends StreamInvokable<IN, Tup
             reuse = recordIterator.next(reuse);
         }
 
-        //TODO finally trigger?!
-
-        //finally emit the buffer content and set all policies as emitted...
+        //finally trigger the buffer.
         if (!buffer.isEmpty()) {
-            currentEmittingPolicies.clear();
-            for (NextGenPolicy<IN> policy : emitPolicies) {
-                currentEmittingPolicies.add(policy);
+            currentTriggerPolicies.clear();
+            for (NextGenTriggerPolicy<IN> policy : triggerPolicies) {
+                currentTriggerPolicies.add(policy);
             }
             callUserFunctionAndLogException();
         }
@@ -116,7 +112,7 @@ public class NextGenWindowingInvokable<IN, FLAG> extends StreamInvokable<IN, Tup
         throw new UnsupportedOperationException("There is no mutable implementation at the moment!");
     }
 
-    @Override
+	@Override
     protected void callUserFunction() throws Exception {
         Iterator<IN> reducedIterator = buffer.iterator();
         IN reduced = null;
@@ -132,7 +128,11 @@ public class NextGenWindowingInvokable<IN, FLAG> extends StreamInvokable<IN, Tup
             }
         }
         if (reduced != null) {
-            collector.collect(new Tuple2<IN, Object[]>(reduced, currentEmittingPolicies.toArray()));
+        	String[] tmp=new String[currentTriggerPolicies.size()];
+        	for (int i=0;i<tmp.length;i++){
+        		tmp[i]=currentTriggerPolicies.get(i).toString();
+        	}
+        	collector.collect(new Tuple2<IN, String[]>(reduced, tmp));
         }
     }
 
