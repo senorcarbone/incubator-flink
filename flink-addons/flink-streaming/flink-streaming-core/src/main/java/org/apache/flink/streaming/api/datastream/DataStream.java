@@ -438,7 +438,7 @@ public class DataStream<OUT> {
     		ReduceFunction<OUT> reduceFunction)
     {
     	LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<>();
-        evictionPolicyList.add(new NextGenClearAfterTriggerEvictionPolicy<>());
+        evictionPolicyList.add(new NextGenClearAfterTriggerEvictionPolicy<OUT>());
         return nextGenWindow(triggerPolicies, evictionPolicyList, reduceFunction);
     }
     
