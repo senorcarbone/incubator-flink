@@ -1,5 +1,9 @@
 package org.apache.flink.streaming.api.invokable.operator;
 
+/**
+ * This policy triggers at every n'th element.
+ * @param <IN> The type of the data points which is handled by this policy
+ */
 public class NextGenCountTriggerPolicy<IN> implements NextGenTriggerPolicy<IN> {
 
     /**
@@ -12,10 +16,22 @@ public class NextGenCountTriggerPolicy<IN> implements NextGenTriggerPolicy<IN> {
     private int counter;
     private int max;
 
+    /**
+     * This constructor will set up a count based trigger, which triggers
+     * after max elements have arrived.
+     * @param max The number of arriving elements before the trigger occurs.
+     */
     public NextGenCountTriggerPolicy(int max) {
         this(max, DEFAULT_START_VALUE);
     }
 
+    /**
+     * In addition to {@link NextGenCountTriggerPolicy#NextGenCountTriggerPolicy(int)}
+     * this constructor allows to set a custom start value for the element counter.
+     * @param max The number of arriving elements before the trigger occurs.
+     * @param startValue The start value for the counter of arriving elements.
+     * @see NextGenCountTriggerPolicy#NextGenCountTriggerPolicy(int)
+     */
     public NextGenCountTriggerPolicy(int max, int startValue) {
         this.max = max;
         this.counter = startValue;
