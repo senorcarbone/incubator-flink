@@ -22,6 +22,7 @@ import org.apache.commons.lang3.SerializationUtils;
 import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.JobGraphBuilder;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -385,14 +386,21 @@ public class DataStream<OUT> {
      * @param triggerPolicies A list of trigger policies
      * @param evictionPolicies A list of eviction policies
      * @param sample A sample of the OUT data type required to gather type information
-     * @return The NextGenDataStream
+     * @return The single output operator
      */
-    public NextGenDataStream<OUT> nextGenWindow(
+    public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenWindow(
     		LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicies,
     		LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicies,
+    		ReduceFunction<OUT> reduceFunction,
     		OUT sample) 
     {
-        return new NextGenDataStream<>(triggerPolicies,evictionPolicies,this,sample);
+    	String[] sampleStringArray={""};
+    	
+    	return addFunction("NextGenWindowReduce", reduceFunction,
+    			new FunctionTypeWrapper<OUT>(reduceFunction, ReduceFunction.class, 0),
+    			new ObjectTypeWrapper<Tuple2<OUT, String[]>>(new Tuple2<OUT, String[]>(sample,sampleStringArray)),
+    			new NextGenWindowingInvokable<>(reduceFunction,triggerPolicies,evictionPolicies)
+    	);
     }
 
     /**
@@ -401,16 +409,17 @@ public class DataStream<OUT> {
      * 
      * @see DataStream#nextGenWindow(LinkedList, LinkedList, Object)
      */
-    public NextGenDataStream<OUT> nextGenWindow(
+    public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenWindow(
     		NextGenTriggerPolicy<OUT> triggerPolicy,
     		NextGenEvictionPolicy<OUT> evictionPolicy,
+    		ReduceFunction<OUT> reduceFunction,
     		OUT sample)
     {
         LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicyList = new LinkedList<>();
         triggerPolicyList.add(triggerPolicy);
         LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<>();
         evictionPolicyList.add(evictionPolicy);
-        return nextGenWindow(triggerPolicyList,evictionPolicyList, sample);
+        return nextGenWindow(triggerPolicyList,evictionPolicyList, reduceFunction, sample);
     }
     
     /**
@@ -422,16 +431,17 @@ public class DataStream<OUT> {
      * 
      * @param triggerPolicies A list of trigger policies
      * @param sample A sample of the OUT data type required to gather type information
-     * @return TheNextGenDataStream
+     * @return The single output operator
      * @see DataStream#nextGenWindow(LinkedList, LinkedList, Object)
      */
-    public NextGenDataStream<OUT> nextGenBatch(
+    public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenBatch(
     		LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicies,
+    		ReduceFunction<OUT> reduceFunction,
     		OUT sample)
     {
     	LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<>();
         evictionPolicyList.add(new NextGenClearAfterTriggerEvictionPolicy<>());
-        return nextGenWindow(triggerPolicies, evictionPolicyList, sample);
+        return nextGenWindow(triggerPolicies, evictionPolicyList, reduceFunction, sample);
     }
     
     /**
@@ -440,13 +450,14 @@ public class DataStream<OUT> {
      * 
      * @see DataStream#nextGenBatch(LinkedList, Object)
      */
-    public NextGenDataStream<OUT> nextGenBatch(
+    public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenBatch(
     		NextGenTriggerPolicy<OUT> triggerPolicy,
+    		ReduceFunction<OUT> reduceFunction,
     		OUT sample)
     {
     	LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicyList = new LinkedList<>();
         triggerPolicyList.add(triggerPolicy);
-        return nextGenBatch(triggerPolicyList, sample);
+        return nextGenBatch(triggerPolicyList, reduceFunction, sample);
     }
 
     /**

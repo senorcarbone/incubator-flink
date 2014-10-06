@@ -20,7 +20,7 @@ public class NextGenBasicExample {
         NextGenTriggerPolicy<String> policy = new NextGenCountTriggerPolicy<String>(5);
 
         //This reduce function does a String concat.
-        ReduceFunction<String> reducer = new ReduceFunction<String>() {
+        ReduceFunction<String> reduceFunction = new ReduceFunction<String>() {
 
             /**
              * Auto generates version ID
@@ -35,7 +35,7 @@ public class NextGenBasicExample {
         };
 
         DataStream<Tuple2<String, String[]>> stream = env.addSource(new BasicSource(), SOURCE_PARALLELISM)
-                .nextGenBatch(policy, "sample").reduce(reducer);
+                .nextGenBatch(policy, reduceFunction, "sample");
 
         stream.print();
 
