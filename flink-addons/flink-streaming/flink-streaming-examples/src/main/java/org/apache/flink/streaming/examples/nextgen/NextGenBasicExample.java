@@ -17,8 +17,6 @@ public class NextGenBasicExample {
         StreamExecutionEnvironment env = StreamExecutionEnvironment
                 .createLocalEnvironment(PARALLELISM);
 
-        //Right now I set the FLAG manually in the first parameter.
-        //In further versions the flags should be set automatically by the systems.
         NextGenTriggerPolicy<String> policy = new NextGenCountTriggerPolicy<String>(5);
 
         //This reduce function does a String concat.

@@ -19,8 +19,6 @@ public class NextGenMultiplePoliciesExample {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment
 				.createLocalEnvironment(PARALLELISM);
 		
-		//Right now I set the FLAG manually in the first parameter.
-		//In further versions the flags should be set automatically by the systems.
 		LinkedList<NextGenTriggerPolicy<String>> policies=new LinkedList<>();
 		policies.add(new NextGenCountTriggerPolicy<String>(5));
 		policies.add(new NextGenCountTriggerPolicy<String>(8));
