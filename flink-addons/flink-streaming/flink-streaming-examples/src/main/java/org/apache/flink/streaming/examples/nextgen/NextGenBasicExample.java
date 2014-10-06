@@ -35,7 +35,7 @@ public class NextGenBasicExample {
         };
 
         DataStream<Tuple2<String, String[]>> stream = env.addSource(new BasicSource(), SOURCE_PARALLELISM)
-                .nextGenBatch(policy, reduceFunction, "sample");
+                .nextGenBatch(policy, reduceFunction);
 
         stream.print();
 

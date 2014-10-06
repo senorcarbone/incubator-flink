@@ -39,7 +39,7 @@ public class NextGenMultiplePoliciesExample {
 		};
 		
 		DataStream<Tuple2<String,String[]>> stream = env.addSource(new BasicSource(), SOURCE_PARALLELISM)
-				.nextGenBatch(policies,reducer,"sample");
+				.nextGenBatch(policies,reducer);
 				
 		stream.print();
 

@@ -35,6 +35,7 @@ import org.apache.flink.streaming.api.invokable.util.DefaultTimeStamp;
 import org.apache.flink.streaming.api.invokable.util.TimeStamp;
 import org.apache.flink.streaming.partitioner.*;
 import org.apache.flink.streaming.util.serialization.FunctionTypeWrapper;
+import org.apache.flink.streaming.util.serialization.NextGenOutTypeWrapper;
 import org.apache.flink.streaming.util.serialization.ObjectTypeWrapper;
 import org.apache.flink.streaming.util.serialization.TypeWrapper;
 
@@ -391,17 +392,16 @@ public class DataStream<OUT> {
     public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenWindow(
     		LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicies,
     		LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicies,
-    		ReduceFunction<OUT> reduceFunction,
-    		OUT sample) 
-    {
-    	String[] sampleStringArray={""};
-    	
+    		ReduceFunction<OUT> reduceFunction) 
+    {	
     	return addFunction("NextGenWindowReduce", reduceFunction,
     			new FunctionTypeWrapper<OUT>(reduceFunction, ReduceFunction.class, 0),
-    			new ObjectTypeWrapper<Tuple2<OUT, String[]>>(new Tuple2<OUT, String[]>(sample,sampleStringArray)),
+    			new NextGenOutTypeWrapper<OUT>(this.outTypeWrapper),
     			new NextGenWindowingInvokable<>(reduceFunction,triggerPolicies,evictionPolicies)
     	);
     }
+    
+    
 
     /**
      * This is a prototype implementation for new windowing features based
@@ -412,14 +412,13 @@ public class DataStream<OUT> {
     public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenWindow(
     		NextGenTriggerPolicy<OUT> triggerPolicy,
     		NextGenEvictionPolicy<OUT> evictionPolicy,
-    		ReduceFunction<OUT> reduceFunction,
-    		OUT sample)
+    		ReduceFunction<OUT> reduceFunction)
     {
         LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicyList = new LinkedList<>();
         triggerPolicyList.add(triggerPolicy);
         LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<>();
         evictionPolicyList.add(evictionPolicy);
-        return nextGenWindow(triggerPolicyList,evictionPolicyList, reduceFunction, sample);
+        return nextGenWindow(triggerPolicyList,evictionPolicyList, reduceFunction);
     }
     
     /**
@@ -436,12 +435,11 @@ public class DataStream<OUT> {
      */
     public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenBatch(
     		LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicies,
-    		ReduceFunction<OUT> reduceFunction,
-    		OUT sample)
+    		ReduceFunction<OUT> reduceFunction)
     {
     	LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<>();
         evictionPolicyList.add(new NextGenClearAfterTriggerEvictionPolicy<>());
-        return nextGenWindow(triggerPolicies, evictionPolicyList, reduceFunction, sample);
+        return nextGenWindow(triggerPolicies, evictionPolicyList, reduceFunction);
     }
     
     /**
@@ -452,12 +450,11 @@ public class DataStream<OUT> {
      */
     public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenBatch(
     		NextGenTriggerPolicy<OUT> triggerPolicy,
-    		ReduceFunction<OUT> reduceFunction,
-    		OUT sample)
+    		ReduceFunction<OUT> reduceFunction)
     {
     	LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicyList = new LinkedList<>();
         triggerPolicyList.add(triggerPolicy);
-        return nextGenBatch(triggerPolicyList, reduceFunction, sample);
+        return nextGenBatch(triggerPolicyList, reduceFunction);
     }
 
     /**
