@@ -440,7 +440,7 @@ public class DataStream<OUT> {
     		OUT sample)
     {
     	LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<>();
-        evictionPolicyList.add(new NextGenClearAfterTriggerEvictionPolicy<>());
+        evictionPolicyList.add(new NextGenClearAfterTriggerEvictionPolicy<OUT>());
         return nextGenWindow(triggerPolicies, evictionPolicyList, reduceFunction, sample);
     }
     
