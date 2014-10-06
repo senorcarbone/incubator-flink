@@ -4,6 +4,7 @@ package org.apache.flink.streaming.api.invokable.operator;
  * This eviction policy deletes all elements from the buffer
  * in case a trigger occurred. Therefore, it is the default
  * eviction policy to be used for any tumbling window.
+ * @param <DATA> The type of the data points which is handled by this policy
  */
 public class NextGenClearAfterTriggerEvictionPolicy<DATA> implements
 		NextGenEvictionPolicy<DATA> {
