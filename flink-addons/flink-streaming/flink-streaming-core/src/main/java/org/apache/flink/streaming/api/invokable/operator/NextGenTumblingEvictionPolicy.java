@@ -6,7 +6,7 @@ package org.apache.flink.streaming.api.invokable.operator;
  * eviction policy to be used for any tumbling window.
  * @param <DATA> The type of the data points which is handled by this policy
  */
-public class NextGenClearAfterTriggerEvictionPolicy<DATA> implements
+public class NextGenTumblingEvictionPolicy<DATA> implements
 		NextGenEvictionPolicy<DATA> {
 
 	/**
@@ -22,7 +22,7 @@ public class NextGenClearAfterTriggerEvictionPolicy<DATA> implements
 	/**
 	 * This is the default constructor providing no special functionality
 	 */
-	public NextGenClearAfterTriggerEvictionPolicy() {
+	public NextGenTumblingEvictionPolicy() {
 		// default constructor, no further logic needed
 	}
 	
@@ -30,7 +30,7 @@ public class NextGenClearAfterTriggerEvictionPolicy<DATA> implements
 	 * This constructor allows to set a custom start value for the element counter
 	 * @param startValue A start value for the element counter
 	 */
-	public NextGenClearAfterTriggerEvictionPolicy(int startValue){
+	public NextGenTumblingEvictionPolicy(int startValue){
 		this.counter=startValue;
 	}
 

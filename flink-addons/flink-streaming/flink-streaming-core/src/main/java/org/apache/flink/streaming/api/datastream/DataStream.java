@@ -420,12 +420,12 @@ public class DataStream<OUT> {
         evictionPolicyList.add(evictionPolicy);
         return nextGenWindow(triggerPolicyList,evictionPolicyList, reduceFunction);
     }
-    
+
     /**
      * This is a prototype implementation for new windowing features based
      * on trigger and eviction policies.
      * 
-     * The eviction policy will be set to {@link NextGenClearAfterTriggerEvictionPolicy},
+     * The eviction policy will be set to {@link org.apache.flink.streaming.api.invokable.operator.NextGenTumblingEvictionPolicy},
      * which leads to the expected behavior for a tumbling window.
      * 
      * @param triggerPolicies A list of trigger policies
@@ -438,7 +438,7 @@ public class DataStream<OUT> {
     		ReduceFunction<OUT> reduceFunction)
     {
     	LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<>();
-        evictionPolicyList.add(new NextGenClearAfterTriggerEvictionPolicy<OUT>());
+        evictionPolicyList.add(new NextGenTumblingEvictionPolicy<OUT>());
         return nextGenWindow(triggerPolicies, evictionPolicyList, reduceFunction);
     }
     
