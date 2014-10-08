@@ -394,9 +394,10 @@ public class DataStream<OUT> {
     		LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicies,
     		ReduceFunction<OUT> reduceFunction) 
     {	
+    	String[] sample={""};
     	return addFunction("NextGenWindowReduce", reduceFunction,
     			new FunctionTypeWrapper<OUT>(reduceFunction, ReduceFunction.class, 0),
-    			new NextGenOutTypeWrapper<OUT>(this.outTypeWrapper),
+    			new NextGenOutTypeWrapper<OUT,String[]>(this.outTypeWrapper,new ObjectTypeWrapper<String[]>(sample)),
     			new NextGenWindowingInvokable<>(reduceFunction,triggerPolicies,evictionPolicies)
     	);
     }
