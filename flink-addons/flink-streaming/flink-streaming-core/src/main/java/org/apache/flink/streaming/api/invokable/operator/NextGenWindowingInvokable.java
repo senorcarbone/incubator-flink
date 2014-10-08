@@ -5,6 +5,8 @@ import com.amazonaws.services.sqs.model.UnsupportedOperationException;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.invokable.StreamInvokable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -16,6 +18,8 @@ public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN
      * Auto-generated serial version UID
      */
     private static final long serialVersionUID = -8038984294071650730L;
+    
+    private static final Logger LOG = LoggerFactory.getLogger(NextGenWindowingInvokable.class);
 
     private LinkedList<NextGenTriggerPolicy<IN>> triggerPolicies;
     private LinkedList<NextGenEvictionPolicy<IN>> evictionPolicies;
@@ -108,8 +112,10 @@ public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN
 
     @Override
     protected void mutableInvoke() throws Exception {
-        // TODO implement mutable version
-        throw new UnsupportedOperationException("There is no mutable implementation at the moment!");
+        if (LOG.isInfoEnabled()){
+        	LOG.info("There is currently no mutable implementation of this operator. Immutable version is used.");
+        }
+    	immutableInvoke();
     }
 
 	@Override
