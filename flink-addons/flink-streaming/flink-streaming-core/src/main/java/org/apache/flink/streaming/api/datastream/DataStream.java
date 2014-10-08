@@ -34,8 +34,8 @@ import org.apache.flink.streaming.api.invokable.operator.*;
 import org.apache.flink.streaming.api.invokable.util.DefaultTimeStamp;
 import org.apache.flink.streaming.api.invokable.util.TimeStamp;
 import org.apache.flink.streaming.partitioner.*;
+import org.apache.flink.streaming.util.serialization.CombineTypeWrapper;
 import org.apache.flink.streaming.util.serialization.FunctionTypeWrapper;
-import org.apache.flink.streaming.util.serialization.NextGenOutTypeWrapper;
 import org.apache.flink.streaming.util.serialization.ObjectTypeWrapper;
 import org.apache.flink.streaming.util.serialization.TypeWrapper;
 
@@ -397,7 +397,7 @@ public class DataStream<OUT> {
     	String[] sample={""};
     	return addFunction("NextGenWindowReduce", reduceFunction,
     			new FunctionTypeWrapper<OUT>(reduceFunction, ReduceFunction.class, 0),
-    			new NextGenOutTypeWrapper<OUT,String[]>(this.outTypeWrapper,new ObjectTypeWrapper<String[]>(sample)),
+    			new CombineTypeWrapper<OUT,String[]>(this.outTypeWrapper,new ObjectTypeWrapper<String[]>(sample)),
     			new NextGenWindowingInvokable<>(reduceFunction,triggerPolicies,evictionPolicies)
     	);
     }
