@@ -14,7 +14,7 @@ public abstract class NextGenConversionAwareDeltaFunction<DATA,TO> implements Ne
 	
 	@SuppressWarnings("unchecked") //see comment below
 	@Override
-	public int getDelta(DATA oldDataPoint, DATA newDataPoint) {
+	public double getDelta(DATA oldDataPoint, DATA newDataPoint) {
 		if (converter==null){
 			//In case no conversion/extraction is required, we can cast DATA to TO
 			//=> Therefore, "unchecked" warning is suppressed for this method.
@@ -25,6 +25,6 @@ public abstract class NextGenConversionAwareDeltaFunction<DATA,TO> implements Ne
 		
 	}
 	
-	public abstract int getNestedDelta(TO oldDataPoint,TO newDataPoint);
+	public abstract double getNestedDelta(TO oldDataPoint,TO newDataPoint);
 
 }

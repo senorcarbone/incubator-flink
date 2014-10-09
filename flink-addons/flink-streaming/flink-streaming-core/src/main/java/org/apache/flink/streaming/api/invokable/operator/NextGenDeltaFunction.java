@@ -4,6 +4,6 @@ import java.io.Serializable;
 
 public interface NextGenDeltaFunction<DATA> extends Serializable {
 
-	public int getDelta(DATA oldDataPoint, DATA newDataPoint);
+	public double getDelta(DATA oldDataPoint, DATA newDataPoint);
 	
 }
