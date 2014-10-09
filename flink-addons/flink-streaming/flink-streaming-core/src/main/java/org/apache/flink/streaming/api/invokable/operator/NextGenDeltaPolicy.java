@@ -17,6 +17,7 @@ public class NextGenDeltaPolicy<DATA> implements NextGenTriggerPolicy<DATA>, Nex
 
 	public NextGenDeltaPolicy(NextGenDeltaFunction<DATA> deltaFuntion, DATA init, double threshold) {
 		this.deltaFuntion = deltaFuntion;
+		this.triggerDataPoint = init;
 		this.windowBuffer = new LinkedList<DATA>();
 		this.threshold = threshold;
 	}
@@ -36,12 +37,15 @@ public class NextGenDeltaPolicy<DATA> implements NextGenTriggerPolicy<DATA>, Nex
 		windowBuffer = windowBuffer.subList(windowBuffer.size() - bufferSize, bufferSize);
 		int evictCount = 0;
 		for (DATA bufferPoint : windowBuffer) {
-			if (deltaFuntion.getDelta(bufferPoint, datapoint) >= this.threshold) {
-				windowBuffer = windowBuffer.subList(evictCount, windowBuffer.size());
+			if (deltaFuntion.getDelta(bufferPoint, datapoint) < this.threshold) {
 				break;
 			}
 			evictCount++;
 		}
+
+		if (evictCount > 0)
+			windowBuffer = windowBuffer.subList(evictCount, windowBuffer.size());
+		windowBuffer.add(datapoint);
 		return evictCount;
 	}
 
