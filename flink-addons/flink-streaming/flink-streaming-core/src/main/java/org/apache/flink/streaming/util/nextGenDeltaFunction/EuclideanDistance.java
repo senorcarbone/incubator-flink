@@ -1,7 +1,7 @@
 package org.apache.flink.streaming.util.nextGenDeltaFunction;
 
 import org.apache.flink.streaming.api.invokable.operator.NextGenConversionAwareDeltaFunction;
-import org.apache.flink.streaming.api.invokable.operator.NextGenTypeExtractor;
+import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 
 public class EuclideanDistance<DATA> extends NextGenConversionAwareDeltaFunction<DATA, double[]>{
 
@@ -9,7 +9,7 @@ public class EuclideanDistance<DATA> extends NextGenConversionAwareDeltaFunction
 		super(null);
 	}
 	
-	public EuclideanDistance(NextGenTypeExtractor<DATA, double[]> converter) {
+	public EuclideanDistance(NextGenExtractor<DATA, double[]> converter) {
 		super(converter);
 	}
 

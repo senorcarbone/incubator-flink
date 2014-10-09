@@ -1,7 +1,7 @@
 package org.apache.flink.streaming.util.nextGenDeltaFunction;
 
 import org.apache.flink.streaming.api.invokable.operator.NextGenConversionAwareDeltaFunction;
-import org.apache.flink.streaming.api.invokable.operator.NextGenTypeExtractor;
+import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 
 public class CosineDistance<DATA> extends NextGenConversionAwareDeltaFunction<DATA, double[]>{
 
@@ -14,7 +14,7 @@ public class CosineDistance<DATA> extends NextGenConversionAwareDeltaFunction<DA
 		super(null);
 	}
 	
-	public CosineDistance(NextGenTypeExtractor<DATA, double[]> converter) {
+	public CosineDistance(NextGenExtractor<DATA, double[]> converter) {
 		super(converter);
 	}
 	

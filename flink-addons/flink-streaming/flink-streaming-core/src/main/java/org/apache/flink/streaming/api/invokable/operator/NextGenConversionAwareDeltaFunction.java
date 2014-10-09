@@ -6,9 +6,9 @@ public abstract class NextGenConversionAwareDeltaFunction<DATA,TO> implements Ne
 	 * Generated Version ID
 	 */
 	private static final long serialVersionUID = 6927486219702689554L;
-	private NextGenTypeExtractor<DATA, TO> converter;
+	private NextGenExtractor<DATA, TO> converter;
 	
-	public NextGenConversionAwareDeltaFunction(NextGenTypeExtractor<DATA, TO> converter){
+	public NextGenConversionAwareDeltaFunction(NextGenExtractor<DATA, TO> converter){
 		this.converter=converter;
 	}
 	

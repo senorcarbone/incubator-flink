@@ -1,8 +1,8 @@
 package org.apache.flink.streaming.util.nextGenConverter;
 
-import org.apache.flink.streaming.api.invokable.operator.NextGenTypeExtractor;
+import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 
-public class FieldsFromArray implements NextGenTypeExtractor<Object[], double[]> {
+public class FieldsFromArray implements NextGenExtractor<Object[], double[]> {
 
 	/**
 	 * Auto-generated version id

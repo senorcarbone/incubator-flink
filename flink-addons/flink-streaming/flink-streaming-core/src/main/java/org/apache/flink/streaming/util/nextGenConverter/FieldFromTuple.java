@@ -1,9 +1,9 @@
 package org.apache.flink.streaming.util.nextGenConverter;
 
 import org.apache.flink.api.java.tuple.Tuple;
-import org.apache.flink.streaming.api.invokable.operator.NextGenTypeExtractor;
+import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 
-public class FieldFromTuple<OUT> implements NextGenTypeExtractor<Tuple, OUT> {
+public class FieldFromTuple<OUT> implements NextGenExtractor<Tuple, OUT> {
 
 	/**
 	 * Auto-gernated version id
