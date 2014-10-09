@@ -18,7 +18,7 @@ public class FieldsFromArray implements NextGenTypeExtractor<Object[], int[]> {
 	public int[] convert(Object[] in) {
 		int[] output=new int[order.length];
 		for (int i=0;i<order.length;i++){
-			output[i]=(int)in[order[i]];
+			output[i]=(Integer) in[order[i]];
 		}
 		return output;
 	}

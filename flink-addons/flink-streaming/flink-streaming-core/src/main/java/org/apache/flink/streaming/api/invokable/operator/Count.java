@@ -1,6 +1,7 @@
 package org.apache.flink.streaming.api.invokable.operator;
 
-public class Count<DATA> implements NextGenWindowHelper<DATA> {
+@SuppressWarnings("rawtypes")
+public class Count implements NextGenWindowHelper {
 
 	private int count;
 
@@ -9,13 +10,13 @@ public class Count<DATA> implements NextGenWindowHelper<DATA> {
 	}
 
 	@Override
-	public NextGenEvictionPolicy<DATA> toEvict() {
-		return new NextGenCountEvictionPolicy<DATA>(count);
+	public NextGenEvictionPolicy<?> toEvict() {
+		return new NextGenCountEvictionPolicy(count);
 	}
 
 	@Override
-	public NextGenTriggerPolicy<DATA> toTrigger() {
-		return new NextGenCountTriggerPolicy<DATA>(count);
+	public NextGenTriggerPolicy<?> toTrigger() {
+		return new NextGenCountTriggerPolicy(count);
 	}
 
 	public static Count of(int count) {
