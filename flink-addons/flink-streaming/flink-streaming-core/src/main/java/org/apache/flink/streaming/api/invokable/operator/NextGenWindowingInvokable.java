@@ -16,7 +16,7 @@ public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN
      * Auto-generated serial version UID
      */
     private static final long serialVersionUID = -8038984294071650730L;
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(NextGenWindowingInvokable.class);
 
     private LinkedList<NextGenTriggerPolicy<IN>> triggerPolicies;
@@ -45,24 +45,24 @@ public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN
         }
 
         while (reuse != null) {
-        	
+
         	// Remember if a trigger occurred
         	boolean isTriggered=false;
-        	
+
 			// Process the triggers (in case of multiple triggers compute only once!)
 			for (NextGenTriggerPolicy<IN> triggerPolicy : triggerPolicies) {
 				if (triggerPolicy.notifyTrigger(reuse.getObject())) {
 					currentTriggerPolicies.add(triggerPolicy);
 				}
 			}
-        
+
 			if (!currentTriggerPolicies.isEmpty()) {
 	            //emit
 	            callUserFunctionAndLogException();
-	
+
 	            //clear the flag collection
 	            currentTriggerPolicies.clear();
-	            
+
 	            //remember trigger
 	            isTriggered=true;
 			}
@@ -74,7 +74,7 @@ public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN
             int currentMaxEviction=0;
 	        for (NextGenEvictionPolicy<IN> evictionPolicy : evictionPolicies) {
                 //use temporary variable to prevent multiple calls to notifyEviction
-	        	int tmp=evictionPolicy.notifyEviction(reuse.getObject(), isTriggered);
+	        	int tmp=evictionPolicy.notifyEviction(reuse.getObject(), isTriggered, buffer.size() );
 	        	if (tmp>currentMaxEviction) {
                     currentMaxEviction=tmp;
                 }

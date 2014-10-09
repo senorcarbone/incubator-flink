@@ -40,7 +40,8 @@ public class NextGenDeltaPolicy<DATA> implements NextGenTriggerPolicy<DATA>, Nex
     }
 
     @Override
-    public int notifyEviction(DATA datapoint, boolean triggered) {
+    public int notifyEviction(DATA datapoint, boolean triggered, int bufferSize) {
+        windowBuffer = windowBuffer.subList(windowBuffer.size() - bufferSize, bufferSize);
         int evictCount = 0;
         for (DATA bufferPoint : windowBuffer) {
             if (deltaFuntion.getDelta(bufferPoint, datapoint) < this.threshold) {

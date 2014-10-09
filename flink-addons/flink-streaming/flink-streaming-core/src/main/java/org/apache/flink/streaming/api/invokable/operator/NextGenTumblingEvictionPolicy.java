@@ -38,7 +38,7 @@ public class NextGenTumblingEvictionPolicy<DATA> implements
 	 * Deletes all elements from the buffer in case the trigger occurred.
 	 */
 	@Override
-	public int notifyEviction(Object datapoint, boolean triggered) {
+	public int notifyEviction(Object datapoint, boolean triggered, int bufferSize) {
 		if (triggered) {
             //The current data point will be part of the next window!
             //Therefore the counter needs to be set to one already.

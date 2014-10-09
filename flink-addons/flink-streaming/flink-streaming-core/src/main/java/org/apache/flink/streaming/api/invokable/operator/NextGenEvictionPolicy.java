@@ -9,10 +9,11 @@ public interface NextGenEvictionPolicy<DATA> extends Serializable{
 	 * element buffer. The eviction takes place after the trigger
 	 * and after the call to the UDF but before the adding of the
 	 * new datapoint.
-	 * 
+	 *
 	 * @param datapoint datapoint the data point which arrived
 	 * @param triggered Information whether the UDF was triggered or not
-	 * @return The number of elements to be deleted from the buffer
+	 * @param bufferSize
+     * @return The number of elements to be deleted from the buffer
 	 */
-	public int notifyEviction(DATA datapoint, boolean triggered);
+	public int notifyEviction(DATA datapoint, boolean triggered, int bufferSize);
 }
