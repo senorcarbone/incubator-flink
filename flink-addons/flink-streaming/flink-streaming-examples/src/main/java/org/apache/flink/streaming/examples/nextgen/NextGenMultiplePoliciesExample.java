@@ -19,7 +19,7 @@ public class NextGenMultiplePoliciesExample {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment
 				.createLocalEnvironment(PARALLELISM);
 		
-		LinkedList<NextGenTriggerPolicy<String>> policies=new LinkedList<>();
+		LinkedList<NextGenTriggerPolicy<String>> policies=new LinkedList<NextGenTriggerPolicy<String>>();
 		policies.add(new NextGenCountTriggerPolicy<String>(5));
 		policies.add(new NextGenCountTriggerPolicy<String>(8));
 		

@@ -21,8 +21,8 @@ public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN
 
     private LinkedList<NextGenTriggerPolicy<IN>> triggerPolicies;
     private LinkedList<NextGenEvictionPolicy<IN>> evictionPolicies;
-    private LinkedList<IN> buffer = new LinkedList<>();
-    private LinkedList<NextGenTriggerPolicy<IN>> currentTriggerPolicies = new LinkedList<>();
+    private LinkedList<IN> buffer = new LinkedList<IN>();
+    private LinkedList<NextGenTriggerPolicy<IN>> currentTriggerPolicies = new LinkedList<NextGenTriggerPolicy<IN>>();
     private ReduceFunction<IN> reducer;
 
     public NextGenWindowingInvokable(

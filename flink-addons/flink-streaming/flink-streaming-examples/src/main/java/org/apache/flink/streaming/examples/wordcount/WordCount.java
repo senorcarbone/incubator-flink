@@ -17,14 +17,14 @@
 
 package org.apache.flink.streaming.examples.wordcount;
 
+import java.util.StringTokenizer;
+
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.examples.java.wordcount.util.WordCountData;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.test.testdata.WordCountData;
 import org.apache.flink.util.Collector;
-
-import java.util.StringTokenizer;
 
 /**
  * Implements the "WordCount" program that computes a simple word occurrence
@@ -142,7 +142,7 @@ public class WordCount {
             return env.readTextFile(textPath);
         } else {
             // get default test text data
-            return env.fromElements(WordCountData.TEXT);
+            return env.fromElements(WordCountData.WORDS);
         }
     }
 }
