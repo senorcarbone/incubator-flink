@@ -51,7 +51,7 @@ public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN
         	
 			// Process the triggers (in case of multiple triggers compute only once!)
 			for (NextGenTriggerPolicy<IN> triggerPolicy : triggerPolicies) {
-				if (triggerPolicy.addDataPoint(reuse.getObject())) {
+				if (triggerPolicy.notifyTrigger(reuse.getObject())) {
 					currentTriggerPolicies.add(triggerPolicy);
 				}
 			}
@@ -73,8 +73,8 @@ public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN
 	        //only the one with the highest return value is recognized.
             int currentMaxEviction=0;
 	        for (NextGenEvictionPolicy<IN> evictionPolicy : evictionPolicies) {
-                //use temporary variable to prevent multiple calls to addDataPoint
-	        	int tmp=evictionPolicy.addDataPoint(reuse.getObject(),isTriggered);
+                //use temporary variable to prevent multiple calls to notifyEviction
+	        	int tmp=evictionPolicy.notifyEviction(reuse.getObject(), isTriggered);
 	        	if (tmp>currentMaxEviction) {
                     currentMaxEviction=tmp;
                 }

@@ -14,5 +14,5 @@ public interface NextGenEvictionPolicy<DATA> extends Serializable{
 	 * @param triggered Information whether the UDF was triggered or not
 	 * @return The number of elements to be deleted from the buffer
 	 */
-	public int addDataPoint(DATA datapoint, boolean triggered);
+	public int notifyEviction(DATA datapoint, boolean triggered);
 }
