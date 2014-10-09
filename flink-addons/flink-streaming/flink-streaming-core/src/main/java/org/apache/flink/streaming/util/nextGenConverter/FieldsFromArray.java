@@ -2,7 +2,7 @@ package org.apache.flink.streaming.util.nextGenConverter;
 
 import org.apache.flink.streaming.api.invokable.operator.NextGenTypeExtractor;
 
-public class FieldsFromArray implements NextGenTypeExtractor<Object[], int[]> {
+public class FieldsFromArray implements NextGenTypeExtractor<Object[], double[]> {
 
 	/**
 	 * Auto-generated version id
@@ -15,10 +15,10 @@ public class FieldsFromArray implements NextGenTypeExtractor<Object[], int[]> {
 	}
 	
 	@Override
-	public int[] convert(Object[] in) {
-		int[] output=new int[order.length];
+	public double[] convert(Object[] in) {
+		double[] output=new double[order.length];
 		for (int i=0;i<order.length;i++){
-			output[i]=(Integer) in[order[i]];
+			output[i]=(Double) in[order[i]];
 		}
 		return output;
 	}

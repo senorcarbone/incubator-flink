@@ -3,7 +3,7 @@ package org.apache.flink.streaming.util.nextGenConverter;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.streaming.api.invokable.operator.NextGenTypeExtractor;
 
-public class TupleToArray implements NextGenTypeExtractor<Tuple, int[]> {
+public class TupleToArray implements NextGenTypeExtractor<Tuple, double[]> {
 
 	/**
 	 * Auto generated version id
@@ -20,18 +20,18 @@ public class TupleToArray implements NextGenTypeExtractor<Tuple, int[]> {
 	}
 		
 	@Override
-	public int[] convert(Tuple in) {
-		int[] output;
+	public double[] convert(Tuple in) {
+		double[] output;
 		
 		if (order==null){
 			//copy the hole tuple
-			output=new int[in.getArity()];
+			output=new double[in.getArity()];
 			for (int i=0;i<in.getArity();i++){
 				output[i]=in.getField(i);
 			}
 		} else {
 			//copy user specified order
-			output=new int[order.length];
+			output=new double[order.length];
 			for (int i=0;i<order.length;i++){
 				output[i]=in.getField(order[i]);
 			}
