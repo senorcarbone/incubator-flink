@@ -69,7 +69,7 @@ public class NextGenCountEvictionPolicy<IN> implements NextGenEvictionPolicy<IN>
 	}
 	
 	@Override
-	public int addDataPoint(IN datapoint, boolean triggered) {
+	public int notifyEviction(IN datapoint, boolean triggered, int bufferSize) {
 		if (counter==maxElements){
 			//Adjust the counter according to the current eviction
 			counter=(counter-deleteOnEviction<0)?0:counter-deleteOnEviction;

@@ -22,7 +22,7 @@ public interface NextGenTriggerPolicy<DATA> extends Serializable {
      * In true case the given data point will be part of the
      * next window and will not be included in the current one.
      */
-    public boolean addDataPoint(DATA datapoint);
+    public boolean notifyTrigger(DATA datapoint);
 
 
 }

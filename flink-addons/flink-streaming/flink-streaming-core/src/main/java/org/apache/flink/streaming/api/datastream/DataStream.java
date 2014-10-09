@@ -398,7 +398,7 @@ public class DataStream<OUT> {
     	return addFunction("NextGenWindowReduce", reduceFunction,
     			new FunctionTypeWrapper<OUT>(reduceFunction, ReduceFunction.class, 0),
     			new CombineTypeWrapper<OUT,String[]>(this.outTypeWrapper,new ObjectTypeWrapper<String[]>(sample)),
-    			new NextGenWindowingInvokable<>(reduceFunction,triggerPolicies,evictionPolicies)
+    			new NextGenWindowingInvokable<OUT>(reduceFunction,triggerPolicies,evictionPolicies)
     	);
     }
     
@@ -415,9 +415,9 @@ public class DataStream<OUT> {
     		NextGenEvictionPolicy<OUT> evictionPolicy,
     		ReduceFunction<OUT> reduceFunction)
     {
-        LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicyList = new LinkedList<>();
+        LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicyList = new LinkedList<NextGenTriggerPolicy<OUT>>();
         triggerPolicyList.add(triggerPolicy);
-        LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<>();
+        LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<NextGenEvictionPolicy<OUT>>();
         evictionPolicyList.add(evictionPolicy);
         return nextGenWindow(triggerPolicyList,evictionPolicyList, reduceFunction);
     }
@@ -438,7 +438,7 @@ public class DataStream<OUT> {
     		LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicies,
     		ReduceFunction<OUT> reduceFunction)
     {
-    	LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<>();
+    	LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<NextGenEvictionPolicy<OUT>>();
         evictionPolicyList.add(new NextGenTumblingEvictionPolicy<OUT>());
         return nextGenWindow(triggerPolicies, evictionPolicyList, reduceFunction);
     }
@@ -453,7 +453,7 @@ public class DataStream<OUT> {
     		NextGenTriggerPolicy<OUT> triggerPolicy,
     		ReduceFunction<OUT> reduceFunction)
     {
-    	LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicyList = new LinkedList<>();
+    	LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicyList = new LinkedList<NextGenTriggerPolicy<OUT>>();
         triggerPolicyList.add(triggerPolicy);
         return nextGenBatch(triggerPolicyList, reduceFunction);
     }

@@ -16,13 +16,13 @@ public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN
      * Auto-generated serial version UID
      */
     private static final long serialVersionUID = -8038984294071650730L;
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(NextGenWindowingInvokable.class);
 
     private LinkedList<NextGenTriggerPolicy<IN>> triggerPolicies;
     private LinkedList<NextGenEvictionPolicy<IN>> evictionPolicies;
-    private LinkedList<IN> buffer = new LinkedList<>();
-    private LinkedList<NextGenTriggerPolicy<IN>> currentTriggerPolicies = new LinkedList<>();
+    private LinkedList<IN> buffer = new LinkedList<IN>();
+    private LinkedList<NextGenTriggerPolicy<IN>> currentTriggerPolicies = new LinkedList<NextGenTriggerPolicy<IN>>();
     private ReduceFunction<IN> reducer;
 
     public NextGenWindowingInvokable(
@@ -45,24 +45,24 @@ public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN
         }
 
         while (reuse != null) {
-        	
+
         	// Remember if a trigger occurred
         	boolean isTriggered=false;
-        	
+
 			// Process the triggers (in case of multiple triggers compute only once!)
 			for (NextGenTriggerPolicy<IN> triggerPolicy : triggerPolicies) {
-				if (triggerPolicy.addDataPoint(reuse.getObject())) {
+				if (triggerPolicy.notifyTrigger(reuse.getObject())) {
 					currentTriggerPolicies.add(triggerPolicy);
 				}
 			}
-        
+
 			if (!currentTriggerPolicies.isEmpty()) {
 	            //emit
 	            callUserFunctionAndLogException();
-	
+
 	            //clear the flag collection
 	            currentTriggerPolicies.clear();
-	            
+
 	            //remember trigger
 	            isTriggered=true;
 			}
@@ -73,8 +73,8 @@ public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN
 	        //only the one with the highest return value is recognized.
             int currentMaxEviction=0;
 	        for (NextGenEvictionPolicy<IN> evictionPolicy : evictionPolicies) {
-                //use temporary variable to prevent multiple calls to addDataPoint
-	        	int tmp=evictionPolicy.addDataPoint(reuse.getObject(),isTriggered);
+                //use temporary variable to prevent multiple calls to notifyEviction
+	        	int tmp=evictionPolicy.notifyEviction(reuse.getObject(), isTriggered, buffer.size() );
 	        	if (tmp>currentMaxEviction) {
                     currentMaxEviction=tmp;
                 }

@@ -38,7 +38,7 @@ public class NextGenCountTriggerPolicy<IN> implements NextGenTriggerPolicy<IN> {
     }
 
     @Override
-    public boolean addDataPoint(IN datapoint) {
+    public boolean notifyTrigger(IN datapoint) {
         if (counter == max) {
             //The current data point will be part of the next window!
             //Therefore the counter needs to be set to one already.
