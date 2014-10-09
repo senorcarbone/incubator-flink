@@ -15,13 +15,13 @@ public class NextGenDeltaPolicy<DATA> implements NextGenTriggerPolicy<DATA>, Nex
 	private int deleteOnEviction;
 	
 	public NextGenDeltaPolicy(NextGenDeltaFunction<DATA> deltaFuntion,DATA init,int threshold) {
-		this.deltaFuntion=deltaFuntion;
-		this.oldDataPoint=init;
-		this.threshold=threshold;
+		this(deltaFuntion,init,threshold,DEFAULT_DELETE_ON_EVICTION);
 	}
 	
 	public NextGenDeltaPolicy(NextGenDeltaFunction<DATA> deltaFuntion,DATA init,int threshold,int deleteOnEviction) {
-		this(deltaFuntion,init,threshold);
+		this.deltaFuntion=deltaFuntion;
+		this.oldDataPoint=init;
+		this.threshold=threshold;
 		this.deleteOnEviction=deleteOnEviction;
 	}
 	
