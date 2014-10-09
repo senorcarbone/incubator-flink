@@ -12,10 +12,10 @@ public class NextGenDeltaPolicy<DATA> implements NextGenTriggerPolicy<DATA>, Nex
 
 	private NextGenDeltaFunction<DATA> deltaFuntion;
 	private List<DATA> windowBuffer;
-	private int threshold;
+	private double threshold;
 	private DATA triggerDataPoint;
 
-	public NextGenDeltaPolicy(NextGenDeltaFunction<DATA> deltaFuntion, DATA init, int threshold) {
+	public NextGenDeltaPolicy(NextGenDeltaFunction<DATA> deltaFuntion, DATA init, double threshold) {
 		this.deltaFuntion = deltaFuntion;
 		this.windowBuffer = new LinkedList<DATA>();
 		this.threshold = threshold;
