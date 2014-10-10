@@ -1,4 +1,4 @@
-package org.apache.flink.streaming.util.nextGenConverter;
+package org.apache.flink.streaming.util.nextGenExtractor;
 
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
@@ -20,7 +20,7 @@ public class FieldFromTuple<OUT> implements NextGenExtractor<Tuple, OUT> {
 	}
 	
 	@Override
-	public OUT convert(Tuple in) {
+	public OUT extract(Tuple in) {
 		return in.getField(fieldId);
 	}
 

@@ -4,6 +4,6 @@ import java.io.Serializable;
 
 public interface NextGenExtractor<FROM,TO> extends Serializable{
 
-	public TO convert(FROM in);
+	public TO extract(FROM in);
 	
 }

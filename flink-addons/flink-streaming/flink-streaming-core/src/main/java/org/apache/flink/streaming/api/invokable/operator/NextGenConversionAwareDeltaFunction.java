@@ -20,7 +20,7 @@ public abstract class NextGenConversionAwareDeltaFunction<DATA,TO> implements Ne
 			//=> Therefore, "unchecked" warning is suppressed for this method.
 			return getNestedDelta((TO)oldDataPoint,(TO)newDataPoint);
 		} else {
-			return getNestedDelta(converter.convert(oldDataPoint), converter.convert(newDataPoint));
+			return getNestedDelta(converter.extract(oldDataPoint), converter.extract(newDataPoint));
 		}
 		
 	}

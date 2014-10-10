@@ -1,4 +1,4 @@
-package org.apache.flink.streaming.util.nextGenConverter;
+package org.apache.flink.streaming.util.nextGenExtractor;
 
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
@@ -20,7 +20,7 @@ public class TupleToArray implements NextGenExtractor<Tuple, double[]> {
 	}
 		
 	@Override
-	public double[] convert(Tuple in) {
+	public double[] extract(Tuple in) {
 		double[] output;
 		
 		if (order==null){

@@ -1,4 +1,4 @@
-package org.apache.flink.streaming.util.nextGenConverter;
+package org.apache.flink.streaming.util.nextGenExtractor;
 
 import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 
@@ -18,8 +18,8 @@ public class ConcatinatedExtract<FROM,OVER,TO> implements NextGenExtractor<FROM,
 	}
 	
 	@Override
-	public TO convert(FROM in) {
-		return e2.convert(e1.convert(in));
+	public TO extract(FROM in) {
+		return e2.extract(e1.extract(in));
 	}
 
 	public <OUT> NextGenExtractor<FROM, OUT> add(NextGenExtractor<TO, OUT> e3){
