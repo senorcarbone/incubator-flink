@@ -1,8 +1,10 @@
-package org.apache.flink.streaming.util.nextGenConverter;
+package org.apache.flink.streaming.util.nextGenExtractor;
+
+import java.lang.reflect.Array;
 
 import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 
-public class FieldFromArray<OUT> implements NextGenExtractor<Object[], OUT> {
+public class FieldFromArray<OUT> implements NextGenExtractor<Object, OUT> {
 
 	/**
 	 * Auto-gernated version id
@@ -20,8 +22,8 @@ public class FieldFromArray<OUT> implements NextGenExtractor<Object[], OUT> {
 	
 	@SuppressWarnings("unchecked")
 	@Override
-	public OUT convert(Object[] in) {
-		return (OUT)in[fieldId];
+	public OUT extract(Object in) {
+		return (OUT)Array.get(in, fieldId);
 	}
 	
 }
