@@ -1,6 +1,6 @@
 package org.apache.flink.streaming.util.nextGenExtractor;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple1;
@@ -31,36 +31,39 @@ import org.apache.flink.api.java.tuple.Tuple9;
 import org.junit.Before;
 import org.junit.Test;
 
-public class FieldFromTupleTest {
+public class ArrayFromTupleTest {
 
 	private String[] testStrings;
-
+	
 	@Before
-	public void init() {
-		testStrings = new String[Tuple.MAX_ARITY];
-		for (int i = 0; i < Tuple.MAX_ARITY; i++) {
-			testStrings[i] = Integer.toString(i);
+	public void init(){
+		testStrings=new String[Tuple.MAX_ARITY];
+		for (int i=0;i<Tuple.MAX_ARITY;i++){
+			testStrings[i]=Integer.toString(i);
 		}
 	}
-
+	
 	@Test
-	public void testSingleFieldExtraction() throws InstantiationException, IllegalAccessException {
-		// extract single fields
-		for (int i = 0; i < Tuple.MAX_ARITY; i++) {
-			Tuple current = (Tuple) CLASSES[i].newInstance();
-			for (int j = 0; j < i; j++) {
-				current.setField(testStrings[j], j);
+	public void testConvertFromTupleToArray() throws InstantiationException, IllegalAccessException{
+		for (int i=0;i<Tuple.MAX_ARITY;i++){
+			Tuple currentTuple = (Tuple) CLASSES[i].newInstance();
+			String[] currentArray = new String[i+1];
+			for (int j = 0; j <= i; j++) {
+				currentTuple.setField(testStrings[j], j);
+				currentArray[j] = testStrings[j];
 			}
-			for (int j = 0; j < i; j++) {
-				assertEquals(testStrings[j], new FieldFromTuple<String>(j).extract(current));
-			}
+			arrayEqualityCheck(currentArray, new ArrayFromTuple().extract(currentTuple));
 		}
 	}
 
-	private static final Class<?>[] CLASSES = new Class<?>[] { Tuple1.class, Tuple2.class,
-			Tuple3.class, Tuple4.class, Tuple5.class, Tuple6.class, Tuple7.class, Tuple8.class,
-			Tuple9.class, Tuple10.class, Tuple11.class, Tuple12.class, Tuple13.class,
-			Tuple14.class, Tuple15.class, Tuple16.class, Tuple17.class, Tuple18.class,
-			Tuple19.class, Tuple20.class, Tuple21.class, Tuple22.class, Tuple23.class,
-			Tuple24.class, Tuple25.class };
+	private void arrayEqualityCheck(Object[] array1, Object[] array2) {
+		assertEquals("The result arrays must have the same length", array1.length, array2.length);
+		for (int i = 0; i < array1.length; i++) {
+			assertEquals("Unequal fields at position " + i, array1[i], array2[i]);
+		}
+	}
+	
+	private static final Class<?>[] CLASSES = new Class<?>[] {
+		Tuple1.class, Tuple2.class, Tuple3.class, Tuple4.class, Tuple5.class, Tuple6.class, Tuple7.class, Tuple8.class, Tuple9.class, Tuple10.class, Tuple11.class, Tuple12.class, Tuple13.class, Tuple14.class, Tuple15.class, Tuple16.class, Tuple17.class, Tuple18.class, Tuple19.class, Tuple20.class, Tuple21.class, Tuple22.class, Tuple23.class, Tuple24.class, Tuple25.class
+	};
 }
