@@ -3,7 +3,9 @@ package org.apache.flink.streaming.api.invokable.operator;
 
 import java.util.concurrent.TimeUnit;
 
-public class Time implements NextGenWindowHelper {
+import org.apache.flink.streaming.api.invokable.util.DefaultTimeStamp;
+
+public class Time<DATA> implements NextGenWindowHelper<DATA> {
 
 	private int timeVal;
 	private TimeUnit granularity;
@@ -18,19 +20,21 @@ public class Time implements NextGenWindowHelper {
 	}
 
 	@Override
-	public NextGenEvictionPolicy<?> toEvict() {
-		//TODO
-		throw new UnsupportedOperationException("time eviction not implemented");
+	public NextGenEvictionPolicy<DATA> toEvict() {
+		return new NextGenTimeEvictionPolicy<DATA>(granularityInMillis(), new DefaultTimeStamp<DATA>());
 	}
 
 	@Override
-	public NextGenTriggerPolicy<?> toTrigger() {
-		//TODO
-		throw new UnsupportedOperationException("time triggering not implemented");
+	public NextGenTriggerPolicy<DATA> toTrigger() {
+		return new NextGenTimeTriggerPolicy<DATA>(granularityInMillis(), new DefaultTimeStamp<DATA>());
 	}
 
-	public static Time of(int timeVal, TimeUnit granularity) {
-		return new Time(timeVal, granularity);
+	public static <DATA> Time<DATA> of(int timeVal, TimeUnit granularity) {
+		return new Time<DATA>(timeVal, granularity);
+	}
+	
+	private long granularityInMillis(){
+		return this.granularity.toMillis(this.timeVal);
 	}
 
 }
