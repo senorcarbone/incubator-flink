@@ -22,7 +22,7 @@ public class ConcatinatedExtract<FROM,OVER,TO> implements NextGenExtractor<FROM,
 		return e2.extract(e1.extract(in));
 	}
 
-	public <OUT> NextGenExtractor<FROM, OUT> add(NextGenExtractor<TO, OUT> e3){
+	public <OUT> ConcatinatedExtract<FROM,TO,OUT> add(NextGenExtractor<TO, OUT> e3){
 		return new ConcatinatedExtract<FROM,TO,OUT>(this, e3);
 	}
 	
