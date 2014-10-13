@@ -1,9 +1,14 @@
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.util.nextGenExtractor;
 
 import org.apache.flink.api.java.tuple.Tuple;
+import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 
 public class FieldsFromTuple implements NextGenExtractor<Tuple, double[]> {
 
+	/**
+	 * auto generated version id
+	 */
+	private static final long serialVersionUID = -2554079091050273761L;
 	int[] indexes;
 
 	public FieldsFromTuple(int... indexes) {

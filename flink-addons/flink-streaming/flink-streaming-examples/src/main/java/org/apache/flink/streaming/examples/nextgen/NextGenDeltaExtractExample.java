@@ -8,8 +8,8 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.function.source.SourceFunction;
 import org.apache.flink.streaming.api.invokable.operator.Count;
 import org.apache.flink.streaming.api.invokable.operator.Delta;
-import org.apache.flink.streaming.api.invokable.operator.FieldsFromTuple;
 import org.apache.flink.streaming.util.nextGenDeltaFunction.EuclideanDistance;
+import org.apache.flink.streaming.util.nextGenExtractor.FieldsFromTuple;
 import org.apache.flink.util.Collector;
 
 public class NextGenDeltaExtractExample {
@@ -29,7 +29,8 @@ public class NextGenDeltaExtractExample {
 
 		DataStream dstream = env
 				.addSource(new CountingSource())
-				.window(Delta.of(new EuclideanDistance(new FieldsFromTuple(0, 1)), new Tuple3(0d, 0d, "foo"), 1))
+				//.window(Delta.of(new EuclideanDistance(new FieldsFromTuple(0, 1)), new Tuple3(0d, 0d, "foo"), 1))
+				.window(Delta.of(1.2).onFields(0,1).fromTuple().measuredWithEucledianDistance().initializedWith(new Tuple3<Double,Double,String>(0d, 0d, "foo")))
 				.every(Count.of(2))
 				.reduce(concatStrings);
 
