@@ -17,11 +17,11 @@
 
 package org.apache.flink.streaming.api.invokable.operator;
 
+import org.apache.flink.streaming.util.deltafunction.CosineDistance;
+import org.apache.flink.streaming.util.deltafunction.EuclideanDistance;
 import org.apache.flink.streaming.util.extractor.ArrayFromTuple;
 import org.apache.flink.streaming.util.extractor.ConcatinatedExtract;
 import org.apache.flink.streaming.util.extractor.FieldsFromArray;
-import org.apache.flink.streaming.util.nextGenDeltaFunction.CosineDistance;
-import org.apache.flink.streaming.util.nextGenDeltaFunction.EuclideanDistance;
 
 public class Delta<DATA> implements NextGenWindowHelper<DATA> {
 

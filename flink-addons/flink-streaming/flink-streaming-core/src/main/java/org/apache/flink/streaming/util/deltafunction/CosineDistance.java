@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.nextGenDeltaFunction;
+package org.apache.flink.streaming.util.deltafunction;
 
 import org.apache.flink.streaming.api.invokable.operator.NextGenConversionAwareDeltaFunction;
 import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
