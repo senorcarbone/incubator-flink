@@ -1,4 +1,4 @@
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.policy;
 
 import com.google.common.collect.Lists;
 
@@ -11,10 +11,11 @@ import java.util.ArrayList;
 
 import static org.junit.Assert.*;
 
-public class NextGenDeltaPolicyTest {
+public class DeltaPolicyTest {
 
+	@SuppressWarnings({ "serial", "unchecked", "rawtypes" })
 	@Test
-	public void testDelta() {
+	public void testCount() {
 		DeltaPolicy deltaPolicy = new DeltaPolicy(new DeltaFunction<Tuple2<Integer, Integer>>() {
 			@Override
 			public double getDelta(Tuple2<Integer, Integer> oldDataPoint, Tuple2<Integer, Integer> newDataPoint) {

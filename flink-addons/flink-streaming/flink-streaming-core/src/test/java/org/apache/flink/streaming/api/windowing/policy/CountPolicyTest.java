@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.policy;
 
 import com.google.common.collect.Lists;
 
@@ -29,9 +29,10 @@ import java.util.ArrayList;
 import static org.junit.Assert.*;
 
 
-public class NextGenCountPolicyTest {
+public class CountPolicyTest {
 
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Test
 	public void testDelta() {
 
