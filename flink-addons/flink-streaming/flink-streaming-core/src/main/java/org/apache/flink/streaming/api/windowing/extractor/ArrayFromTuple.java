@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.extractor;
+package org.apache.flink.streaming.api.windowing.extractor;
 
 import org.apache.flink.api.java.tuple.Tuple;
 

@@ -15,12 +15,29 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.extractor;
+package org.apache.flink.streaming.api.windowing.extractor;
 
-import java.io.Serializable;
+import org.apache.flink.api.java.tuple.Tuple;
 
-public interface Extractor<FROM, TO> extends Serializable {
+public class FieldFromTuple<OUT> implements Extractor<Tuple, OUT> {
 
-	public TO extract(FROM in);
+	/**
+	 * Auto-gernated version id
+	 */
+	private static final long serialVersionUID = -5161386546695574359L;
+	private int fieldId = 0;
+
+	public FieldFromTuple() {
+		// noting to do => will use default 0
+	}
+
+	public FieldFromTuple(int fieldId) {
+		this.fieldId = fieldId;
+	}
+
+	@Override
+	public OUT extract(Tuple in) {
+		return in.getField(fieldId);
+	}
 
 }

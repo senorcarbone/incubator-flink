@@ -17,7 +17,7 @@
 
 package org.apache.flink.streaming.api.invokable.operator;
 
-import org.apache.flink.streaming.util.extractor.Extractor;
+import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 
 public abstract class NextGenConversionAwareDeltaFunction<DATA, TO> implements
 		NextGenDeltaFunction<DATA> {

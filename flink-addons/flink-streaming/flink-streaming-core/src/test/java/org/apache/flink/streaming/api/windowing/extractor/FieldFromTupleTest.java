@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.extractor;
+package org.apache.flink.streaming.api.windowing.extractor;
 
 import static org.junit.Assert.*;
 
@@ -45,7 +45,7 @@ import org.apache.flink.api.java.tuple.Tuple6;
 import org.apache.flink.api.java.tuple.Tuple7;
 import org.apache.flink.api.java.tuple.Tuple8;
 import org.apache.flink.api.java.tuple.Tuple9;
-import org.apache.flink.streaming.util.extractor.FieldFromTuple;
+import org.apache.flink.streaming.api.windowing.extractor.FieldFromTuple;
 import org.junit.Before;
 import org.junit.Test;
 

@@ -15,16 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.extractor;
+package org.apache.flink.streaming.api.windowing.extractor;
 
 import static org.junit.Assert.*;
 
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.streaming.util.extractor.ArrayFromTuple;
-import org.apache.flink.streaming.util.extractor.ConcatinatedExtract;
-import org.apache.flink.streaming.util.extractor.FieldFromArray;
-import org.apache.flink.streaming.util.extractor.FieldFromTuple;
-import org.apache.flink.streaming.util.extractor.FieldsFromArray;
+import org.apache.flink.streaming.api.windowing.extractor.ArrayFromTuple;
+import org.apache.flink.streaming.api.windowing.extractor.ConcatinatedExtract;
+import org.apache.flink.streaming.api.windowing.extractor.Extractor;
+import org.apache.flink.streaming.api.windowing.extractor.FieldFromArray;
+import org.apache.flink.streaming.api.windowing.extractor.FieldFromTuple;
+import org.apache.flink.streaming.api.windowing.extractor.FieldsFromArray;
 import org.junit.Before;
 import org.junit.Test;
 

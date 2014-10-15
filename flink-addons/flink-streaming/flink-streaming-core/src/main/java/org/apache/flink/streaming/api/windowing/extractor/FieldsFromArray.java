@@ -15,30 +15,32 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.extractor;
+package org.apache.flink.streaming.api.windowing.extractor;
 
 import java.lang.reflect.Array;
 
-public class FieldFromArray<OUT> implements Extractor<Object, OUT> {
+public class FieldsFromArray<OUT> implements Extractor<Object, OUT[]> {
 
 	/**
-	 * Auto-gernated version id
+	 * Auto-generated version id
 	 */
-	private static final long serialVersionUID = -5161386546695574359L;
-	private int fieldId = 0;
+	private static final long serialVersionUID = 8075055384516397670L;
+	private int[] order;
+	private Class<OUT> clazz;
 
-	public FieldFromArray() {
-		// noting to do => will use default 0
-	}
-
-	public FieldFromArray(int fieldId) {
-		this.fieldId = fieldId;
+	public FieldsFromArray(Class<OUT> clazz, int... indexes) {
+		this.order = indexes;
+		this.clazz = clazz;
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public OUT extract(Object in) {
-		return (OUT) Array.get(in, fieldId);
+	public OUT[] extract(Object in) {
+		OUT[] output = (OUT[]) Array.newInstance(clazz, order.length);
+		for (int i = 0; i < order.length; i++) {
+			output[i] = (OUT) Array.get(in, this.order[i]);
+		}
+		return output;
 	}
 
 }

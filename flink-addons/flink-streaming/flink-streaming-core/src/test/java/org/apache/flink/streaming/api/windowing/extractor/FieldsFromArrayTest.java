@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.extractor;
+package org.apache.flink.streaming.api.windowing.extractor;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.flink.streaming.util.extractor.FieldsFromArray;
+import org.apache.flink.streaming.api.windowing.extractor.FieldsFromArray;
 import org.junit.Test;
 
 public class FieldsFromArrayTest {

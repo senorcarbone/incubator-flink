@@ -15,29 +15,31 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.extractor;
+package org.apache.flink.streaming.api.windowing.extractor;
 
-import org.apache.flink.api.java.tuple.Tuple;
 
-public class FieldFromTuple<OUT> implements Extractor<Tuple, OUT> {
+public class ConcatinatedExtract<FROM, OVER, TO> implements Extractor<FROM, TO> {
 
 	/**
-	 * Auto-gernated version id
+	 * auto-generated id
 	 */
-	private static final long serialVersionUID = -5161386546695574359L;
-	private int fieldId = 0;
+	private static final long serialVersionUID = -7807197760725651752L;
 
-	public FieldFromTuple() {
-		// noting to do => will use default 0
-	}
+	private Extractor<FROM, OVER> e1;
+	private Extractor<OVER, TO> e2;
 
-	public FieldFromTuple(int fieldId) {
-		this.fieldId = fieldId;
+	public ConcatinatedExtract(Extractor<FROM, OVER> e1, Extractor<OVER, TO> e2) {
+		this.e1 = e1;
+		this.e2 = e2;
 	}
 
 	@Override
-	public OUT extract(Tuple in) {
-		return in.getField(fieldId);
+	public TO extract(FROM in) {
+		return e2.extract(e1.extract(in));
+	}
+
+	public <OUT> ConcatinatedExtract<FROM, TO, OUT> add(Extractor<TO, OUT> e3) {
+		return new ConcatinatedExtract<FROM, TO, OUT>(this, e3);
 	}
 
 }

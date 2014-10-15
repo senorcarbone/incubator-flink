@@ -15,31 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.extractor;
+package org.apache.flink.streaming.api.windowing.extractor;
 
+import java.io.Serializable;
 
-public class ConcatinatedExtract<FROM, OVER, TO> implements Extractor<FROM, TO> {
+public interface Extractor<FROM, TO> extends Serializable {
 
-	/**
-	 * auto-generated id
-	 */
-	private static final long serialVersionUID = -7807197760725651752L;
-
-	private Extractor<FROM, OVER> e1;
-	private Extractor<OVER, TO> e2;
-
-	public ConcatinatedExtract(Extractor<FROM, OVER> e1, Extractor<OVER, TO> e2) {
-		this.e1 = e1;
-		this.e2 = e2;
-	}
-
-	@Override
-	public TO extract(FROM in) {
-		return e2.extract(e1.extract(in));
-	}
-
-	public <OUT> ConcatinatedExtract<FROM, TO, OUT> add(Extractor<TO, OUT> e3) {
-		return new ConcatinatedExtract<FROM, TO, OUT>(this, e3);
-	}
+	public TO extract(FROM in);
 
 }

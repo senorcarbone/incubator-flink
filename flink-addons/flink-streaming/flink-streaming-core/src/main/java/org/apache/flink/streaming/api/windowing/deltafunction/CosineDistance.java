@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.deltafunction;
+package org.apache.flink.streaming.api.windowing.deltafunction;
 
 import org.apache.flink.streaming.api.invokable.operator.NextGenConversionAwareDeltaFunction;
-import org.apache.flink.streaming.util.extractor.Extractor;
+import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 
 public class CosineDistance<DATA> extends NextGenConversionAwareDeltaFunction<DATA, double[]> {
 

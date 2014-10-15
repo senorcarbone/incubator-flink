@@ -15,33 +15,30 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.deltafunction;
+package org.apache.flink.streaming.api.windowing.extractor;
 
-import org.apache.flink.streaming.api.invokable.operator.NextGenConversionAwareDeltaFunction;
-import org.apache.flink.streaming.util.extractor.Extractor;
+import java.lang.reflect.Array;
 
-public class EuclideanDistance<DATA> extends NextGenConversionAwareDeltaFunction<DATA, double[]> {
-
-	public EuclideanDistance() {
-		super(null);
-	}
-
-	public EuclideanDistance(Extractor<DATA, double[]> converter) {
-		super(converter);
-	}
+public class FieldFromArray<OUT> implements Extractor<Object, OUT> {
 
 	/**
-	 * auto-generated version id
+	 * Auto-gernated version id
 	 */
-	private static final long serialVersionUID = 3119432599634512359L;
+	private static final long serialVersionUID = -5161386546695574359L;
+	private int fieldId = 0;
 
+	public FieldFromArray() {
+		// noting to do => will use default 0
+	}
+
+	public FieldFromArray(int fieldId) {
+		this.fieldId = fieldId;
+	}
+
+	@SuppressWarnings("unchecked")
 	@Override
-	public double getNestedDelta(double[] oldDataPoint, double[] newDataPoint) {
-		double result = 0;
-		for (int i = 0; i < oldDataPoint.length; i++) {
-			result += (oldDataPoint[i] - newDataPoint[i]) * (oldDataPoint[i] - newDataPoint[i]);
-		}
-		return Math.sqrt(result);
+	public OUT extract(Object in) {
+		return (OUT) Array.get(in, fieldId);
 	}
 
 }
