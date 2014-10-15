@@ -15,30 +15,34 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.nextGenExtractor;
+package org.apache.flink.streaming.util.extractor;
 
-import org.apache.flink.api.java.tuple.Tuple;
+import java.lang.reflect.Array;
+
 import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 
-public class FieldFromTuple<OUT> implements NextGenExtractor<Tuple, OUT> {
+public class FieldsFromArray<OUT> implements NextGenExtractor<Object, OUT[]> {
 
 	/**
-	 * Auto-gernated version id
+	 * Auto-generated version id
 	 */
-	private static final long serialVersionUID = -5161386546695574359L;
-	private int fieldId = 0;
+	private static final long serialVersionUID = 8075055384516397670L;
+	private int[] order;
+	private Class<OUT> clazz;
 
-	public FieldFromTuple() {
-		// noting to do => will use default 0
+	public FieldsFromArray(Class<OUT> clazz, int... indexes) {
+		this.order = indexes;
+		this.clazz = clazz;
 	}
 
-	public FieldFromTuple(int fieldId) {
-		this.fieldId = fieldId;
-	}
-
+	@SuppressWarnings("unchecked")
 	@Override
-	public OUT extract(Tuple in) {
-		return in.getField(fieldId);
+	public OUT[] extract(Object in) {
+		OUT[] output = (OUT[]) Array.newInstance(clazz, order.length);
+		for (int i = 0; i < order.length; i++) {
+			output[i] = (OUT) Array.get(in, this.order[i]);
+		}
+		return output;
 	}
 
 }

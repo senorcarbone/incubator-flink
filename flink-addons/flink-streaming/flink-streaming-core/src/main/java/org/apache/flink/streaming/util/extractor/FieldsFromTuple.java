@@ -15,32 +15,29 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.nextGenExtractor;
+package org.apache.flink.streaming.util.extractor;
 
+import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 
-public class ConcatinatedExtract<FROM, OVER, TO> implements NextGenExtractor<FROM, TO> {
+public class FieldsFromTuple implements NextGenExtractor<Tuple, double[]> {
 
 	/**
-	 * auto-generated id
+	 * auto generated version id
 	 */
-	private static final long serialVersionUID = -7807197760725651752L;
+	private static final long serialVersionUID = -2554079091050273761L;
+	int[] indexes;
 
-	private NextGenExtractor<FROM, OVER> e1;
-	private NextGenExtractor<OVER, TO> e2;
-
-	public ConcatinatedExtract(NextGenExtractor<FROM, OVER> e1, NextGenExtractor<OVER, TO> e2) {
-		this.e1 = e1;
-		this.e2 = e2;
+	public FieldsFromTuple(int... indexes) {
+		this.indexes = indexes;
 	}
 
 	@Override
-	public TO extract(FROM in) {
-		return e2.extract(e1.extract(in));
+	public double[] extract(Tuple in) {
+		double[] out = new double[indexes.length];
+		for (int i = 0; i < indexes.length; i++) {
+			out[i] = in.getField(indexes[i]);
+		}
+		return out;
 	}
-
-	public <OUT> ConcatinatedExtract<FROM, TO, OUT> add(NextGenExtractor<TO, OUT> e3) {
-		return new ConcatinatedExtract<FROM, TO, OUT>(this, e3);
-	}
-
 }

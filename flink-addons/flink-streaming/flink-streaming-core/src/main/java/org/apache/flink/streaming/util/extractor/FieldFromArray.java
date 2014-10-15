@@ -15,46 +15,32 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.nextGenExtractor;
+package org.apache.flink.streaming.util.extractor;
 
-import org.apache.flink.api.java.tuple.Tuple;
+import java.lang.reflect.Array;
+
 import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 
-public class ArrayFromTuple implements NextGenExtractor<Tuple, Object[]> {
+public class FieldFromArray<OUT> implements NextGenExtractor<Object, OUT> {
 
 	/**
-	 * Auto generated version id
+	 * Auto-gernated version id
 	 */
-	private static final long serialVersionUID = -6076121226427616818L;
-	int[] order = null;
+	private static final long serialVersionUID = -5161386546695574359L;
+	private int fieldId = 0;
 
-	public ArrayFromTuple() {
-		// noting to do
+	public FieldFromArray() {
+		// noting to do => will use default 0
 	}
 
-	public ArrayFromTuple(int... indexes) {
-		this.order = indexes;
+	public FieldFromArray(int fieldId) {
+		this.fieldId = fieldId;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
-	public Object[] extract(Tuple in) {
-		Object[] output;
-
-		if (order == null) {
-			// copy the hole tuple
-			output = new Object[in.getArity()];
-			for (int i = 0; i < in.getArity(); i++) {
-				output[i] = in.getField(i);
-			}
-		} else {
-			// copy user specified order
-			output = new Object[order.length];
-			for (int i = 0; i < order.length; i++) {
-				output[i] = in.getField(order[i]);
-			}
-		}
-
-		return output;
+	public OUT extract(Object in) {
+		return (OUT) Array.get(in, fieldId);
 	}
 
 }

@@ -15,29 +15,46 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.nextGenExtractor;
+package org.apache.flink.streaming.util.extractor;
 
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 
-public class FieldsFromTuple implements NextGenExtractor<Tuple, double[]> {
+public class ArrayFromTuple implements NextGenExtractor<Tuple, Object[]> {
 
 	/**
-	 * auto generated version id
+	 * Auto generated version id
 	 */
-	private static final long serialVersionUID = -2554079091050273761L;
-	int[] indexes;
+	private static final long serialVersionUID = -6076121226427616818L;
+	int[] order = null;
 
-	public FieldsFromTuple(int... indexes) {
-		this.indexes = indexes;
+	public ArrayFromTuple() {
+		// noting to do
+	}
+
+	public ArrayFromTuple(int... indexes) {
+		this.order = indexes;
 	}
 
 	@Override
-	public double[] extract(Tuple in) {
-		double[] out = new double[indexes.length];
-		for (int i = 0; i < indexes.length; i++) {
-			out[i] = in.getField(indexes[i]);
+	public Object[] extract(Tuple in) {
+		Object[] output;
+
+		if (order == null) {
+			// copy the hole tuple
+			output = new Object[in.getArity()];
+			for (int i = 0; i < in.getArity(); i++) {
+				output[i] = in.getField(i);
+			}
+		} else {
+			// copy user specified order
+			output = new Object[order.length];
+			for (int i = 0; i < order.length; i++) {
+				output[i] = in.getField(order[i]);
+			}
 		}
-		return out;
+
+		return output;
 	}
+
 }

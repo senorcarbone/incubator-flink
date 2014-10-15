@@ -15,34 +15,32 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.nextGenExtractor;
-
-import java.lang.reflect.Array;
+package org.apache.flink.streaming.util.extractor;
 
 import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 
-public class FieldsFromArray<OUT> implements NextGenExtractor<Object, OUT[]> {
+public class ConcatinatedExtract<FROM, OVER, TO> implements NextGenExtractor<FROM, TO> {
 
 	/**
-	 * Auto-generated version id
+	 * auto-generated id
 	 */
-	private static final long serialVersionUID = 8075055384516397670L;
-	private int[] order;
-	private Class<OUT> clazz;
+	private static final long serialVersionUID = -7807197760725651752L;
 
-	public FieldsFromArray(Class<OUT> clazz, int... indexes) {
-		this.order = indexes;
-		this.clazz = clazz;
+	private NextGenExtractor<FROM, OVER> e1;
+	private NextGenExtractor<OVER, TO> e2;
+
+	public ConcatinatedExtract(NextGenExtractor<FROM, OVER> e1, NextGenExtractor<OVER, TO> e2) {
+		this.e1 = e1;
+		this.e2 = e2;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public OUT[] extract(Object in) {
-		OUT[] output = (OUT[]) Array.newInstance(clazz, order.length);
-		for (int i = 0; i < order.length; i++) {
-			output[i] = (OUT) Array.get(in, this.order[i]);
-		}
-		return output;
+	public TO extract(FROM in) {
+		return e2.extract(e1.extract(in));
+	}
+
+	public <OUT> ConcatinatedExtract<FROM, TO, OUT> add(NextGenExtractor<TO, OUT> e3) {
+		return new ConcatinatedExtract<FROM, TO, OUT>(this, e3);
 	}
 
 }

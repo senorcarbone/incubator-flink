@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.util.nextGenExtractor;
+package org.apache.flink.streaming.util.extractor;
 
 import static org.junit.Assert.assertEquals;
 
@@ -45,6 +45,7 @@ import org.apache.flink.api.java.tuple.Tuple6;
 import org.apache.flink.api.java.tuple.Tuple7;
 import org.apache.flink.api.java.tuple.Tuple8;
 import org.apache.flink.api.java.tuple.Tuple9;
+import org.apache.flink.streaming.util.extractor.ArrayFromTuple;
 import org.junit.Before;
 import org.junit.Test;
 
