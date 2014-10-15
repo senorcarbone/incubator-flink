@@ -34,12 +34,13 @@ public class CountTriggerPolicyTest {
 	public void testCountTriggerPolicy() {
 
 		ArrayList tuples = Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-		int counter = 0;
+		int counter;
 
 		// Test count of different sizes (0..9)
 		for (int i = 0; i < 10; i++) {
-			TriggerPolicy triggerPolicy = new CountTriggerPolicy(i);
-
+			TriggerPolicy triggerPolicy = Count.of(i).toTrigger();
+			counter=0;
+			
 			// Test first i steps (should not trigger)
 			for (int j = 0; j < i; j++) {
 				counter++;
@@ -59,7 +60,8 @@ public class CountTriggerPolicyTest {
 				// the next i-1 adds should not trigger
 				for (int k = 0; k < i - 1; k++) {
 					counter++;
-					assertFalse(triggerPolicy.notifyTrigger(tuples.get(k)));
+					assertFalse("Triggerpolicy with count of " + i + " triggered at add nr. "
+							+ counter, triggerPolicy.notifyTrigger(tuples.get(k)));
 				}
 			}
 		}
@@ -70,7 +72,7 @@ public class CountTriggerPolicyTest {
 	public void testCountTriggerPolicyStartValues() {
 
 		ArrayList tuples = Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-		
+
 		// Test count of different sizes (0..9)
 		for (int i = 0; i < 10; i++) {
 
@@ -79,11 +81,12 @@ public class CountTriggerPolicyTest {
 				TriggerPolicy triggerPolicy = new CountTriggerPolicy(i, j);
 				// Add tuples without trigger
 				for (int k = 0; k < ((i - j > 0) ? i - j : 0); k++) {
-					assertFalse("Triggerpolicy with count of " + i + " and start value of "+j+" triggered at add nr. " + (k+1),
+					assertFalse("Triggerpolicy with count of " + i + " and start value of " + j
+							+ " triggered at add nr. " + (k + 1),
 							triggerPolicy.notifyTrigger(tuples.get(k % 10)));
 				}
-				//Expect trigger
-				assertTrue("Triggerpolicy with count of " + i + "and start value of "+j
+				// Expect trigger
+				assertTrue("Triggerpolicy with count of " + i + "and start value of " + j
 						+ " did not trigger at the expected position.",
 						triggerPolicy.notifyTrigger(tuples.get(0)));
 			}

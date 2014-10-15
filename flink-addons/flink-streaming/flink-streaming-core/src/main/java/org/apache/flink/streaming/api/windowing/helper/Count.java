@@ -33,7 +33,7 @@ public class Count implements WindowingHelper {
 
 	@Override
 	public EvictionPolicy<?> toEvict() {
-		return new CountEvictionPolicy(count);
+		return new CountEvictionPolicy(count,count);
 	}
 
 	@Override

@@ -31,7 +31,7 @@ public class CountEvictionPolicy<IN> implements EvictionPolicy<IN> {
 	private static final long serialVersionUID = 2319201348806427996L;
 
 	int maxElements;
-	int counter = 0;
+	int counter;
 	int deleteOnEviction = 1;
 
 	/**
@@ -46,7 +46,7 @@ public class CountEvictionPolicy<IN> implements EvictionPolicy<IN> {
 	 *            more element arrives, the oldest element will be deleted
 	 */
 	public CountEvictionPolicy(int maxElements) {
-		this.maxElements = maxElements;
+		this(maxElements,maxElements);
 	}
 
 	/**
@@ -68,8 +68,7 @@ public class CountEvictionPolicy<IN> implements EvictionPolicy<IN> {
 	 *            will be adjusted respectively but never below zero.
 	 */
 	public CountEvictionPolicy(int maxElements, int deleteOnEviction) {
-		this(maxElements);
-		this.deleteOnEviction = deleteOnEviction;
+		this(maxElements,maxElements,0);
 	}
 
 	/**
@@ -88,13 +87,15 @@ public class CountEvictionPolicy<IN> implements EvictionPolicy<IN> {
 	 * @see CountEvictionPolicy#NextGenCountEvictionPolicy(int, int)
 	 */
 	public CountEvictionPolicy(int maxElements, int deleteOnEviction, int startValue) {
-		this(maxElements, deleteOnEviction);
 		this.counter = startValue;
+		this.deleteOnEviction = deleteOnEviction;
+		this.maxElements=maxElements;
 	}
 
 	@Override
 	public int notifyEviction(IN datapoint, boolean triggered, int bufferSize) {
-		if (counter == maxElements) {
+		// The comparison have to be >= and not == to cover case max=0
+		if (counter >= maxElements) {
 			// Adjust the counter according to the current eviction
 			counter = (counter - deleteOnEviction < 0) ? 0 : counter - deleteOnEviction;
 			// The current element will be added after the eviction
