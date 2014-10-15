@@ -17,6 +17,8 @@
 
 package org.apache.flink.streaming.api.invokable.operator;
 
+import org.apache.flink.streaming.util.extractor.Extractor;
+
 public abstract class NextGenConversionAwareDeltaFunction<DATA, TO> implements
 		NextGenDeltaFunction<DATA> {
 
@@ -24,9 +26,9 @@ public abstract class NextGenConversionAwareDeltaFunction<DATA, TO> implements
 	 * Generated Version ID
 	 */
 	private static final long serialVersionUID = 6927486219702689554L;
-	private NextGenExtractor<DATA, TO> converter;
+	private Extractor<DATA, TO> converter;
 
-	public NextGenConversionAwareDeltaFunction(NextGenExtractor<DATA, TO> converter) {
+	public NextGenConversionAwareDeltaFunction(Extractor<DATA, TO> converter) {
 		this.converter = converter;
 	}
 

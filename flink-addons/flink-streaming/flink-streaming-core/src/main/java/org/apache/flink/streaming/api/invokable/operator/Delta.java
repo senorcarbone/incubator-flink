@@ -21,6 +21,7 @@ import org.apache.flink.streaming.util.deltafunction.CosineDistance;
 import org.apache.flink.streaming.util.deltafunction.EuclideanDistance;
 import org.apache.flink.streaming.util.extractor.ArrayFromTuple;
 import org.apache.flink.streaming.util.extractor.ConcatinatedExtract;
+import org.apache.flink.streaming.util.extractor.Extractor;
 import org.apache.flink.streaming.util.extractor.FieldsFromArray;
 
 public class Delta<DATA> implements NextGenWindowHelper<DATA> {
@@ -107,14 +108,14 @@ public class Delta<DATA> implements NextGenWindowHelper<DATA> {
 		private double threshold;
 		private int[] fields;
 		@SuppressWarnings("rawtypes")
-		private NextGenExtractor laterExtractor;
+		private Extractor laterExtractor;
 
 		private DeltaHelper2(double threshold, int... fields) {
 			this(null, threshold, fields);
 		}
 
 		@SuppressWarnings("rawtypes")
-		private DeltaHelper2(NextGenExtractor laterExtractor, double threshold, int... fields) {
+		private DeltaHelper2(Extractor laterExtractor, double threshold, int... fields) {
 			this.laterExtractor = laterExtractor;
 			this.threshold = threshold;
 			this.fields = fields;
@@ -150,10 +151,10 @@ public class Delta<DATA> implements NextGenWindowHelper<DATA> {
 	public static class DeltaHelper3<FROM> {
 
 		@SuppressWarnings("rawtypes")
-		private NextGenExtractor extractor;
+		private Extractor extractor;
 		private double threshold;
 
-		private <TO> DeltaHelper3(double threshold, NextGenExtractor<FROM, TO> extractor) {
+		private <TO> DeltaHelper3(double threshold, Extractor<FROM, TO> extractor) {
 			this.threshold = threshold;
 			this.extractor = extractor;
 		}

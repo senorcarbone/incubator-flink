@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.util.extractor;
 
 import java.io.Serializable;
 
-public interface NextGenExtractor<FROM, TO> extends Serializable {
+public interface Extractor<FROM, TO> extends Serializable {
 
 	public TO extract(FROM in);
 

@@ -18,9 +18,8 @@
 package org.apache.flink.streaming.util.extractor;
 
 import org.apache.flink.api.java.tuple.Tuple;
-import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 
-public class ArrayFromTuple implements NextGenExtractor<Tuple, Object[]> {
+public class ArrayFromTuple implements Extractor<Tuple, Object[]> {
 
 	/**
 	 * Auto generated version id

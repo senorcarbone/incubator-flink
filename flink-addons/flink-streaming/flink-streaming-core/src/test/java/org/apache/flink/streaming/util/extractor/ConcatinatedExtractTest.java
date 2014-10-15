@@ -20,7 +20,6 @@ package org.apache.flink.streaming.util.extractor;
 import static org.junit.Assert.*;
 
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 import org.apache.flink.streaming.util.extractor.ArrayFromTuple;
 import org.apache.flink.streaming.util.extractor.ConcatinatedExtract;
 import org.apache.flink.streaming.util.extractor.FieldFromArray;
@@ -57,7 +56,7 @@ public class ConcatinatedExtractTest {
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Test
 	public void test1() {
-		NextGenExtractor ext = new ConcatinatedExtract(new FieldFromTuple(0), new FieldFromTuple(1))
+		Extractor ext = new ConcatinatedExtract(new FieldFromTuple(0), new FieldFromTuple(1))
 				.add(new FieldsFromArray(Integer.class, 2, 1, 0));
 		int[] expected = { testIntArray3[2], testIntArray3[1], testIntArray3[0] };
 		assertEquals(new Integer(expected[0]), ((Integer[]) ext.extract(testData))[0]);
@@ -68,7 +67,7 @@ public class ConcatinatedExtractTest {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Test
 	public void test2() {
-		NextGenExtractor ext = new ConcatinatedExtract(new FieldFromTuple(1), // Tuple2<String[],int[]>[]
+		Extractor ext = new ConcatinatedExtract(new FieldFromTuple(1), // Tuple2<String[],int[]>[]
 				new FieldsFromArray(Tuple2.class, 1)) // Tuple2<String[],int[]>[]
 				.add(new FieldFromArray(0)) // Tuple2<String[],int[]>
 				.add(new ArrayFromTuple(0)) // Object[] (Containing String[])

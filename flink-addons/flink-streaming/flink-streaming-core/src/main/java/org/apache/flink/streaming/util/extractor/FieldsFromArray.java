@@ -19,9 +19,7 @@ package org.apache.flink.streaming.util.extractor;
 
 import java.lang.reflect.Array;
 
-import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
-
-public class FieldsFromArray<OUT> implements NextGenExtractor<Object, OUT[]> {
+public class FieldsFromArray<OUT> implements Extractor<Object, OUT[]> {
 
 	/**
 	 * Auto-generated version id
