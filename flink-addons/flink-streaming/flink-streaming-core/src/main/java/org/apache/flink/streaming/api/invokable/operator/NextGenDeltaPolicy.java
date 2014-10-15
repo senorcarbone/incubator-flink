@@ -20,7 +20,8 @@ package org.apache.flink.streaming.api.invokable.operator;
 import java.util.LinkedList;
 import java.util.List;
 
-public class NextGenDeltaPolicy<DATA> implements NextGenTriggerPolicy<DATA>, NextGenEvictionPolicy<DATA> {
+public class NextGenDeltaPolicy<DATA> implements NextGenTriggerPolicy<DATA>,
+		NextGenEvictionPolicy<DATA> {
 
 	/**
 	 * Auto generated version ID

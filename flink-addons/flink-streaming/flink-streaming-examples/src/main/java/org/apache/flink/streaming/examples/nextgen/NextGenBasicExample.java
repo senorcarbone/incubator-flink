@@ -33,7 +33,6 @@ public class NextGenBasicExample {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment
 				.createLocalEnvironment(PARALLELISM);
 
-
 		// This reduce function does a String concat.
 		ReduceFunction<String> reduceFunction = new ReduceFunction<String>() {
 
@@ -50,10 +49,8 @@ public class NextGenBasicExample {
 		};
 
 		DataStream<Tuple2<String, String[]>> stream = env
-				.addSource(new BasicSource(), SOURCE_PARALLELISM)
-				.window(Count.of(5))
-				.every(Count.of(2))
-				.reduce(reduceFunction);
+				.addSource(new BasicSource(), SOURCE_PARALLELISM).window(Count.of(5))
+				.every(Count.of(2)).reduce(reduceFunction);
 
 		stream.print();
 

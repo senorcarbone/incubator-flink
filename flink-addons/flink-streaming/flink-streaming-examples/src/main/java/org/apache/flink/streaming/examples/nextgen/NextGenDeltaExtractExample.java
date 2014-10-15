@@ -30,6 +30,7 @@ public class NextGenDeltaExtractExample {
 
 	private static final int PARALLELISM = 1;
 
+	@SuppressWarnings({ "serial", "rawtypes", "unchecked" })
 	public static void main(String[] args) throws Exception {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment
 				.createLocalEnvironment(PARALLELISM);
@@ -43,16 +44,18 @@ public class NextGenDeltaExtractExample {
 
 		DataStream dstream = env
 				.addSource(new CountingSource())
-				//.window(Delta.of(new EuclideanDistance(new FieldsFromTuple(0, 1)), new Tuple3(0d, 0d, "foo"), 1))
-				.window(Delta.of(1.2).onFields(0,1).fromTuple().measuredWithEucledianDistance().initializedWith(new Tuple3<Double,Double,String>(0d, 0d, "foo")))
-				.every(Count.of(2))
-				.reduce(concatStrings);
+				// .window(Delta.of(new EuclideanDistance(new FieldsFromTuple(0,
+				// 1)), new Tuple3(0d, 0d, "foo"), 1))
+				.window(Delta.of(1.2).onFields(0, 1).fromTuple().measuredWithEucledianDistance()
+						.initializedWith(new Tuple3<Double, Double, String>(0d, 0d, "foo")))
+				.every(Count.of(2)).reduce(concatStrings);
 
 		dstream.print();
 		env.execute();
 
 	}
 
+	@SuppressWarnings("serial")
 	private static class CountingSource implements SourceFunction<Tuple3<Double, Double, String>> {
 
 		private int counter = 0;
@@ -60,8 +63,10 @@ public class NextGenDeltaExtractExample {
 		@Override
 		public void invoke(Collector<Tuple3<Double, Double, String>> collector) throws Exception {
 			while (true) {
-				if (counter > 9999) counter = 0;
-				collector.collect(new Tuple3<Double, Double, String>((double) counter, (double) counter + 1, "V" + counter++));
+				if (counter > 9999)
+					counter = 0;
+				collector.collect(new Tuple3<Double, Double, String>((double) counter,
+						(double) counter + 1, "V" + counter++));
 			}
 		}
 	}

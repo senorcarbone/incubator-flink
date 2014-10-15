@@ -59,7 +59,7 @@ public class FieldsFromTupleTest {
 			testDouble[i] = i;
 		}
 	}
-	
+
 	@Test
 	public void testUserSpecifiedOrder() throws InstantiationException, IllegalAccessException {
 		Tuple currentTuple = (Tuple) CLASSES[Tuple.MAX_ARITY - 1].newInstance();
@@ -72,10 +72,12 @@ public class FieldsFromTupleTest {
 		arrayEqualityCheck(expected, new FieldsFromTuple(5, 3, 6, 7, 0).extract(currentTuple));
 
 		double[] expected2 = { testDouble[0], testDouble[Tuple.MAX_ARITY - 1] };
-		arrayEqualityCheck(expected2, new FieldsFromTuple(0, Tuple.MAX_ARITY - 1).extract(currentTuple));
+		arrayEqualityCheck(expected2,
+				new FieldsFromTuple(0, Tuple.MAX_ARITY - 1).extract(currentTuple));
 
 		double[] expected3 = { testDouble[Tuple.MAX_ARITY - 1], testDouble[0] };
-		arrayEqualityCheck(expected3, new FieldsFromTuple(Tuple.MAX_ARITY - 1, 0).extract(currentTuple));
+		arrayEqualityCheck(expected3,
+				new FieldsFromTuple(Tuple.MAX_ARITY - 1, 0).extract(currentTuple));
 
 		double[] expected4 = { testDouble[13], testDouble[4], testDouble[5], testDouble[4],
 				testDouble[2], testDouble[8], testDouble[6], testDouble[2], testDouble[8],
@@ -89,7 +91,7 @@ public class FieldsFromTupleTest {
 	private void arrayEqualityCheck(double[] array1, double[] array2) {
 		assertEquals("The result arrays must have the same length", array1.length, array2.length);
 		for (int i = 0; i < array1.length; i++) {
-			assertEquals("Unequal fields at position " + i, array1[i], array2[i],0d);
+			assertEquals("Unequal fields at position " + i, array1[i], array2[i], 0d);
 		}
 	}
 

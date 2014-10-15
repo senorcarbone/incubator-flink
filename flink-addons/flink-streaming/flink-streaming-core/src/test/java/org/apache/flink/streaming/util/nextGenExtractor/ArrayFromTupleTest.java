@@ -85,10 +85,12 @@ public class ArrayFromTupleTest {
 		arrayEqualityCheck(expected, new ArrayFromTuple(5, 3, 6, 7, 0).extract(currentTuple));
 
 		String[] expected2 = { testStrings[0], testStrings[Tuple.MAX_ARITY - 1] };
-		arrayEqualityCheck(expected2, new ArrayFromTuple(0, Tuple.MAX_ARITY - 1).extract(currentTuple));
+		arrayEqualityCheck(expected2,
+				new ArrayFromTuple(0, Tuple.MAX_ARITY - 1).extract(currentTuple));
 
 		String[] expected3 = { testStrings[Tuple.MAX_ARITY - 1], testStrings[0] };
-		arrayEqualityCheck(expected3, new ArrayFromTuple(Tuple.MAX_ARITY - 1, 0).extract(currentTuple));
+		arrayEqualityCheck(expected3,
+				new ArrayFromTuple(Tuple.MAX_ARITY - 1, 0).extract(currentTuple));
 
 		String[] expected4 = { testStrings[13], testStrings[4], testStrings[5], testStrings[4],
 				testStrings[2], testStrings[8], testStrings[6], testStrings[2], testStrings[8],

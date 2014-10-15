@@ -37,19 +37,21 @@ public class Time<DATA> implements NextGenWindowHelper<DATA> {
 
 	@Override
 	public NextGenEvictionPolicy<DATA> toEvict() {
-		return new NextGenTimeEvictionPolicy<DATA>(granularityInMillis(), new DefaultTimeStamp<DATA>());
+		return new NextGenTimeEvictionPolicy<DATA>(granularityInMillis(),
+				new DefaultTimeStamp<DATA>());
 	}
 
 	@Override
 	public NextGenTriggerPolicy<DATA> toTrigger() {
-		return new NextGenTimeTriggerPolicy<DATA>(granularityInMillis(), new DefaultTimeStamp<DATA>());
+		return new NextGenTimeTriggerPolicy<DATA>(granularityInMillis(),
+				new DefaultTimeStamp<DATA>());
 	}
 
 	public static <DATA> Time<DATA> of(int timeVal, TimeUnit granularity) {
 		return new Time<DATA>(timeVal, granularity);
 	}
-	
-	private long granularityInMillis(){
+
+	private long granularityInMillis() {
 		return this.granularity.toMillis(this.timeVal);
 	}
 

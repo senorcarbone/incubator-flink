@@ -20,12 +20,12 @@ package org.apache.flink.streaming.util.nextGenDeltaFunction;
 import org.apache.flink.streaming.api.invokable.operator.NextGenConversionAwareDeltaFunction;
 import org.apache.flink.streaming.api.invokable.operator.NextGenExtractor;
 
-public class EuclideanDistance<DATA> extends NextGenConversionAwareDeltaFunction<DATA, double[]>{
+public class EuclideanDistance<DATA> extends NextGenConversionAwareDeltaFunction<DATA, double[]> {
 
-	public EuclideanDistance(){
+	public EuclideanDistance() {
 		super(null);
 	}
-	
+
 	public EuclideanDistance(NextGenExtractor<DATA, double[]> converter) {
 		super(converter);
 	}
@@ -37,9 +37,9 @@ public class EuclideanDistance<DATA> extends NextGenConversionAwareDeltaFunction
 
 	@Override
 	public double getNestedDelta(double[] oldDataPoint, double[] newDataPoint) {
-		double result=0;
-		for (int i=0;i<oldDataPoint.length;i++){
-			result+=(oldDataPoint[i]-newDataPoint[i])*(oldDataPoint[i]-newDataPoint[i]);
+		double result = 0;
+		for (int i = 0; i < oldDataPoint.length; i++) {
+			result += (oldDataPoint[i] - newDataPoint[i]) * (oldDataPoint[i] - newDataPoint[i]);
 		}
 		return Math.sqrt(result);
 	}

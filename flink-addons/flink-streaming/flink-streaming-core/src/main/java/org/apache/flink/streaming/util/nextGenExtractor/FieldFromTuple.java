@@ -26,16 +26,16 @@ public class FieldFromTuple<OUT> implements NextGenExtractor<Tuple, OUT> {
 	 * Auto-gernated version id
 	 */
 	private static final long serialVersionUID = -5161386546695574359L;
-	private int fieldId=0;
-	
+	private int fieldId = 0;
+
 	public FieldFromTuple() {
-		//noting to do => will use default 0
+		// noting to do => will use default 0
 	}
-	
+
 	public FieldFromTuple(int fieldId) {
-		this.fieldId=fieldId;
+		this.fieldId = fieldId;
 	}
-	
+
 	@Override
 	public OUT extract(Tuple in) {
 		return in.getField(fieldId);

@@ -14,17 +14,17 @@ public class NextGenMultiplePoliciesExample {
 
 	private static final int PARALLELISM = 1;
 	private static final int SOURCE_PARALLELISM = 1;
-	
-	public static void main(String[] args) throws Exception{
+
+	public static void main(String[] args) throws Exception {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment
 				.createLocalEnvironment(PARALLELISM);
-		
-		LinkedList<NextGenTriggerPolicy<String>> policies=new LinkedList<NextGenTriggerPolicy<String>>();
+
+		LinkedList<NextGenTriggerPolicy<String>> policies = new LinkedList<NextGenTriggerPolicy<String>>();
 		policies.add(new NextGenCountTriggerPolicy<String>(5));
 		policies.add(new NextGenCountTriggerPolicy<String>(8));
-		
-		//This reduce function does a String concat.
-		ReduceFunction<String> reducer=new ReduceFunction<String>() {
+
+		// This reduce function does a String concat.
+		ReduceFunction<String> reducer = new ReduceFunction<String>() {
 
 			/**
 			 * Auto generates version ID
@@ -33,17 +33,17 @@ public class NextGenMultiplePoliciesExample {
 
 			@Override
 			public String reduce(String value1, String value2) throws Exception {
-				return value1+"|"+value2;
+				return value1 + "|" + value2;
 			}
-			
+
 		};
-		
-		DataStream<Tuple2<String,String[]>> stream = env.addSource(new BasicSource(), SOURCE_PARALLELISM)
-				.nextGenBatch(policies,reducer);
-				
+
+		DataStream<Tuple2<String, String[]>> stream = env.addSource(new BasicSource(),
+				SOURCE_PARALLELISM).nextGenBatch(policies, reducer);
+
 		stream.print();
 
 		env.execute();
 	}
-	
+
 }
