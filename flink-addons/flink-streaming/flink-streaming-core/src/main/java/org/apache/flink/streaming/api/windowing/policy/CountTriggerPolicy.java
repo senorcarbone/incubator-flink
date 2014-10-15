@@ -47,9 +47,9 @@ public class CountTriggerPolicy<IN> implements TriggerPolicy<IN> {
 	}
 
 	/**
-	 * In addition to
-	 * {@link CountTriggerPolicy#NextGenCountTriggerPolicy(int)} this
-	 * constructor allows to set a custom start value for the element counter.
+	 * In addition to {@link CountTriggerPolicy#NextGenCountTriggerPolicy(int)}
+	 * this constructor allows to set a custom start value for the element
+	 * counter.
 	 * 
 	 * @param max
 	 *            The number of arriving elements before the trigger occurs.
@@ -64,7 +64,8 @@ public class CountTriggerPolicy<IN> implements TriggerPolicy<IN> {
 
 	@Override
 	public boolean notifyTrigger(IN datapoint) {
-		if (counter == max) {
+		// The comparison have to be >= and not == to cover case max=0
+		if (counter >= max) {
 			// The current data point will be part of the next window!
 			// Therefore the counter needs to be set to one already.
 			counter = 1;
