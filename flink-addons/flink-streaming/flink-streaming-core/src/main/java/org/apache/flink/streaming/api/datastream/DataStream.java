@@ -33,6 +33,10 @@ import org.apache.flink.streaming.api.invokable.StreamInvokable;
 import org.apache.flink.streaming.api.invokable.operator.*;
 import org.apache.flink.streaming.api.invokable.util.DefaultTimeStamp;
 import org.apache.flink.streaming.api.invokable.util.TimeStamp;
+import org.apache.flink.streaming.api.windowing.helper.WindowingHelper;
+import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TumblingEvictionPolicy;
 import org.apache.flink.streaming.partitioner.*;
 import org.apache.flink.streaming.util.serialization.CombineTypeWrapper;
 import org.apache.flink.streaming.util.serialization.FunctionTypeWrapper;
@@ -411,14 +415,14 @@ public class DataStream<OUT> {
 	 * @return The single output operator
 	 */
 	public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenWindow(
-			LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicies,
-			LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicies,
+			LinkedList<TriggerPolicy<OUT>> triggerPolicies,
+			LinkedList<EvictionPolicy<OUT>> evictionPolicies,
 			ReduceFunction<OUT> reduceFunction) {
 		String[] sample = { "" };
 		return addFunction("NextGenWindowReduce", reduceFunction, new FunctionTypeWrapper<OUT>(
 				reduceFunction, ReduceFunction.class, 0), new CombineTypeWrapper<OUT, String[]>(
 				this.outTypeWrapper, new ObjectTypeWrapper<String[]>(sample)),
-				new NextGenWindowingInvokable<OUT>(reduceFunction, triggerPolicies,
+				new WindowingInvokable<OUT>(reduceFunction, triggerPolicies,
 						evictionPolicies));
 	}
 
@@ -429,11 +433,11 @@ public class DataStream<OUT> {
 	 * @see DataStream#nextGenWindow(LinkedList, LinkedList, Object)
 	 */
 	public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenWindow(
-			NextGenTriggerPolicy<OUT> triggerPolicy, NextGenEvictionPolicy<OUT> evictionPolicy,
+			TriggerPolicy<OUT> triggerPolicy, EvictionPolicy<OUT> evictionPolicy,
 			ReduceFunction<OUT> reduceFunction) {
-		LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicyList = new LinkedList<NextGenTriggerPolicy<OUT>>();
+		LinkedList<TriggerPolicy<OUT>> triggerPolicyList = new LinkedList<TriggerPolicy<OUT>>();
 		triggerPolicyList.add(triggerPolicy);
-		LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<NextGenEvictionPolicy<OUT>>();
+		LinkedList<EvictionPolicy<OUT>> evictionPolicyList = new LinkedList<EvictionPolicy<OUT>>();
 		evictionPolicyList.add(evictionPolicy);
 		return nextGenWindow(triggerPolicyList, evictionPolicyList, reduceFunction);
 	}
@@ -443,7 +447,7 @@ public class DataStream<OUT> {
 	 * trigger and eviction policies.
 	 * 
 	 * The eviction policy will be set to
-	 * {@link org.apache.flink.streaming.api.invokable.operator.NextGenTumblingEvictionPolicy}
+	 * {@link org.apache.flink.streaming.api.windowing.policy.TumblingEvictionPolicy}
 	 * , which leads to the expected behavior for a tumbling window.
 	 * 
 	 * @param triggerPolicies
@@ -455,10 +459,10 @@ public class DataStream<OUT> {
 	 * @see DataStream#nextGenWindow(LinkedList, LinkedList, Object)
 	 */
 	public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenBatch(
-			LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicies,
+			LinkedList<TriggerPolicy<OUT>> triggerPolicies,
 			ReduceFunction<OUT> reduceFunction) {
-		LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<NextGenEvictionPolicy<OUT>>();
-		evictionPolicyList.add(new NextGenTumblingEvictionPolicy<OUT>());
+		LinkedList<EvictionPolicy<OUT>> evictionPolicyList = new LinkedList<EvictionPolicy<OUT>>();
+		evictionPolicyList.add(new TumblingEvictionPolicy<OUT>());
 		return nextGenWindow(triggerPolicies, evictionPolicyList, reduceFunction);
 	}
 
@@ -469,14 +473,14 @@ public class DataStream<OUT> {
 	 * @see DataStream#nextGenBatch(LinkedList, Object)
 	 */
 	public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenBatch(
-			NextGenTriggerPolicy<OUT> triggerPolicy, ReduceFunction<OUT> reduceFunction) {
-		LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicyList = new LinkedList<NextGenTriggerPolicy<OUT>>();
+			TriggerPolicy<OUT> triggerPolicy, ReduceFunction<OUT> reduceFunction) {
+		LinkedList<TriggerPolicy<OUT>> triggerPolicyList = new LinkedList<TriggerPolicy<OUT>>();
 		triggerPolicyList.add(triggerPolicy);
 		return nextGenBatch(triggerPolicyList, reduceFunction);
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public NextGenWindowedDataStream<OUT> window(NextGenWindowHelper... policyHelpers){
+	public NextGenWindowedDataStream<OUT> window(WindowingHelper... policyHelpers){
 		return new NextGenWindowedDataStream<OUT>(this, policyHelpers);
 	}
 

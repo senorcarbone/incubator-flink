@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.policy;
 
 /**
  * This eviction policy deletes all elements from the buffer in case a trigger
@@ -25,7 +25,7 @@ package org.apache.flink.streaming.api.invokable.operator;
  * @param <DATA>
  *            The type of the data points which is handled by this policy
  */
-public class NextGenTumblingEvictionPolicy<DATA> implements NextGenEvictionPolicy<DATA> {
+public class TumblingEvictionPolicy<DATA> implements EvictionPolicy<DATA> {
 
 	/**
 	 * Auto generated version ID
@@ -40,7 +40,7 @@ public class NextGenTumblingEvictionPolicy<DATA> implements NextGenEvictionPolic
 	/**
 	 * This is the default constructor providing no special functionality
 	 */
-	public NextGenTumblingEvictionPolicy() {
+	public TumblingEvictionPolicy() {
 		// default constructor, no further logic needed
 	}
 
@@ -51,7 +51,7 @@ public class NextGenTumblingEvictionPolicy<DATA> implements NextGenEvictionPolic
 	 * @param startValue
 	 *            A start value for the element counter
 	 */
-	public NextGenTumblingEvictionPolicy(int startValue) {
+	public TumblingEvictionPolicy(int startValue) {
 		this.counter = startValue;
 	}
 

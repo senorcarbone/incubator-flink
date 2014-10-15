@@ -20,6 +20,8 @@ package org.apache.flink.streaming.api.invokable.operator;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.invokable.StreamInvokable;
+import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,24 +29,24 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
-public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN, String[]>> {
+public class WindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN, String[]>> {
 
 	/**
 	 * Auto-generated serial version UID
 	 */
 	private static final long serialVersionUID = -8038984294071650730L;
 
-	private static final Logger LOG = LoggerFactory.getLogger(NextGenWindowingInvokable.class);
+	private static final Logger LOG = LoggerFactory.getLogger(WindowingInvokable.class);
 
-	private LinkedList<NextGenTriggerPolicy<IN>> triggerPolicies;
-	private LinkedList<NextGenEvictionPolicy<IN>> evictionPolicies;
+	private LinkedList<TriggerPolicy<IN>> triggerPolicies;
+	private LinkedList<EvictionPolicy<IN>> evictionPolicies;
 	private LinkedList<IN> buffer = new LinkedList<IN>();
-	private LinkedList<NextGenTriggerPolicy<IN>> currentTriggerPolicies = new LinkedList<NextGenTriggerPolicy<IN>>();
+	private LinkedList<TriggerPolicy<IN>> currentTriggerPolicies = new LinkedList<TriggerPolicy<IN>>();
 	private ReduceFunction<IN> reducer;
 
-	public NextGenWindowingInvokable(ReduceFunction<IN> userFunction,
-			LinkedList<NextGenTriggerPolicy<IN>> triggerPolicies,
-			LinkedList<NextGenEvictionPolicy<IN>> evictionPolicies) {
+	public WindowingInvokable(ReduceFunction<IN> userFunction,
+			LinkedList<TriggerPolicy<IN>> triggerPolicies,
+			LinkedList<EvictionPolicy<IN>> evictionPolicies) {
 		super(userFunction);
 
 		this.reducer = userFunction;
@@ -66,7 +68,7 @@ public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN
 
 			// Process the triggers (in case of multiple triggers compute only
 			// once!)
-			for (NextGenTriggerPolicy<IN> triggerPolicy : triggerPolicies) {
+			for (TriggerPolicy<IN> triggerPolicy : triggerPolicies) {
 				if (triggerPolicy.notifyTrigger(reuse.getObject())) {
 					currentTriggerPolicies.add(triggerPolicy);
 				}
@@ -87,7 +89,7 @@ public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN
 			// In case there are multiple eviction policies present,
 			// only the one with the highest return value is recognized.
 			int currentMaxEviction = 0;
-			for (NextGenEvictionPolicy<IN> evictionPolicy : evictionPolicies) {
+			for (EvictionPolicy<IN> evictionPolicy : evictionPolicies) {
 				// use temporary variable to prevent multiple calls to
 				// notifyEviction
 				int tmp = evictionPolicy.notifyEviction(reuse.getObject(), isTriggered,
@@ -117,7 +119,7 @@ public class NextGenWindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN
 		// finally trigger the buffer.
 		if (!buffer.isEmpty()) {
 			currentTriggerPolicies.clear();
-			for (NextGenTriggerPolicy<IN> policy : triggerPolicies) {
+			for (TriggerPolicy<IN> policy : triggerPolicies) {
 				currentTriggerPolicies.add(policy);
 			}
 			callUserFunctionAndLogException();

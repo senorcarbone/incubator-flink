@@ -22,10 +22,10 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.function.source.SourceFunction;
-import org.apache.flink.streaming.api.invokable.operator.NextGenCountEvictionPolicy;
-import org.apache.flink.streaming.api.invokable.operator.NextGenCountTriggerPolicy;
-import org.apache.flink.streaming.api.invokable.operator.NextGenEvictionPolicy;
-import org.apache.flink.streaming.api.invokable.operator.NextGenTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.CountEvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.CountTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 import org.apache.flink.util.Collector;
 
 public class NextGenSlidingExample {
@@ -51,8 +51,8 @@ public class NextGenSlidingExample {
 		 * window as first element of the next window while the window size is
 		 * always 5
 		 */
-		NextGenTriggerPolicy<String> triggerPolicy = new NextGenCountTriggerPolicy<String>(4, -1);
-		NextGenEvictionPolicy<String> evictionPolicy = new NextGenCountEvictionPolicy<String>(5, 4);
+		TriggerPolicy<String> triggerPolicy = new CountTriggerPolicy<String>(4, -1);
+		EvictionPolicy<String> evictionPolicy = new CountEvictionPolicy<String>(5, 4);
 
 		// This reduce function does a String concat.
 		ReduceFunction<String> reduceFunction = new ReduceFunction<String>() {

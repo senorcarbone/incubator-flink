@@ -15,29 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.deltafunction;
 
-@SuppressWarnings("rawtypes")
-public class Count implements NextGenWindowHelper {
+import java.io.Serializable;
 
-	private int count;
+public interface DeltaFunction<DATA> extends Serializable {
 
-	public Count(int count) {
-		this.count = count;
-	}
-
-	@Override
-	public NextGenEvictionPolicy<?> toEvict() {
-		return new NextGenCountEvictionPolicy(count);
-	}
-
-	@Override
-	public NextGenTriggerPolicy<?> toTrigger() {
-		return new NextGenCountTriggerPolicy(count);
-	}
-
-	public static Count of(int count) {
-		return new Count(count);
-	}
+	public double getDelta(DATA oldDataPoint, DATA newDataPoint);
 
 }

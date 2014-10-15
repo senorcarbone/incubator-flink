@@ -17,10 +17,9 @@
 
 package org.apache.flink.streaming.api.windowing.deltafunction;
 
-import org.apache.flink.streaming.api.invokable.operator.NextGenConversionAwareDeltaFunction;
 import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 
-public class CosineDistance<DATA> extends NextGenConversionAwareDeltaFunction<DATA, double[]> {
+public class CosineDistance<DATA> extends ExtractionAwareDeltaFunction<DATA, double[]> {
 
 	/**
 	 * auto-generated id

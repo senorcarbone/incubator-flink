@@ -15,38 +15,42 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.helper;
 
 import org.apache.flink.streaming.api.windowing.deltafunction.CosineDistance;
 import org.apache.flink.streaming.api.windowing.deltafunction.EuclideanDistance;
+import org.apache.flink.streaming.api.windowing.deltafunction.DeltaFunction;
 import org.apache.flink.streaming.api.windowing.extractor.ArrayFromTuple;
 import org.apache.flink.streaming.api.windowing.extractor.ConcatinatedExtract;
 import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 import org.apache.flink.streaming.api.windowing.extractor.FieldsFromArray;
+import org.apache.flink.streaming.api.windowing.policy.DeltaPolicy;
+import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 
-public class Delta<DATA> implements NextGenWindowHelper<DATA> {
+public class Delta<DATA> implements WindowingHelper<DATA> {
 
-	private NextGenDeltaFunction<DATA> deltaFunction;
+	private DeltaFunction<DATA> deltaFunction;
 	private DATA initVal;
 	private double threshold;
 
-	public Delta(NextGenDeltaFunction<DATA> deltaFunction, DATA initVal, double threshold) {
+	public Delta(DeltaFunction<DATA> deltaFunction, DATA initVal, double threshold) {
 		this.deltaFunction = deltaFunction;
 		this.initVal = initVal;
 		this.threshold = threshold;
 	}
 
 	@Override
-	public NextGenEvictionPolicy<DATA> toEvict() {
-		return new NextGenDeltaPolicy<DATA>(deltaFunction, initVal, threshold);
+	public EvictionPolicy<DATA> toEvict() {
+		return new DeltaPolicy<DATA>(deltaFunction, initVal, threshold);
 	}
 
 	@Override
-	public NextGenTriggerPolicy<DATA> toTrigger() {
-		return new NextGenDeltaPolicy<DATA>(deltaFunction, initVal, threshold);
+	public TriggerPolicy<DATA> toTrigger() {
+		return new DeltaPolicy<DATA>(deltaFunction, initVal, threshold);
 	}
 
-	public static <DATA> Delta<DATA> of(NextGenDeltaFunction<DATA> deltaFunction, DATA initVal,
+	public static <DATA> Delta<DATA> of(DeltaFunction<DATA> deltaFunction, DATA initVal,
 			double threshold) {
 		return new Delta<DATA>(deltaFunction, initVal, threshold);
 	}
@@ -99,7 +103,7 @@ public class Delta<DATA> implements NextGenWindowHelper<DATA> {
 		}
 
 		@SuppressWarnings({ "rawtypes", "unchecked" })
-		public DeltaHelper4 measuredWithCustomFunction(NextGenDeltaFunction delta) {
+		public DeltaHelper4 measuredWithCustomFunction(DeltaFunction delta) {
 			return new DeltaHelper4(threshold, delta);
 		}
 	}
@@ -181,9 +185,9 @@ public class Delta<DATA> implements NextGenWindowHelper<DATA> {
 
 	public static class DeltaHelper4<DATA> {
 		private double threshold;
-		private NextGenDeltaFunction<DATA> deltaFunction;
+		private DeltaFunction<DATA> deltaFunction;
 
-		private DeltaHelper4(double threshold, NextGenDeltaFunction<DATA> deltaFunction) {
+		private DeltaHelper4(double threshold, DeltaFunction<DATA> deltaFunction) {
 			this.threshold = threshold;
 			this.deltaFunction = deltaFunction;
 		}

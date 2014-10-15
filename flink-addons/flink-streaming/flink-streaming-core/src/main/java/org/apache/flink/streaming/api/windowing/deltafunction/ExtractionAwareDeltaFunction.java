@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.deltafunction;
 
 import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 
-public abstract class NextGenConversionAwareDeltaFunction<DATA, TO> implements
-		NextGenDeltaFunction<DATA> {
+public abstract class ExtractionAwareDeltaFunction<DATA, TO> implements
+		DeltaFunction<DATA> {
 
 	/**
 	 * Generated Version ID
@@ -28,7 +28,7 @@ public abstract class NextGenConversionAwareDeltaFunction<DATA, TO> implements
 	private static final long serialVersionUID = 6927486219702689554L;
 	private Extractor<DATA, TO> converter;
 
-	public NextGenConversionAwareDeltaFunction(Extractor<DATA, TO> converter) {
+	public ExtractionAwareDeltaFunction(Extractor<DATA, TO> converter) {
 		this.converter = converter;
 	}
 

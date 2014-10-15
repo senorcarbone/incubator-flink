@@ -15,12 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.helper;
 
-public interface NextGenWindowHelper<DATA> {
+import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 
-	public NextGenEvictionPolicy<DATA> toEvict();
+public interface WindowingHelper<DATA> {
 
-	public NextGenTriggerPolicy<DATA> toTrigger();
+	public EvictionPolicy<DATA> toEvict();
+
+	public TriggerPolicy<DATA> toTrigger();
 
 }

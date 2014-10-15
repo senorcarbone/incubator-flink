@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.policy;
 
 import java.util.LinkedList;
 
 import org.apache.flink.streaming.api.invokable.util.TimeStamp;
 
-public class NextGenTimeEvictionPolicy<DATA> implements NextGenEvictionPolicy<DATA> {
+public class TimeEvictionPolicy<DATA> implements EvictionPolicy<DATA> {
 
 	/**
 	 * auto generated version id
@@ -32,7 +32,7 @@ public class NextGenTimeEvictionPolicy<DATA> implements NextGenEvictionPolicy<DA
 	private TimeStamp<DATA> timestamp;
 	private LinkedList<DATA> buffer;
 
-	public NextGenTimeEvictionPolicy(long granularity, TimeStamp<DATA> timestamp) {
+	public TimeEvictionPolicy(long granularity, TimeStamp<DATA> timestamp) {
 		this.timestamp = timestamp;
 		this.granularity = granularity;
 	}

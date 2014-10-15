@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.policy;
 
 import java.io.Serializable;
 
-public interface NextGenTriggerPolicy<DATA> extends Serializable {
+public interface TriggerPolicy<DATA> extends Serializable {
 
 	/**
 	 * Proves and returns if a new window should be started. In case the trigger

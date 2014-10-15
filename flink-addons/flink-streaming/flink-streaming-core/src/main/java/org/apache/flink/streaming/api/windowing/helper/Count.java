@@ -15,12 +15,34 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.helper;
 
-import java.io.Serializable;
+import org.apache.flink.streaming.api.windowing.policy.CountEvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.CountTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 
-public interface NextGenDeltaFunction<DATA> extends Serializable {
+@SuppressWarnings("rawtypes")
+public class Count implements WindowingHelper {
 
-	public double getDelta(DATA oldDataPoint, DATA newDataPoint);
+	private int count;
+
+	public Count(int count) {
+		this.count = count;
+	}
+
+	@Override
+	public EvictionPolicy<?> toEvict() {
+		return new CountEvictionPolicy(count);
+	}
+
+	@Override
+	public TriggerPolicy<?> toTrigger() {
+		return new CountTriggerPolicy(count);
+	}
+
+	public static Count of(int count) {
+		return new Count(count);
+	}
 
 }

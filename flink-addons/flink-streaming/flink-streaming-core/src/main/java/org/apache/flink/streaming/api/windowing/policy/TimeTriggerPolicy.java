@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.policy;
 
 import org.apache.flink.streaming.api.invokable.util.TimeStamp;
 
-public class NextGenTimeTriggerPolicy<DATA> implements NextGenTriggerPolicy<DATA> {
+public class TimeTriggerPolicy<DATA> implements TriggerPolicy<DATA> {
 
 	/**
 	 * auto generated version id
@@ -30,7 +30,7 @@ public class NextGenTimeTriggerPolicy<DATA> implements NextGenTriggerPolicy<DATA
 	private long granularity;
 	private TimeStamp<DATA> timestamp;
 
-	public NextGenTimeTriggerPolicy(long granularity, TimeStamp<DATA> timestamp) {
+	public TimeTriggerPolicy(long granularity, TimeStamp<DATA> timestamp) {
 		this.startTime = timestamp.getStartTime();
 		this.timestamp = timestamp;
 		this.granularity = granularity;

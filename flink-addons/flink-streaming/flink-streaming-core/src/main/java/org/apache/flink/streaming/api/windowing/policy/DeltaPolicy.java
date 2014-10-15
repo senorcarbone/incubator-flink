@@ -15,25 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.policy;
 
 import java.util.LinkedList;
 import java.util.List;
 
-public class NextGenDeltaPolicy<DATA> implements NextGenTriggerPolicy<DATA>,
-		NextGenEvictionPolicy<DATA> {
+import org.apache.flink.streaming.api.windowing.deltafunction.DeltaFunction;
+
+public class DeltaPolicy<DATA> implements TriggerPolicy<DATA>,
+		EvictionPolicy<DATA> {
 
 	/**
 	 * Auto generated version ID
 	 */
 	private static final long serialVersionUID = -7797538922123394967L;
 
-	private NextGenDeltaFunction<DATA> deltaFuntion;
+	private DeltaFunction<DATA> deltaFuntion;
 	private List<DATA> windowBuffer;
 	private double threshold;
 	private DATA triggerDataPoint;
 
-	public NextGenDeltaPolicy(NextGenDeltaFunction<DATA> deltaFuntion, DATA init, double threshold) {
+	public DeltaPolicy(DeltaFunction<DATA> deltaFuntion, DATA init, double threshold) {
 		this.deltaFuntion = deltaFuntion;
 		this.triggerDataPoint = init;
 		this.windowBuffer = new LinkedList<DATA>();

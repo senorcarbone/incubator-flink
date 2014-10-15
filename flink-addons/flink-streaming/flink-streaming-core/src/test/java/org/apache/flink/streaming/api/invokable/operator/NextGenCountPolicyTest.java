@@ -18,6 +18,10 @@
 package org.apache.flink.streaming.api.invokable.operator;
 
 import com.google.common.collect.Lists;
+
+import org.apache.flink.streaming.api.windowing.helper.Count;
+import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -31,8 +35,8 @@ public class NextGenCountPolicyTest {
 	@Test
 	public void testDelta() {
 
-		NextGenTriggerPolicy triggerPolicy = Count.of(2).toTrigger();
-		NextGenEvictionPolicy evictPolicy = Count.of(5).toEvict();
+		TriggerPolicy triggerPolicy = Count.of(2).toTrigger();
+		EvictionPolicy evictPolicy = Count.of(5).toEvict();
 
 		ArrayList tuples = Lists.newArrayList(1,2,3,4,5,6,7);
 

@@ -1,7 +1,10 @@
 package org.apache.flink.streaming.api.invokable.operator;
 
 import com.google.common.collect.Lists;
+
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.streaming.api.windowing.deltafunction.DeltaFunction;
+import org.apache.flink.streaming.api.windowing.policy.DeltaPolicy;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -12,7 +15,7 @@ public class NextGenDeltaPolicyTest {
 
 	@Test
 	public void testDelta() {
-		NextGenDeltaPolicy deltaPolicy = new NextGenDeltaPolicy(new NextGenDeltaFunction<Tuple2<Integer, Integer>>() {
+		DeltaPolicy deltaPolicy = new DeltaPolicy(new DeltaFunction<Tuple2<Integer, Integer>>() {
 			@Override
 			public double getDelta(Tuple2<Integer, Integer> oldDataPoint, Tuple2<Integer, Integer> newDataPoint) {
 				return (double) newDataPoint.f0 - oldDataPoint.f0;

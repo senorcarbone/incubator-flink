@@ -21,7 +21,7 @@ import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.invokable.operator.Count;
+import org.apache.flink.streaming.api.windowing.helper.Count;
 import org.apache.flink.streaming.examples.basictopology.BasicTopology.BasicSource;
 
 public class NextGenBasicExample {

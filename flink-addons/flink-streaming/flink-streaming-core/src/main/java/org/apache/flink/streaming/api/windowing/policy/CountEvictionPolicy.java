@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.policy;
 
 /**
  * This eviction policy allows the eviction of data points from the buffer using
@@ -23,7 +23,7 @@ package org.apache.flink.streaming.api.invokable.operator;
  * 
  * @param <IN>
  */
-public class NextGenCountEvictionPolicy<IN> implements NextGenEvictionPolicy<IN> {
+public class CountEvictionPolicy<IN> implements EvictionPolicy<IN> {
 
 	/**
 	 * Auto generated version id
@@ -45,7 +45,7 @@ public class NextGenCountEvictionPolicy<IN> implements NextGenEvictionPolicy<IN>
 	 *            The maximum number of elements before eviction. As soon as one
 	 *            more element arrives, the oldest element will be deleted
 	 */
-	public NextGenCountEvictionPolicy(int maxElements) {
+	public CountEvictionPolicy(int maxElements) {
 		this.maxElements = maxElements;
 	}
 
@@ -67,14 +67,14 @@ public class NextGenCountEvictionPolicy<IN> implements NextGenEvictionPolicy<IN>
 	 *            The number of elements to be deleted on eviction. The counter
 	 *            will be adjusted respectively but never below zero.
 	 */
-	public NextGenCountEvictionPolicy(int maxElements, int deleteOnEviction) {
+	public CountEvictionPolicy(int maxElements, int deleteOnEviction) {
 		this(maxElements);
 		this.deleteOnEviction = deleteOnEviction;
 	}
 
 	/**
 	 * The same as
-	 * {@link NextGenCountEvictionPolicy#NextGenCountEvictionPolicy(int, int)}.
+	 * {@link CountEvictionPolicy#NextGenCountEvictionPolicy(int, int)}.
 	 * Additionally a custom start value for the counter of arriving elements
 	 * can be set.
 	 * 
@@ -85,9 +85,9 @@ public class NextGenCountEvictionPolicy<IN> implements NextGenEvictionPolicy<IN>
 	 *            will be adjusted respectively but never below zero.
 	 * @param startValue
 	 *            A custom start value for the counter of arriving elements.
-	 * @see NextGenCountEvictionPolicy#NextGenCountEvictionPolicy(int, int)
+	 * @see CountEvictionPolicy#NextGenCountEvictionPolicy(int, int)
 	 */
-	public NextGenCountEvictionPolicy(int maxElements, int deleteOnEviction, int startValue) {
+	public CountEvictionPolicy(int maxElements, int deleteOnEviction, int startValue) {
 		this(maxElements, deleteOnEviction);
 		this.counter = startValue;
 	}

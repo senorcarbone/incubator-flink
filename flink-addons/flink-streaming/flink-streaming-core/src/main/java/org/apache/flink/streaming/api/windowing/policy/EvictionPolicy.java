@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.policy;
 
 import java.io.Serializable;
 
-public interface NextGenEvictionPolicy<DATA> extends Serializable {
+public interface EvictionPolicy<DATA> extends Serializable {
 
 	/**
 	 * Proves if and how many elements should be deleted from the element

@@ -15,13 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.invokable.operator;
+package org.apache.flink.streaming.api.windowing.helper;
 
 import java.util.concurrent.TimeUnit;
 
 import org.apache.flink.streaming.api.invokable.util.DefaultTimeStamp;
+import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TimeEvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TimeTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 
-public class Time<DATA> implements NextGenWindowHelper<DATA> {
+public class Time<DATA> implements WindowingHelper<DATA> {
 
 	private int timeVal;
 	private TimeUnit granularity;
@@ -36,14 +40,14 @@ public class Time<DATA> implements NextGenWindowHelper<DATA> {
 	}
 
 	@Override
-	public NextGenEvictionPolicy<DATA> toEvict() {
-		return new NextGenTimeEvictionPolicy<DATA>(granularityInMillis(),
+	public EvictionPolicy<DATA> toEvict() {
+		return new TimeEvictionPolicy<DATA>(granularityInMillis(),
 				new DefaultTimeStamp<DATA>());
 	}
 
 	@Override
-	public NextGenTriggerPolicy<DATA> toTrigger() {
-		return new NextGenTimeTriggerPolicy<DATA>(granularityInMillis(),
+	public TriggerPolicy<DATA> toTrigger() {
+		return new TimeTriggerPolicy<DATA>(granularityInMillis(),
 				new DefaultTimeStamp<DATA>());
 	}
 

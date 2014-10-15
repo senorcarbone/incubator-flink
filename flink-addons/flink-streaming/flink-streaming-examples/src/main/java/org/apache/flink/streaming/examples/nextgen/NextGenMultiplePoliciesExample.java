@@ -4,8 +4,8 @@ import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.invokable.operator.NextGenCountTriggerPolicy;
-import org.apache.flink.streaming.api.invokable.operator.NextGenTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.CountTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 import org.apache.flink.streaming.examples.basictopology.BasicTopology.BasicSource;
 
 import java.util.LinkedList;
@@ -19,9 +19,9 @@ public class NextGenMultiplePoliciesExample {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment
 				.createLocalEnvironment(PARALLELISM);
 
-		LinkedList<NextGenTriggerPolicy<String>> policies = new LinkedList<NextGenTriggerPolicy<String>>();
-		policies.add(new NextGenCountTriggerPolicy<String>(5));
-		policies.add(new NextGenCountTriggerPolicy<String>(8));
+		LinkedList<TriggerPolicy<String>> policies = new LinkedList<TriggerPolicy<String>>();
+		policies.add(new CountTriggerPolicy<String>(5));
+		policies.add(new CountTriggerPolicy<String>(8));
 
 		// This reduce function does a String concat.
 		ReduceFunction<String> reducer = new ReduceFunction<String>() {

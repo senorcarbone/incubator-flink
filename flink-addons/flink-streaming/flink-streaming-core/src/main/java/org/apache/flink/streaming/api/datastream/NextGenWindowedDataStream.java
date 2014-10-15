@@ -24,11 +24,11 @@ import org.apache.flink.api.common.functions.GroupReduceFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.streaming.api.invokable.operator.NextGenEvictionPolicy;
-import org.apache.flink.streaming.api.invokable.operator.NextGenTriggerPolicy;
-import org.apache.flink.streaming.api.invokable.operator.NextGenTumblingEvictionPolicy;
-import org.apache.flink.streaming.api.invokable.operator.NextGenWindowHelper;
-import org.apache.flink.streaming.api.invokable.operator.NextGenWindowingInvokable;
+import org.apache.flink.streaming.api.invokable.operator.WindowingInvokable;
+import org.apache.flink.streaming.api.windowing.helper.WindowingHelper;
+import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TumblingEvictionPolicy;
 import org.apache.flink.streaming.util.serialization.CombineTypeWrapper;
 import org.apache.flink.streaming.util.serialization.FunctionTypeWrapper;
 import org.apache.flink.streaming.util.serialization.ObjectTypeWrapper;
@@ -48,11 +48,11 @@ public class NextGenWindowedDataStream<OUT> {
 	protected boolean isGrouped;
 	protected int keyPosition;
 
-	protected NextGenWindowHelper<OUT>[] triggerPolicies;
-	protected NextGenWindowHelper<OUT>[] evictionPolicies;
+	protected WindowingHelper<OUT>[] triggerPolicies;
+	protected WindowingHelper<OUT>[] evictionPolicies;
 
 	protected NextGenWindowedDataStream(DataStream<OUT> dataStream,
-			NextGenWindowHelper<OUT>... policyHelpers) {
+			WindowingHelper<OUT>... policyHelpers) {
 		if (dataStream instanceof GroupedDataStream) {
 			this.isGrouped = true;
 			this.keyPosition = ((GroupedDataStream<OUT>) dataStream).keyPosition;
@@ -63,25 +63,25 @@ public class NextGenWindowedDataStream<OUT> {
 		this.triggerPolicies = policyHelpers;
 	}
 
-	protected LinkedList<NextGenTriggerPolicy<OUT>> getTriggers() {
-		LinkedList<NextGenTriggerPolicy<OUT>> triggerPolicyList = new LinkedList<NextGenTriggerPolicy<OUT>>();
+	protected LinkedList<TriggerPolicy<OUT>> getTriggers() {
+		LinkedList<TriggerPolicy<OUT>> triggerPolicyList = new LinkedList<TriggerPolicy<OUT>>();
 
-		for (NextGenWindowHelper<OUT> helper : triggerPolicies) {
+		for (WindowingHelper<OUT> helper : triggerPolicies) {
 			triggerPolicyList.add(helper.toTrigger());
 		}
 
 		return triggerPolicyList;
 	}
 
-	protected LinkedList<NextGenEvictionPolicy<OUT>> getEvicters() {
-		LinkedList<NextGenEvictionPolicy<OUT>> evictionPolicyList = new LinkedList<NextGenEvictionPolicy<OUT>>();
+	protected LinkedList<EvictionPolicy<OUT>> getEvicters() {
+		LinkedList<EvictionPolicy<OUT>> evictionPolicyList = new LinkedList<EvictionPolicy<OUT>>();
 
 		if (evictionPolicies != null) {
-			for (NextGenWindowHelper<OUT> helper : evictionPolicies) {
+			for (WindowingHelper<OUT> helper : evictionPolicies) {
 				evictionPolicyList.add(helper.toEvict());
 			}
 		} else {
-			evictionPolicyList.add(new NextGenTumblingEvictionPolicy<OUT>());
+			evictionPolicyList.add(new TumblingEvictionPolicy<OUT>());
 		}
 
 		return evictionPolicyList;
@@ -132,7 +132,7 @@ public class NextGenWindowedDataStream<OUT> {
 				new FunctionTypeWrapper<OUT>(reduceFunction, ReduceFunction.class, 0),
 				new CombineTypeWrapper<OUT, String[]>(dataStream.outTypeWrapper,
 						new ObjectTypeWrapper<String[]>(new String[] { "" })),
-				new NextGenWindowingInvokable<OUT>(reduceFunction, getTriggers(), getEvicters()));
+				new WindowingInvokable<OUT>(reduceFunction, getTriggers(), getEvicters()));
 	}
 
 	/**
@@ -149,13 +149,13 @@ public class NextGenWindowedDataStream<OUT> {
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public NextGenWindowedDataStream<OUT> every(NextGenWindowHelper... policyHelpers) {
+	public NextGenWindowedDataStream<OUT> every(WindowingHelper... policyHelpers) {
 		NextGenWindowedDataStream<OUT> ret = this.copy();
 		if (ret.evictionPolicies == null) {
 			ret.evictionPolicies = ret.triggerPolicies;
 			ret.triggerPolicies = policyHelpers;
 		} else {
-			ret.triggerPolicies = (NextGenWindowHelper<OUT>[]) ArrayUtils.addAll(triggerPolicies,
+			ret.triggerPolicies = (WindowingHelper<OUT>[]) ArrayUtils.addAll(triggerPolicies,
 					policyHelpers);
 		}
 		return ret;
