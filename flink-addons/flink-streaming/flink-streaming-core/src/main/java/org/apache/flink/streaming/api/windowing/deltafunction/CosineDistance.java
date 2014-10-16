@@ -36,6 +36,10 @@ public class CosineDistance<DATA> extends ExtractionAwareDeltaFunction<DATA, dou
 
 	@Override
 	public double getNestedDelta(double[] oldDataPoint, double[] newDataPoint) {
+		if (isNullvector(oldDataPoint,newDataPoint)){
+			return 0;
+		}
+		
 		double sum1 = 0;
 		double sum2 = 0;
 		for (int i = 0; i < oldDataPoint.length; i++) {
@@ -45,7 +49,7 @@ public class CosineDistance<DATA> extends ExtractionAwareDeltaFunction<DATA, dou
 		sum1 = Math.sqrt(sum1);
 		sum2 = Math.sqrt(sum2);
 
-		return dotProduct(oldDataPoint, newDataPoint) / (sum1 * sum2);
+		return 1d - (dotProduct(oldDataPoint, newDataPoint) / (sum1 * sum2));
 	}
 
 	private double dotProduct(double[] a, double[] b) {
@@ -56,4 +60,16 @@ public class CosineDistance<DATA> extends ExtractionAwareDeltaFunction<DATA, dou
 		return result;
 	}
 
+	private boolean isNullvector(double[]... vectors){
+		outer: for (double[] v:vectors){
+			for (double field:v){
+				if (field!=0){
+					continue outer;
+				} 
+			}
+			//This position is only reached in case all fields are 0.
+			return true;
+		}
+		return false;
+	}
 }
