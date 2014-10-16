@@ -42,10 +42,10 @@ public class TimeTriggerPolicy<DATA> implements TriggerPolicy<DATA> {
 	}
 
 	private boolean nextWindow(long recordTime) {
-		if (recordTime < startTime + granularity) {
+		if (recordTime > startTime + granularity) {
+			startTime += granularity;
 			return true;
 		} else {
-			startTime += granularity;
 			return false;
 		}
 	}
