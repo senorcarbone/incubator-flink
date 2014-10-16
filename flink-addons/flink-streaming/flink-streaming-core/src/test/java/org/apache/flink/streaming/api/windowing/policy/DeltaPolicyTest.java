@@ -17,14 +17,13 @@
 
 package org.apache.flink.streaming.api.windowing.policy;
 
-import com.google.common.collect.Lists;
-
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.windowing.deltafunction.DeltaFunction;
 import org.apache.flink.streaming.api.windowing.policy.DeltaPolicy;
 import org.junit.Test;
 
-import java.util.ArrayList;
+import java.util.List;
+import java.util.Arrays;
 
 import static org.junit.Assert.*;
 
@@ -40,7 +39,7 @@ public class DeltaPolicyTest {
 			}
 		}, new Tuple2(0, 0), 2);
 
-		ArrayList<Tuple2> tuples = Lists.newArrayList(
+		List<Tuple2> tuples = Arrays.asList(
 				new Tuple2(1, 0),
 				new Tuple2(2, 0),
 				new Tuple2(3, 0),

@@ -20,12 +20,11 @@ package org.apache.flink.streaming.api.windowing.policy;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import org.apache.flink.streaming.api.windowing.helper.Count;
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
 
 public class CountTriggerPolicyTest {
 
@@ -33,7 +32,7 @@ public class CountTriggerPolicyTest {
 	@Test
 	public void testCountTriggerPolicy() {
 
-		ArrayList tuples = Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+		List tuples = Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 		int counter;
 
 		// Test count of different sizes (0..9)
@@ -71,7 +70,7 @@ public class CountTriggerPolicyTest {
 	@Test
 	public void testCountTriggerPolicyStartValues() {
 
-		ArrayList tuples = Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+		List tuples = Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
 		// Test count of different sizes (0..9)
 		for (int i = 0; i < 10; i++) {

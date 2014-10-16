@@ -17,13 +17,12 @@
 
 package org.apache.flink.streaming.api.windowing.policy;
 
-import com.google.common.collect.Lists;
+import java.util.Arrays;
+import java.util.List;
 
 import org.apache.flink.streaming.api.windowing.helper.Count;
 import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
 import org.junit.Test;
-
-import java.util.ArrayList;
 
 import static org.junit.Assert.*;
 
@@ -32,7 +31,7 @@ public class CountEvictionPolicyTest {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Test
 	public void testCountEvictionPolicy() {
-		ArrayList<Integer> tuples = Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+		List<Integer> tuples = Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 		int counter;
 
 		// The count policy should not care about the triggered parameter
@@ -84,7 +83,7 @@ public class CountEvictionPolicyTest {
 		boolean triggered = false;
 		// the size of the buffer should not matter as well!
 
-		ArrayList<Integer> tuples = Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+		List<Integer> tuples = Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
 		// Text different eviction amounts (0..3)
 		for (int x = 0; x < 4; x++) {
