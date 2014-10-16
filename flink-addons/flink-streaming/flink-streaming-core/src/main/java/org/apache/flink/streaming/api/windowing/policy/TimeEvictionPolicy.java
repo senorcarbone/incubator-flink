@@ -30,7 +30,7 @@ public class TimeEvictionPolicy<DATA> implements EvictionPolicy<DATA> {
 
 	private long granularity;
 	private TimeStamp<DATA> timestamp;
-	private LinkedList<DATA> buffer;
+	private LinkedList<DATA> buffer=new LinkedList<DATA>();
 
 	public TimeEvictionPolicy(long granularity, TimeStamp<DATA> timestamp) {
 		this.timestamp = timestamp;
