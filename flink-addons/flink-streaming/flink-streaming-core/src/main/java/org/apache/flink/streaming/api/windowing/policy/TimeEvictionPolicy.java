@@ -40,18 +40,25 @@ public class TimeEvictionPolicy<DATA> implements EvictionPolicy<DATA> {
 	@Override
 	public int notifyEviction(DATA datapoint, boolean triggered, int bufferSize) {
 		// check for deleted tuples (deletes by other policies)
-		while (bufferSize > this.buffer.size()) {
+		while (bufferSize < this.buffer.size()) {
 			this.buffer.removeFirst();
 		}
 
 		// delete and count expired tuples
 		int counter = 0;
-		for (DATA d : buffer) {
-			if (timestamp.getTimestamp(d) < timestamp.getTimestamp(datapoint) - granularity) {
+		while (!buffer.isEmpty()) {
+			
+			if (timestamp.getTimestamp(buffer.getFirst()) < timestamp.getTimestamp(datapoint) - granularity) {
 				buffer.removeFirst();
+				counter++;
+			} else {
+				break;
 			}
 		}
 
+		//Add current element to buffer
+		buffer.add(datapoint);
+		
 		// return result
 		return counter;
 	}

@@ -29,7 +29,8 @@ public class TimeEvictionPolicyTest {
 	@Test
 	public void timeEvictionTest() {
 		// create some test data
-		Integer[] times = { 1, 3, 4, 6, 7, 9, 14, 20, 21, 22, 30 };
+		Integer[] times = { 1, 3, 4, 6, 7, 9, 14, 20, 21, 22, 30,31,33,36,40,41,42,43,44,45,47,55 };
+		Integer[] numToDelete = {0,0,0,0,0,0,0,0,0,1,0,2,0,0,0,0,3};
 
 		// create a timestamp
 		@SuppressWarnings("serial")
@@ -48,7 +49,7 @@ public class TimeEvictionPolicyTest {
 		};
 
 		// test different granularity
-		for (long granularity = 0; granularity < 31; granularity++) {
+		for (long granularity = 0; granularity < 40; granularity++) {
 			// create policy
 			EvictionPolicy<Integer> policy = new TimeEvictionPolicy<Integer>(granularity, timeStamp);
 
@@ -78,9 +79,19 @@ public class TimeEvictionPolicyTest {
 				if (!buffer.isEmpty()) {
 					assertTrue("The policy did not evict " + buffer.getFirst()
 							+ " while the current time was " + times[i]
-							+ "and the granularity was " + granularity,
+							+ " and the granularity was " + granularity,
 							(buffer.getFirst() >= times[i] - granularity));
 				}
+				
+				// test influence of other evictions
+				for (int j=numToDelete[i%numToDelete.length];j>0;j--){
+					if (!buffer.isEmpty()){
+						buffer.removeFirst();
+					}
+				}
+				
+				//add current element to buffer
+				buffer.add(times[i]);
 
 			}
 		}
