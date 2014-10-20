@@ -22,18 +22,30 @@ import org.apache.flink.streaming.api.windowing.policy.CountTriggerPolicy;
 import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 
+/**
+ * Represents a count based trigger or eviction policy.
+ * Use the {@link Count#of(int)} to get an instance.
+ */
 @SuppressWarnings("rawtypes")
 public class Count implements WindowingHelper {
 
 	private int count;
 
+	/**
+	 * Specifies on which element a trigger or an eviction should happen (based
+	 * on the count of the elements).
+	 * 
+	 * This constructor does exactly the same as {@link Count#of(int)}. 
+	 * 
+	 * @param count the number of elements to count before trigger/evict
+	 */
 	public Count(int count) {
 		this.count = count;
 	}
 
 	@Override
 	public EvictionPolicy<?> toEvict() {
-		return new CountEvictionPolicy(count,count);
+		return new CountEvictionPolicy(count, count);
 	}
 
 	@Override
@@ -41,6 +53,14 @@ public class Count implements WindowingHelper {
 		return new CountTriggerPolicy(count);
 	}
 
+	/**
+	 * Specifies on which element a trigger or an eviction should happen (based
+	 * on the count of the elements)
+	 * 
+	 * @param count
+	 *            the number of elements to count before trigger/evict
+	 * @return An helper representing the policy
+	 */
 	public static Count of(int count) {
 		return new Count(count);
 	}

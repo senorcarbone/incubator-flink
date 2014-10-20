@@ -25,30 +25,58 @@ import org.apache.flink.streaming.api.windowing.policy.TimeEvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TimeTriggerPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 
+/**
+ * This helper represents a time based count or eviction policy. By default the
+ * time is measured with {@link System#currentTimeMillis()} in
+ * {@link DefaultTimeStamp}.
+ * 
+ * @param <DATA>
+ *            The data type which is handled by the time stamp used in the
+ *            policy represented by this helper
+ */
 public class Time<DATA> implements WindowingHelper<DATA> {
 
 	private int timeVal;
 	private TimeUnit granularity;
 
+	/**
+	 * Creates a helper representing a trigger which triggers every given
+	 * timeVal or an eviction which evicts all elements older than timeVal.
+	 * 
+	 * @param timeVal
+	 *            The number of time units
+	 * @param granularity
+	 *            The unit of time such as minute oder millisecond. Note that
+	 *            the smallest possible granularity is milliseconds. Any smaller
+	 *            time unit might cause an error at runtime due to conversion
+	 *            problems.
+	 */
 	public Time(int timeVal, TimeUnit granularity) {
 		this.timeVal = timeVal;
 		this.granularity = granularity;
 	}
 
+	/**
+	 * Creates a helper representing a trigger which triggers every given
+	 * timeVal or an eviction which evicts all elements older than timeVal.
+	 * 
+	 * The default granularity for timeVal used in this method is seconds.
+	 * 
+	 * @param timeVal
+	 *            The number of time units measured in seconds.
+	 */
 	public Time(int timeVal) {
 		this(timeVal, TimeUnit.SECONDS);
 	}
 
 	@Override
 	public EvictionPolicy<DATA> toEvict() {
-		return new TimeEvictionPolicy<DATA>(granularityInMillis(),
-				new DefaultTimeStamp<DATA>());
+		return new TimeEvictionPolicy<DATA>(granularityInMillis(), new DefaultTimeStamp<DATA>());
 	}
 
 	@Override
 	public TriggerPolicy<DATA> toTrigger() {
-		return new TimeTriggerPolicy<DATA>(granularityInMillis(),
-				new DefaultTimeStamp<DATA>());
+		return new TimeTriggerPolicy<DATA>(granularityInMillis(), new DefaultTimeStamp<DATA>());
 	}
 
 	public static <DATA> Time<DATA> of(int timeVal, TimeUnit granularity) {

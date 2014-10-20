@@ -28,12 +28,32 @@ import org.apache.flink.streaming.api.windowing.policy.DeltaPolicy;
 import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 
+/**
+ * This helper represents a trigger or eviction policy based on a
+ * {@link DeltaFunction}.
+ * 
+ * @param <DATA>
+ *            the data type handled by the delta function represented by this
+ *            helper.
+ */
 public class Delta<DATA> implements WindowingHelper<DATA> {
 
 	private DeltaFunction<DATA> deltaFunction;
 	private DATA initVal;
 	private double threshold;
 
+	/**
+	 * Creates a delta helper representing a delta count or eviction policy
+	 * 
+	 * @param deltaFunction
+	 *            The delta function which should be used to calculate the delta
+	 *            between points.
+	 * @param initVal
+	 *            The initial value which will be used to calculate the first
+	 *            delta.
+	 * @param threshold
+	 *            The threshold used by the delta function.
+	 */
 	public Delta(DeltaFunction<DATA> deltaFunction, DATA initVal, double threshold) {
 		this.deltaFunction = deltaFunction;
 		this.initVal = initVal;
@@ -50,6 +70,19 @@ public class Delta<DATA> implements WindowingHelper<DATA> {
 		return new DeltaPolicy<DATA>(deltaFunction, initVal, threshold);
 	}
 
+	/**
+	 * Creates a delta helper representing a delta count or eviction policy
+	 * 
+	 * @param deltaFunction
+	 *            The delta function which should be used to calculate the delta
+	 *            between points.
+	 * @param initVal
+	 *            The initial value which will be used to calculate the first
+	 *            delta.
+	 * @param threshold
+	 *            The threshold used by the delta function.
+	 * @return a delta helper representing a delta count or eviction policy
+	 */
 	public static <DATA> Delta<DATA> of(DeltaFunction<DATA> deltaFunction, DATA initVal,
 			double threshold) {
 		return new Delta<DATA>(deltaFunction, initVal, threshold);
@@ -84,24 +117,60 @@ public class Delta<DATA> implements WindowingHelper<DATA> {
 			this.threshold = threshold;
 		}
 
+		/**
+		 * Use this to set extraction: The given field will be extracted from
+		 * the data. The delta is then calculated on the extracted field.
+		 * 
+		 * @param id
+		 *            the id of the field to be extracted.
+		 * @return Another helper with methods to do further settings.
+		 */
 		public DeltaHelper2 onField(int id) {
 			return new DeltaHelper2(threshold, id);
 		}
 
+		/**
+		 * Use this to set extraction: The given fields will be extracted from
+		 * the data. The delta is then calculated on the extracted fields.
+		 * 
+		 * @param id
+		 *            the ids of the fields to be extracted. Possibly in any
+		 *            user defined order.
+		 * @return Another helper with methods to do further settings.
+		 */
 		public DeltaHelper2 onFields(int... id) {
 			return new DeltaHelper2(threshold, id);
 		}
 
+		/**
+		 * Use this to specify that the distance should be measured with
+		 * euclidean distance without further extraction before.
+		 * 
+		 * @return Another helper with methods to do further settings.
+		 */
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		public DeltaHelper4 measuredWithEucledianDistance() {
 			return new DeltaHelper4(threshold, new EuclideanDistance(null));
 		}
 
+		/**
+		 * Use this to specify that the distance should be measured with cosine
+		 * distance without further extraction before.
+		 * 
+		 * @return Another helper with methods to do further settings.
+		 */
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		public DeltaHelper4 measuredWithCosineDistance() {
 			return new DeltaHelper4(threshold, new CosineDistance(null));
 		}
 
+		/**
+		 * Use this to specify that the distance should be measured with a delta
+		 * function provided as parameter without further extraction before.
+		 * 
+		 * @param delta the delta function to be used.
+		 * @return Another helper with methods to do further settings.
+		 */
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		public DeltaHelper4 measuredWithCustomFunction(DeltaFunction delta) {
 			return new DeltaHelper4(threshold, delta);
@@ -125,6 +194,10 @@ public class Delta<DATA> implements WindowingHelper<DATA> {
 			this.fields = fields;
 		}
 
+		/**
+		 * Define that the input of the extraction is a tuple type
+		 * @return Another helper with methods to do further settings.
+		 */
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		public DeltaHelper3 fromTuple() {
 			if (laterExtractor == null) {
@@ -141,6 +214,10 @@ public class Delta<DATA> implements WindowingHelper<DATA> {
 
 		}
 
+		/**
+		 * Define that the input of the extraction is an array
+		 * @return Another helper with methods to do further settings.
+		 */
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		public DeltaHelper3 fromArray(Class clazz) {
 			if (laterExtractor == null) {
@@ -163,24 +240,64 @@ public class Delta<DATA> implements WindowingHelper<DATA> {
 			this.extractor = extractor;
 		}
 
+		/**
+		 * Use this to set extraction: The given field will be extracted from
+		 * the data. The delta is then calculated on the extracted field.
+		 * 
+		 * @param id
+		 *            the id of the field to be extracted.
+		 * @return Another helper with methods to do further settings.
+		 */
 		public DeltaHelper2 fromField(int field) {
 			return new DeltaHelper2(extractor, threshold, field);
 		}
 
+		/**
+		 * Use this to set extraction: The given fields will be extracted from
+		 * the data. The delta is then calculated on the extracted fields.
+		 * 
+		 * @param id
+		 *            the ids of the fields to be extracted. Possibly in any
+		 *            user defined order.
+		 * @return Another helper with methods to do further settings.
+		 */
 		public DeltaHelper2 fromFields(int... fields) {
 			return new DeltaHelper2(extractor, threshold, fields);
 		}
 
+		/**
+		 * Use this to specify that the distance should be measured with
+		 * euclidean distance without further extraction before.
+		 * 
+		 * @return Another helper with methods to do further settings.
+		 */
 		@SuppressWarnings("unchecked")
 		public DeltaHelper4<FROM> measuredWithEucledianDistance() {
 			return new DeltaHelper4<FROM>(threshold, new EuclideanDistance<FROM>(extractor));
 		}
 
+		/**
+		 * Use this to specify that the distance should be measured with cosine
+		 * distance without further extraction before.
+		 * 
+		 * @return Another helper with methods to do further settings.
+		 */
 		@SuppressWarnings("unchecked")
 		public DeltaHelper4<FROM> measuredWithCosineDistance() {
 			return new DeltaHelper4<FROM>(threshold, new CosineDistance<FROM>(extractor));
 		}
-
+		
+		/**
+		 * Use this to specify that the distance should be measured with a delta
+		 * function provided as parameter without further extraction before.
+		 * 
+		 * @param delta the delta function to be used.
+		 * @return Another helper with methods to do further settings.
+		 */
+		@SuppressWarnings({ "rawtypes", "unchecked" })
+		public DeltaHelper4 measuredWithCustomFunction(DeltaFunction delta) {
+			return new DeltaHelper4(threshold, delta);
+		}
 	}
 
 	public static class DeltaHelper4<DATA> {
@@ -192,6 +309,11 @@ public class Delta<DATA> implements WindowingHelper<DATA> {
 			this.deltaFunction = deltaFunction;
 		}
 
+		/**
+		 * Set the initial value used to calculate the first delta.
+		 * @param initialValue the initial value used to calculate the first delta.
+		 * @return the delta helper representing the delta trigger or eviction policy.
+		 */
 		public Delta<DATA> initializedWith(DATA initialValue) {
 			return new Delta<DATA>(deltaFunction, initialValue, threshold);
 		}
