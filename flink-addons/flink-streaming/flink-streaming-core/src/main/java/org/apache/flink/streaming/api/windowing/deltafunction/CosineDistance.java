@@ -19,6 +19,18 @@ package org.apache.flink.streaming.api.windowing.deltafunction;
 
 import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 
+/**
+ * This delta function calculates the cosine distance between two given vectors.
+ * The cosine distance is defined as: cosineDistance=1-cosineSimilarity
+ * 
+ * Cosine similarity: http://en.wikipedia.org/wiki/Cosine_similarity
+ * 
+ * @param <DATA>
+ *            The input data type. This delta function works with a double[],
+ *            but can extract/convert to it from any other given object in case
+ *            the respective extractor has been set. See
+ *            {@link ExtractionAwareDeltaFunction} for more information.
+ */
 public class CosineDistance<DATA> extends ExtractionAwareDeltaFunction<DATA, double[]> {
 
 	/**
@@ -36,10 +48,10 @@ public class CosineDistance<DATA> extends ExtractionAwareDeltaFunction<DATA, dou
 
 	@Override
 	public double getNestedDelta(double[] oldDataPoint, double[] newDataPoint) {
-		if (isNullvector(oldDataPoint,newDataPoint)){
+		if (isNullvector(oldDataPoint, newDataPoint)) {
 			return 0;
 		}
-		
+
 		double sum1 = 0;
 		double sum2 = 0;
 		for (int i = 0; i < oldDataPoint.length; i++) {
@@ -60,14 +72,14 @@ public class CosineDistance<DATA> extends ExtractionAwareDeltaFunction<DATA, dou
 		return result;
 	}
 
-	private boolean isNullvector(double[]... vectors){
-		outer: for (double[] v:vectors){
-			for (double field:v){
-				if (field!=0){
+	private boolean isNullvector(double[]... vectors) {
+		outer: for (double[] v : vectors) {
+			for (double field : v) {
+				if (field != 0) {
 					continue outer;
-				} 
+				}
 			}
-			//This position is only reached in case all fields are 0.
+			// This position is only reached in case all fields are 0.
 			return true;
 		}
 		return false;
