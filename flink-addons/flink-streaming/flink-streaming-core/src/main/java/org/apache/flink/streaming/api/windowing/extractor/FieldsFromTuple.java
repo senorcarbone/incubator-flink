@@ -19,6 +19,10 @@ package org.apache.flink.streaming.api.windowing.extractor;
 
 import org.apache.flink.api.java.tuple.Tuple;
 
+/**
+ * Extracts one or more fields of the the type Double from a tuple and puts them
+ * into a new double[]
+ */
 public class FieldsFromTuple implements Extractor<Tuple, double[]> {
 
 	/**
@@ -27,6 +31,13 @@ public class FieldsFromTuple implements Extractor<Tuple, double[]> {
 	private static final long serialVersionUID = -2554079091050273761L;
 	int[] indexes;
 
+	/**
+	 * Extracts one or more fields of the the type Double from a tuple and puts
+	 * them into a new double[] (in the specified order).
+	 * 
+	 * @param indexes
+	 *            The indexes of the fields to be extracted.
+	 */
 	public FieldsFromTuple(int... indexes) {
 		this.indexes = indexes;
 	}

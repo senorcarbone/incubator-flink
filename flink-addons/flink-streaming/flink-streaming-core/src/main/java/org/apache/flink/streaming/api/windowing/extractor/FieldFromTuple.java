@@ -19,6 +19,12 @@ package org.apache.flink.streaming.api.windowing.extractor;
 
 import org.apache.flink.api.java.tuple.Tuple;
 
+/**
+ * Extracts a single field out of a tuple.
+ * 
+ * @param <OUT>
+ *            The type of the extracted field.
+ */
 public class FieldFromTuple<OUT> implements Extractor<Tuple, OUT> {
 
 	/**
@@ -27,10 +33,19 @@ public class FieldFromTuple<OUT> implements Extractor<Tuple, OUT> {
 	private static final long serialVersionUID = -5161386546695574359L;
 	private int fieldId = 0;
 
+	/**
+	 * Extracts the first field (id 0) from the tuple
+	 */
 	public FieldFromTuple() {
 		// noting to do => will use default 0
 	}
 
+	/**
+	 * Extracts the field with the given id from the tuple.
+	 * 
+	 * @param fieldId
+	 *            The id of the field which will be extracted from the tuple.
+	 */
 	public FieldFromTuple(int fieldId) {
 		this.fieldId = fieldId;
 	}

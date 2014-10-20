@@ -17,7 +17,18 @@
 
 package org.apache.flink.streaming.api.windowing.extractor;
 
-
+/**
+ * Combines two extractors which will be executed one after each other.
+ *
+ * @param <FROM>
+ *            The input type of the first extractor.
+ * @param <OVER>
+ *            The output type of the first and the input type of the second
+ *            extractor.
+ * @param <TO>
+ *            The output type of the second extractor and the output type of the
+ *            over all extraction.
+ */
 public class ConcatinatedExtract<FROM, OVER, TO> implements Extractor<FROM, TO> {
 
 	/**
@@ -28,6 +39,18 @@ public class ConcatinatedExtract<FROM, OVER, TO> implements Extractor<FROM, TO> 
 	private Extractor<FROM, OVER> e1;
 	private Extractor<OVER, TO> e2;
 
+	/**
+	 * Combines two extractors which will be executed one after each other.
+	 * 
+	 * @param e1
+	 *            First extractor: This extractor gets applied to the input data
+	 *            first. Its output as then passed as input to the second
+	 *            extractor.
+	 * @param e2
+	 *            Second extractor: This extractor gets the output of the first
+	 *            extractor as input. Its output is then the result of the over
+	 *            all extraction.
+	 */
 	public ConcatinatedExtract(Extractor<FROM, OVER> e1, Extractor<OVER, TO> e2) {
 		this.e1 = e1;
 		this.e2 = e2;
