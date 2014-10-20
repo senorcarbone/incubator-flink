@@ -58,8 +58,11 @@ public class TimeTriggerPolicyTest {
 			// test by adding values
 			for (int i = 0; i < times.length; i++) {
 				boolean result = policy.notifyTrigger(times[i]);
-				if (times[i] > currentTime + granularity) {
-					currentTime += granularity;
+				//start time is included, but end time is excluded: >=
+				if (times[i] >= currentTime + granularity) {
+					if (granularity!=0){
+						currentTime = times[i]-((times[i]-currentTime)%granularity);
+					}
 					assertTrue("The policy did not trigger at pos " + i + " (current time border: "
 							+ currentTime + "; current granularity: " + granularity
 							+ "; data point time: " + times[i] + ")", result);

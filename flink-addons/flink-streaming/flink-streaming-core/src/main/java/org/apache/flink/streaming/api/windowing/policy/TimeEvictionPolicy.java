@@ -60,6 +60,7 @@ public class TimeEvictionPolicy<DATA> implements EvictionPolicy<DATA> {
 		buffer.add(datapoint);
 		
 		// return result
+		System.out.println("DELETE:"+counter+" Datapoint:"+datapoint);
 		return counter;
 	}
 

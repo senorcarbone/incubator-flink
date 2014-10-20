@@ -31,7 +31,11 @@ public class TimeTriggerPolicy<DATA> implements TriggerPolicy<DATA> {
 	private TimeStamp<DATA> timestamp;
 
 	public TimeTriggerPolicy(long granularity, TimeStamp<DATA> timestamp) {
-		this.startTime = timestamp.getStartTime();
+		this(granularity,timestamp,0);
+	}
+	
+	public TimeTriggerPolicy(long granularity, TimeStamp<DATA> timestamp, long delay) {
+		this.startTime = timestamp.getStartTime() + delay;
 		this.timestamp = timestamp;
 		this.granularity = granularity;
 	}
@@ -42,8 +46,12 @@ public class TimeTriggerPolicy<DATA> implements TriggerPolicy<DATA> {
 	}
 
 	private boolean nextWindow(long recordTime) {
-		if (recordTime > startTime + granularity) {
-			startTime += granularity;
+		//start time is included, but end time is excluded: >=
+		if (recordTime >= startTime + granularity) {
+			if (granularity!=0){
+				startTime = recordTime-((recordTime-startTime)%granularity);
+			}
+			System.out.println("TRIGGERED on "+recordTime);
 			return true;
 		} else {
 			return false;
