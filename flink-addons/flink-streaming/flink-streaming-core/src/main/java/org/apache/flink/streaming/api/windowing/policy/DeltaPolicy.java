@@ -22,8 +22,20 @@ import java.util.List;
 
 import org.apache.flink.streaming.api.windowing.deltafunction.DeltaFunction;
 
-public class DeltaPolicy<DATA> implements TriggerPolicy<DATA>,
-		EvictionPolicy<DATA> {
+/**
+ * This policy calculates a delta between the data point which triggered last
+ * and the currently arrived data point. It triggers if the delta is higher than
+ * a specified threshold.
+ * 
+ * In case it gets used for eviction, this policy starts from the first element
+ * of the buffer and removes all elements from the buffer which have a higher
+ * delta then the threshold. As soon as there is an element with a lower delta,
+ * the eviction stops.
+ * 
+ * @param <DATA>
+ *            The type of the data points which are handled by this policy
+ */
+public class DeltaPolicy<DATA> implements TriggerPolicy<DATA>, EvictionPolicy<DATA> {
 
 	/**
 	 * Auto generated version ID
@@ -35,6 +47,24 @@ public class DeltaPolicy<DATA> implements TriggerPolicy<DATA>,
 	private double threshold;
 	private DATA triggerDataPoint;
 
+	/**
+	 * Crates a delta policy which calculates a delta between the data point
+	 * which triggered last and the currently arrived data point. It triggers if
+	 * the delta is higher than a specified threshold.
+	 * 
+	 * In case it gets used for eviction, this policy starts from the first
+	 * element of the buffer and removes all elements from the buffer which have
+	 * a higher delta then the threshold. As soon as there is an element with a
+	 * lower delta, the eviction stops.
+	 * 
+	 * @param deltaFuntion
+	 *            The delta function to be used.
+	 * @param init
+	 *            The initial to be used for the calculation of a delta before
+	 *            the first trigger.
+	 * @param threshold
+	 *            The threshold upon which a triggering should happen.
+	 */
 	public DeltaPolicy(DeltaFunction<DATA> deltaFuntion, DATA init, double threshold) {
 		this.deltaFuntion = deltaFuntion;
 		this.triggerDataPoint = init;
@@ -63,8 +93,9 @@ public class DeltaPolicy<DATA> implements TriggerPolicy<DATA>,
 			evictCount++;
 		}
 
-		if (evictCount > 0)
+		if (evictCount > 0) {
 			windowBuffer = windowBuffer.subList(evictCount, windowBuffer.size());
+		}
 		windowBuffer.add(datapoint);
 		return evictCount;
 	}

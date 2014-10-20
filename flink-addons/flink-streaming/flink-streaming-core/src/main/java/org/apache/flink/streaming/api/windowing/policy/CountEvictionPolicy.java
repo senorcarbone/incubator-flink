@@ -22,6 +22,7 @@ package org.apache.flink.streaming.api.windowing.policy;
  * a counter of arriving elements and a threshold (maximal buffer size)
  * 
  * @param <IN>
+ *            the type of the incoming data points
  */
 public class CountEvictionPolicy<IN> implements EvictionPolicy<IN> {
 
@@ -46,7 +47,7 @@ public class CountEvictionPolicy<IN> implements EvictionPolicy<IN> {
 	 *            more element arrives, the oldest element will be deleted
 	 */
 	public CountEvictionPolicy(int maxElements) {
-		this(maxElements,maxElements);
+		this(maxElements, maxElements);
 	}
 
 	/**
@@ -68,14 +69,14 @@ public class CountEvictionPolicy<IN> implements EvictionPolicy<IN> {
 	 *            will be adjusted respectively but never below zero.
 	 */
 	public CountEvictionPolicy(int maxElements, int deleteOnEviction) {
-		this(maxElements,maxElements,0);
+		this(maxElements, maxElements, 0);
 	}
 
 	/**
-	 * The same as
-	 * {@link CountEvictionPolicy#NextGenCountEvictionPolicy(int, int)}.
+	 * The same as {@link CountEvictionPolicy#CountEvictionPolicy(int, int)}.
 	 * Additionally a custom start value for the counter of arriving elements
-	 * can be set.
+	 * can be set. By setting a negative start value the first eviction can be
+	 * delayed.
 	 * 
 	 * @param maxElements
 	 *            maxElements The maximum number of elements before eviction.
@@ -89,7 +90,7 @@ public class CountEvictionPolicy<IN> implements EvictionPolicy<IN> {
 	public CountEvictionPolicy(int maxElements, int deleteOnEviction, int startValue) {
 		this.counter = startValue;
 		this.deleteOnEviction = deleteOnEviction;
-		this.maxElements=maxElements;
+		this.maxElements = maxElements;
 	}
 
 	@Override

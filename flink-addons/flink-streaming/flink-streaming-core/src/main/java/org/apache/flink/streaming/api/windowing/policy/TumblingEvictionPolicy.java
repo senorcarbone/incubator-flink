@@ -38,7 +38,10 @@ public class TumblingEvictionPolicy<DATA> implements EvictionPolicy<DATA> {
 	private int counter = 0;
 
 	/**
-	 * This is the default constructor providing no special functionality
+	 * This is the default constructor providing no special functionality. This
+	 * eviction policy deletes all elements from the buffer in case a trigger
+	 * occurred. Therefore, it is the default eviction policy to be used for any
+	 * tumbling window.
 	 */
 	public TumblingEvictionPolicy() {
 		// default constructor, no further logic needed
@@ -46,7 +49,11 @@ public class TumblingEvictionPolicy<DATA> implements EvictionPolicy<DATA> {
 
 	/**
 	 * This constructor allows to set a custom start value for the element
-	 * counter
+	 * counter.
+	 * 
+	 * This eviction policy deletes all elements from the buffer in case a
+	 * trigger occurred. Therefore, it is the default eviction policy to be used
+	 * for any tumbling window.
 	 * 
 	 * @param startValue
 	 *            A start value for the element counter

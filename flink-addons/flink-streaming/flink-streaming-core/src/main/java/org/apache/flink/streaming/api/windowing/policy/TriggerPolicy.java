@@ -19,6 +19,15 @@ package org.apache.flink.streaming.api.windowing.policy;
 
 import java.io.Serializable;
 
+/**
+ * Proves and returns if a new window should be started. In case the trigger
+ * occurs (return value true) the UDF will be executed on the current element
+ * buffer without the last added element which is provided as parameter. This
+ * element will be added to the buffer after the execution of the UDF.
+ * 
+ * @param <DATA>
+ *            The data type which can be handled by this policy
+ */
 public interface TriggerPolicy<DATA> extends Serializable {
 
 	/**

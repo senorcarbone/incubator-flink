@@ -19,18 +19,28 @@ package org.apache.flink.streaming.api.windowing.policy;
 
 import java.io.Serializable;
 
+/**
+ * A eviction policies specifies under which condition data points should be
+ * deleted from the buffer. Deletions must be done in the order of the elements
+ * arrivals. Therefore, the policy only returns the number of elements to evict
+ * on each element arrival.
+ * 
+ * @param <DATA>
+ *            the type of the data handled by this policy
+ */
 public interface EvictionPolicy<DATA> extends Serializable {
 
 	/**
 	 * Proves if and how many elements should be deleted from the element
 	 * buffer. The eviction takes place after the trigger and after the call to
-	 * the UDF but before the adding of the new datapoint.
+	 * the UDF but before the adding of the new data point.
 	 *
 	 * @param datapoint
-	 *            datapoint the data point which arrived
+	 *            data point the data point which arrived
 	 * @param triggered
 	 *            Information whether the UDF was triggered or not
 	 * @param bufferSize
+	 *            The current size of the element buffer at the invokable
 	 * @return The number of elements to be deleted from the buffer
 	 */
 	public int notifyEviction(DATA datapoint, boolean triggered, int bufferSize);

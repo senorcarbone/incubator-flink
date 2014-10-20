@@ -21,6 +21,16 @@ import java.util.LinkedList;
 
 import org.apache.flink.streaming.api.invokable.util.TimeStamp;
 
+/**
+ * This eviction policy evicts all elements which are older then a specified
+ * time. The time is measured using a given {@link TimeStamp} implementation. A
+ * point in time is always represented as long. Therefore, the granularity can
+ * be set as long value as well.
+ *
+ * @param <DATA>
+ *            The type of the incoming data points which are processed by this
+ *            policy.
+ */
 public class TimeEvictionPolicy<DATA> implements EvictionPolicy<DATA> {
 
 	/**
@@ -30,8 +40,29 @@ public class TimeEvictionPolicy<DATA> implements EvictionPolicy<DATA> {
 
 	private long granularity;
 	private TimeStamp<DATA> timestamp;
-	private LinkedList<DATA> buffer=new LinkedList<DATA>();
+	private LinkedList<DATA> buffer = new LinkedList<DATA>();
 
+	/**
+	 * This eviction policy evicts all elements which are older then a specified
+	 * time. The time is measured using a given {@link TimeStamp}
+	 * implementation. A point in time is always represented as long. Therefore,
+	 * the granularity can be set as long value as well. If this value is set to
+	 * 2 the policy will evict all elements which are older as 2.
+	 * 
+	 * <code>
+	 *   while (time(firstInBuffer)<current time-granularity){
+	 *   	evict firstInBuffer;
+	 *   }
+	 * </code>
+	 * 
+	 * @param granularity
+	 *            The granularity of the eviction. If this value is set to 2 the
+	 *            policy will evict all elements which are older as 2(if
+	 *            (time(X)<current time-granularity) evict X).
+	 * @param timestamp
+	 *            The {@link TimeStamp} to measure the time with. This can be
+	 *            either user defined of provided by the API.
+	 */
 	public TimeEvictionPolicy(long granularity, TimeStamp<DATA> timestamp) {
 		this.timestamp = timestamp;
 		this.granularity = granularity;
@@ -47,8 +78,9 @@ public class TimeEvictionPolicy<DATA> implements EvictionPolicy<DATA> {
 		// delete and count expired tuples
 		int counter = 0;
 		while (!buffer.isEmpty()) {
-			
-			if (timestamp.getTimestamp(buffer.getFirst()) < timestamp.getTimestamp(datapoint) - granularity) {
+
+			if (timestamp.getTimestamp(buffer.getFirst()) < timestamp.getTimestamp(datapoint)
+					- granularity) {
 				buffer.removeFirst();
 				counter++;
 			} else {
@@ -56,11 +88,11 @@ public class TimeEvictionPolicy<DATA> implements EvictionPolicy<DATA> {
 			}
 		}
 
-		//Add current element to buffer
+		// Add current element to buffer
 		buffer.add(datapoint);
-		
+
 		// return result
-		System.out.println("DELETE:"+counter+" Datapoint:"+datapoint);
+		System.out.println("DELETE:" + counter + " Datapoint:" + datapoint);
 		return counter;
 	}
 

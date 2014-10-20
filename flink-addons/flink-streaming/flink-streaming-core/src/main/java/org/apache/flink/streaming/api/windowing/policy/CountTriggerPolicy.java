@@ -21,7 +21,7 @@ package org.apache.flink.streaming.api.windowing.policy;
  * This policy triggers at every n'th element.
  * 
  * @param <IN>
- *            The type of the data points which is handled by this policy
+ *            The type of the data points which are handled by this policy
  */
 public class CountTriggerPolicy<IN> implements TriggerPolicy<IN> {
 
@@ -47,15 +47,19 @@ public class CountTriggerPolicy<IN> implements TriggerPolicy<IN> {
 	}
 
 	/**
-	 * In addition to {@link CountTriggerPolicy#NextGenCountTriggerPolicy(int)}
-	 * this constructor allows to set a custom start value for the element
-	 * counter.
+	 * In addition to {@link CountTriggerPolicy#CountTriggerPolicy(int)} this
+	 * constructor allows to set a custom start value for the element counter.
+	 * This can be used to delay the first trigger by setting a negative start
+	 * value. Often the fist trigger should be delayed in case of sliding
+	 * windows. For example if the size of a window should be 4 and a trigger
+	 * should happen every 2, a start value of -2 would allow to also have the
+	 * fist window of size 4.
 	 * 
 	 * @param max
 	 *            The number of arriving elements before the trigger occurs.
 	 * @param startValue
 	 *            The start value for the counter of arriving elements.
-	 * @see CountTriggerPolicy#NextGenCountTriggerPolicy(int)
+	 * @see CountTriggerPolicy#CountTriggerPolicy(int)
 	 */
 	public CountTriggerPolicy(int max, int startValue) {
 		this.max = max;
