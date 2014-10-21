@@ -31,7 +31,7 @@ import org.apache.flink.streaming.api.invokable.util.TimeStamp;
  *            The type of the incoming data points which are processed by this
  *            policy.
  */
-public class TimeEvictionPolicy<DATA> implements EvictionPolicy<DATA> {
+public class TimeEvictionPolicy<DATA> implements ActiveEvictionPolicy<DATA> {
 
 	/**
 	 * auto generated version id
@@ -70,6 +70,15 @@ public class TimeEvictionPolicy<DATA> implements EvictionPolicy<DATA> {
 
 	@Override
 	public int notifyEviction(DATA datapoint, boolean triggered, int bufferSize) {
+		return notifyEviction(datapoint, triggered, bufferSize, false);
+	}
+
+	@Override
+	public int notifyEvictionWithFakeElement(DATA datapoint, int bufferSize) {
+		return notifyEviction(datapoint, true, bufferSize, true);
+	}
+
+	private int notifyEviction(DATA datapoint, boolean triggered, int bufferSize, boolean isFake) {
 		// check for deleted tuples (deletes by other policies)
 		while (bufferSize < this.buffer.size()) {
 			this.buffer.removeFirst();
@@ -88,11 +97,12 @@ public class TimeEvictionPolicy<DATA> implements EvictionPolicy<DATA> {
 			}
 		}
 
-		// Add current element to buffer
-		buffer.add(datapoint);
+		if (!isFake) {
+			// Add current element to buffer
+			buffer.add(datapoint);
+		}
 
 		// return result
-		System.out.println("DELETE:" + counter + " Datapoint:" + datapoint);
 		return counter;
 	}
 

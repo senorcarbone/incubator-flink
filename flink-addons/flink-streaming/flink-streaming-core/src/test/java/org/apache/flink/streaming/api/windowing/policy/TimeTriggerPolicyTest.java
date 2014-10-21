@@ -18,6 +18,7 @@
 package org.apache.flink.streaming.api.windowing.policy;
 
 import org.apache.flink.streaming.api.invokable.util.TimeStamp;
+import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -48,7 +49,15 @@ public class TimeTriggerPolicyTest {
 		// test different granularity
 		for (long granularity = 0; granularity < 31; granularity++) {
 			// create policy
-			TriggerPolicy<Integer> policy = new TimeTriggerPolicy<Integer>(granularity, timeStamp);
+			TriggerPolicy<Integer> policy = new TimeTriggerPolicy<Integer>(granularity, timeStamp,
+					new Extractor<Long, Integer>() {
+						private static final long serialVersionUID = 1L;
+
+						@Override
+						public Integer extract(Long in) {
+							return in.intValue();
+						}
+					});
 
 			// remember window border
 			// Remark: This might NOT work in case the timeStamp uses
@@ -58,10 +67,10 @@ public class TimeTriggerPolicyTest {
 			// test by adding values
 			for (int i = 0; i < times.length; i++) {
 				boolean result = policy.notifyTrigger(times[i]);
-				//start time is included, but end time is excluded: >=
+				// start time is included, but end time is excluded: >=
 				if (times[i] >= currentTime + granularity) {
-					if (granularity!=0){
-						currentTime = times[i]-((times[i]-currentTime)%granularity);
+					if (granularity != 0) {
+						currentTime = times[i] - ((times[i] - currentTime) % granularity);
 					}
 					assertTrue("The policy did not trigger at pos " + i + " (current time border: "
 							+ currentTime + "; current granularity: " + granularity
