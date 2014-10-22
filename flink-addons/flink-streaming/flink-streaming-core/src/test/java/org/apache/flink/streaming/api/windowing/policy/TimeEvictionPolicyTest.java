@@ -52,18 +52,40 @@ public class TimeEvictionPolicyTest {
 		// test different granularity
 		for (long granularity = 0; granularity < 40; granularity++) {
 			// create policy
-			EvictionPolicy<Integer> policy = new TimeEvictionPolicy<Integer>(granularity, timeStamp);
+			TimeEvictionPolicy<Integer> policy = new TimeEvictionPolicy<Integer>(granularity,
+					timeStamp);
 
 			// The trigger status should not effect the policy. Therefore, it's
 			// value is changed after each usage.
 			boolean triggered = false;
 
+			// The eviction should work similar with both, fake and real
+			// elements. Which kind is used is changed on every 3rd element in
+			// this test.
+			int fakeAndRealCounter = 0;
+			boolean fake = false;
+
 			// test by adding values
 			LinkedList<Integer> buffer = new LinkedList<Integer>();
 			for (int i = 0; i < times.length; i++) {
 
-				int result = policy.notifyEviction(times[i], (triggered = !triggered),
-						buffer.size());
+				// check if the current element should be a fake
+				fakeAndRealCounter++;
+				if (fakeAndRealCounter > 2) {
+					fake = !fake;
+					fakeAndRealCounter = 0;
+				}
+
+				int result;
+
+				if (fake) {
+					// Notify eviction with fake element
+					result = policy.notifyEvictionWithFakeElement(times[i], buffer.size());
+				} else {
+					// Notify eviction with real element
+					result = policy.notifyEviction(times[i], (triggered = !triggered),
+							buffer.size());
+				}
 
 				// handle correctness of eviction
 				for (; result > 0 && !buffer.isEmpty(); result--) {
@@ -91,8 +113,10 @@ public class TimeEvictionPolicyTest {
 					}
 				}
 
-				// add current element to buffer
-				buffer.add(times[i]);
+				// add current element to buffer if it is no fake
+				if (!fake) {
+					buffer.add(times[i]);
+				}
 
 			}
 		}

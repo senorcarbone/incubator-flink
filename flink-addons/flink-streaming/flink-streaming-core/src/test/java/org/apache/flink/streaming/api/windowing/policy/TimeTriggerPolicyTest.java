@@ -26,7 +26,7 @@ import static org.junit.Assert.*;
 public class TimeTriggerPolicyTest {
 
 	@Test
-	public void timeTriggerTest() {
+	public void timeTriggerRegularNotifyTest() {
 		// create some test data
 		Integer[] times = { 1, 3, 4, 6, 7, 9, 14, 20, 21, 22, 30 };
 
@@ -83,6 +83,55 @@ public class TimeTriggerPolicyTest {
 			}
 		}
 
+	}
+
+	@Test
+	public void timeTriggerPreNotifyTest() {
+		// create some test data
+		Integer[] times = { 1, 3, 20, 26};
+
+		// create a timestamp
+		@SuppressWarnings("serial")
+		TimeStamp<Integer> timeStamp = new TimeStamp<Integer>() {
+
+			@Override
+			public long getTimestamp(Integer value) {
+				return value;
+			}
+
+			@Override
+			public long getStartTime() {
+				return 0;
+			}
+
+		};
+
+		// create policy
+		TimeTriggerPolicy<Integer> policy = new TimeTriggerPolicy<Integer>(5, timeStamp,
+				new Extractor<Long, Integer>() {
+					private static final long serialVersionUID = 1L;
+
+					@Override
+					public Integer extract(Long in) {
+						return in.intValue();
+					}
+				});
+
+		//expected result
+		Integer[][] result={{},{},{5,10,15},{25}};
+		
+		//call policy
+		for (int i=0;i<times.length;i++){
+			arrayEqualityCheck(result[i],policy.preNotifyTrigger(times[i]));
+			policy.notifyTrigger(times[i]);
+		}
+	}
+	
+	private void arrayEqualityCheck(Object[] array1, Object[] array2) {
+		assertEquals("The result arrays must have the same length", array1.length, array2.length);
+		for (int i = 0; i < array1.length; i++) {
+			assertEquals("Unequal fields at position " + i, array1[i], array2[i]);
+		}
 	}
 
 }

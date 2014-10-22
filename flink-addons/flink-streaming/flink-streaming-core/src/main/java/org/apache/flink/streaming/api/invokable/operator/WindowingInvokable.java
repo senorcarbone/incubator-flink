@@ -165,14 +165,11 @@ public class WindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN, Strin
 		// Set the current trigger
 		currentTriggerPolicies.add(currentPolicy);
 
-		// call user function
-		if (!currentTriggerPolicies.isEmpty()) {
-			// emit
-			callUserFunctionAndLogException();
+		// emit
+		callUserFunctionAndLogException();
 
-			// clear the flag collection
-			currentTriggerPolicies.clear();
-		}
+		// clear the flag collection
+		currentTriggerPolicies.clear();
 	}
 
 	private void processRealElement(IN input) {
@@ -191,7 +188,7 @@ public class WindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN, Strin
 		// Remember if a trigger occurred
 		boolean isTriggered = false;
 
-		// Process the triggers in case this is not a fake element
+		// Process the triggers
 		for (TriggerPolicy<IN> triggerPolicy : triggerPolicies) {
 			if (triggerPolicy.notifyTrigger(input)) {
 				currentTriggerPolicies.add(triggerPolicy);
