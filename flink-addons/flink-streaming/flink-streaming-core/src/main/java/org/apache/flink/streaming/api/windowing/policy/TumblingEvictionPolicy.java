@@ -22,6 +22,10 @@ package org.apache.flink.streaming.api.windowing.policy;
  * occurred. Therefore, it is the default eviction policy to be used for any
  * tumbling window.
  * 
+ * By default this policy does not react on fake elements. Wrap it in an
+ * {@link ActiveEvictionPolicyWrapper} to make it clearing the buffer even on
+ * fake elements.
+ * 
  * @param <DATA>
  *            The type of the data points which is handled by this policy
  */

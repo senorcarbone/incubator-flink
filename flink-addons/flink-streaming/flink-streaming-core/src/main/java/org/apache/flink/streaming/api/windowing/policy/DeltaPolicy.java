@@ -32,6 +32,10 @@ import org.apache.flink.streaming.api.windowing.deltafunction.DeltaFunction;
  * delta then the threshold. As soon as there is an element with a lower delta,
  * the eviction stops.
  * 
+ * By default this policy does not react on fake elements. Wrap it in an
+ * {@link ActiveEvictionPolicyWrapper} to make it calculate the delta even on
+ * fake elements.
+ * 
  * @param <DATA>
  *            The type of the data points which are handled by this policy
  */

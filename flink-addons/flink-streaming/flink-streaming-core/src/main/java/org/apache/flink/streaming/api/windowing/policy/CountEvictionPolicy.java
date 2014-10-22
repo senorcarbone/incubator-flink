@@ -21,6 +21,9 @@ package org.apache.flink.streaming.api.windowing.policy;
  * This eviction policy allows the eviction of data points from the buffer using
  * a counter of arriving elements and a threshold (maximal buffer size)
  * 
+ * By default this policy does not react on fake elements. Wrap it in an
+ * {@link ActiveEvictionPolicyWrapper} to make it count even fake elements.
+ * 
  * @param <IN>
  *            the type of the incoming data points
  */

@@ -27,6 +27,9 @@ import org.apache.flink.streaming.api.windowing.extractor.Extractor;
  * In case this policy is used for eviction, the complete buffer will get
  * deleted in case the punctuation is detected.
  * 
+ * By default this policy does not react on fake elements. Wrap it in an
+ * {@link ActiveEvictionPolicyWrapper} to make it react on punctuation even in fake elements.
+ * 
  * @param <IN>
  *            The type of the input data handled by this policy. An
  *            {@link Extractor} can be used to extract DATA for IN.
