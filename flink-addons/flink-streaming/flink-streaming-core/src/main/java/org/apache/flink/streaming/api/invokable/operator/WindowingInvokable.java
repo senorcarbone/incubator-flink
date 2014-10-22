@@ -138,7 +138,17 @@ public class WindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN, Strin
 		immutableInvoke();
 	}
 
-	private void processFakeElement(IN input, TriggerPolicy<IN> currentPolicy) {
+	/**
+	 * This method processed an arrived fake element The method is synchronized
+	 * to ensure that it cannot interleave with
+	 * {@link WindowingInvokable#processRealElement(Object)}
+	 * 
+	 * @param input
+	 *            a fake input element
+	 * @param currentPolicy
+	 *            the policy which produced this fake element
+	 */
+	private synchronized void processFakeElement(IN input, TriggerPolicy<IN> currentPolicy) {
 		// Process the evictions and take care of double evictions
 		// In case there are multiple eviction policies present,
 		// only the one with the highest return value is recognized.
@@ -172,7 +182,15 @@ public class WindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN, Strin
 		currentTriggerPolicies.clear();
 	}
 
-	private void processRealElement(IN input) {
+	/**
+	 * This method processed an arrived real element The method is synchronized
+	 * to ensure that it cannot interleave with
+	 * {@link WindowingInvokable#processFakeElement(Object)}
+	 * 
+	 * @param input
+	 *            a real input element
+	 */
+	private synchronized void processRealElement(IN input) {
 		// Run the precalls to detect missed windows
 		for (ActiveTriggerPolicy<IN> trigger : activeTriggerPolicies) {
 			// Remark: In case multiple active triggers are present the ordering
