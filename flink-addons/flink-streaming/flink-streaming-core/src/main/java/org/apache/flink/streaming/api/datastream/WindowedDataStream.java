@@ -34,15 +34,15 @@ import org.apache.flink.streaming.util.serialization.FunctionTypeWrapper;
 import org.apache.flink.streaming.util.serialization.ObjectTypeWrapper;
 
 /**
- * A {@link NextGenWindowedDataStream} represents a data stream whose elements
+ * A {@link WindowedDataStream} represents a data stream whose elements
  * are batched together in a sliding batch. operations like
  * {@link #reduce(ReduceFunction)} or {@link #reduceGroup(GroupReduceFunction)}
  * are applied for each batch and the batch is slid afterwards.
  *
  * @param <OUT>
- *            The output type of the {@link NextGenWindowedDataStream}
+ *            The output type of the {@link WindowedDataStream}
  */
-public class NextGenWindowedDataStream<OUT> {
+public class WindowedDataStream<OUT> {
 
 	protected DataStream<OUT> dataStream;
 	protected boolean isGrouped;
@@ -51,7 +51,7 @@ public class NextGenWindowedDataStream<OUT> {
 	protected WindowingHelper<OUT>[] triggerPolicies;
 	protected WindowingHelper<OUT>[] evictionPolicies;
 
-	protected NextGenWindowedDataStream(DataStream<OUT> dataStream,
+	protected WindowedDataStream(DataStream<OUT> dataStream,
 			WindowingHelper<OUT>... policyHelpers) {
 		if (dataStream instanceof GroupedDataStream) {
 			this.isGrouped = true;
@@ -87,7 +87,7 @@ public class NextGenWindowedDataStream<OUT> {
 		return evictionPolicyList;
 	}
 
-	protected NextGenWindowedDataStream(NextGenWindowedDataStream<OUT> windowedDataStream) {
+	protected WindowedDataStream(WindowedDataStream<OUT> windowedDataStream) {
 		this.dataStream = windowedDataStream.dataStream.copy();
 		this.isGrouped = windowedDataStream.isGrouped;
 		this.keyPosition = windowedDataStream.keyPosition;
@@ -97,16 +97,16 @@ public class NextGenWindowedDataStream<OUT> {
 	}
 
 	/**
-	 * Groups the elements of the {@link NextGenWindowedDataStream} by the given
+	 * Groups the elements of the {@link WindowedDataStream} by the given
 	 * key position to be used with grouped operators.
 	 * 
 	 * @param keyPosition
 	 *            The position of the field on which the
-	 *            {@link NextGenWindowedDataStream} will be grouped.
-	 * @return The transformed {@link NextGenWindowedDataStream}
+	 *            {@link WindowedDataStream} will be grouped.
+	 * @return The transformed {@link WindowedDataStream}
 	 */
-	public NextGenWindowedDataStream<OUT> groupBy(int keyPosition) {
-		NextGenWindowedDataStream<OUT> ret = this.copy();
+	public WindowedDataStream<OUT> groupBy(int keyPosition) {
+		WindowedDataStream<OUT> ret = this.copy();
 		ret.dataStream = ret.dataStream.groupBy(keyPosition);
 		ret.isGrouped = true;
 		ret.keyPosition = keyPosition;
@@ -144,13 +144,13 @@ public class NextGenWindowedDataStream<OUT> {
 		return dataStream.getOutputType();
 	}
 
-	protected NextGenWindowedDataStream<OUT> copy() {
-		return new NextGenWindowedDataStream<OUT>(this);
+	protected WindowedDataStream<OUT> copy() {
+		return new WindowedDataStream<OUT>(this);
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public NextGenWindowedDataStream<OUT> every(WindowingHelper... policyHelpers) {
-		NextGenWindowedDataStream<OUT> ret = this.copy();
+	public WindowedDataStream<OUT> every(WindowingHelper... policyHelpers) {
+		WindowedDataStream<OUT> ret = this.copy();
 		if (ret.evictionPolicies == null) {
 			ret.evictionPolicies = ret.triggerPolicies;
 			ret.triggerPolicies = policyHelpers;

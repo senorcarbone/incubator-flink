@@ -1,4 +1,4 @@
-package org.apache.flink.streaming.examples.nextgen;
+package org.apache.flink.streaming.examples.windowing;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -10,7 +10,11 @@ import org.apache.flink.streaming.examples.basictopology.BasicTopology.BasicSour
 
 import java.util.LinkedList;
 
-public class NextGenMultiplePoliciesExample {
+/**
+ * This example uses count based tumbling windowing with multiple eviction
+ * policies at the same time.
+ */
+public class MultiplePoliciesExample {
 
 	private static final int PARALLELISM = 1;
 	private static final int SOURCE_PARALLELISM = 1;
@@ -39,7 +43,7 @@ public class NextGenMultiplePoliciesExample {
 		};
 
 		DataStream<Tuple2<String, String[]>> stream = env.addSource(new BasicSource(),
-				SOURCE_PARALLELISM).nextGenBatch(policies, reducer);
+				SOURCE_PARALLELISM).window(policies, reducer);
 
 		stream.print();
 

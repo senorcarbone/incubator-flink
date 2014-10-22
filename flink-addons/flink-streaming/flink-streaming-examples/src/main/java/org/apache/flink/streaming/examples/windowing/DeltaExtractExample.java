@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.examples.nextgen;
+package org.apache.flink.streaming.examples.windowing;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -26,7 +26,11 @@ import org.apache.flink.streaming.api.windowing.helper.Count;
 import org.apache.flink.streaming.api.windowing.helper.Delta;
 import org.apache.flink.util.Collector;
 
-public class NextGenDeltaExtractExample {
+/**
+ * This example gives an impression about how to use delta policies. It also
+ * shows how extractors can be used.
+ */
+public class DeltaExtractExample {
 
 	private static final int PARALLELISM = 1;
 

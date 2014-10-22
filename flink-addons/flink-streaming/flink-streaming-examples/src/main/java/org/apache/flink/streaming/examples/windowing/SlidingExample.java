@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.examples.nextgen;
+package org.apache.flink.streaming.examples.windowing;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -28,7 +28,12 @@ import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 import org.apache.flink.util.Collector;
 
-public class NextGenSlidingExample {
+/**
+ * This example uses count based sliding windows to illustrate different
+ * possibilities for the realization of sliding windows. Take a look on the code
+ * which is commented out to see different setups.
+ */
+public class SlidingExample {
 
 	private static final int PARALLELISM = 1;
 	private static final int SOURCE_PARALLELISM = 1;
@@ -41,10 +46,10 @@ public class NextGenSlidingExample {
 		 * SIMPLE-EXAMPLE: Use this to always keep the newest 10 elements in the
 		 * buffer Resulting windows will have an overlap of 5 elements
 		 */
-		// NextGenTriggerPolicy<String> triggerPolicy=new
-		// NextGenCountTriggerPolicy<String>(5);
-		// NextGenEvictionPolicy<String> evictionPolicy=new
-		// NextGenCountEvictionPolicy<String>(10);
+		// TriggerPolicy<String> triggerPolicy=new
+		// CountTriggerPolicy<String>(5);
+		// EvictionPolicy<String> evictionPolicy=new
+		// CountEvictionPolicy<String>(10);
 
 		/*
 		 * ADVANCED-EXAMPLE: Use this to have the last element of the last
@@ -70,7 +75,7 @@ public class NextGenSlidingExample {
 		};
 
 		DataStream<Tuple2<String, String[]>> stream = env.addSource(new CountingSource(),
-				SOURCE_PARALLELISM).nextGenWindow(triggerPolicy, evictionPolicy, reduceFunction);
+				SOURCE_PARALLELISM).window(triggerPolicy, evictionPolicy, reduceFunction);
 
 		stream.print();
 

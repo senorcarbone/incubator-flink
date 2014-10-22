@@ -33,6 +33,7 @@ import org.apache.flink.streaming.api.invokable.StreamInvokable;
 import org.apache.flink.streaming.api.invokable.operator.*;
 import org.apache.flink.streaming.api.invokable.util.DefaultTimeStamp;
 import org.apache.flink.streaming.api.invokable.util.TimeStamp;
+import org.apache.flink.streaming.api.windowing.helper.Time;
 import org.apache.flink.streaming.api.windowing.helper.WindowingHelper;
 import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
@@ -402,86 +403,97 @@ public class DataStream<OUT> {
 	}
 
 	/**
-	 * This is a prototype implementation for new windowing features based on
-	 * trigger and eviction policies
+	 * Sets up windowing based on policies. This method allows to specify
+	 * multiple trigger and eviction policies in a list.
 	 * 
 	 * @param triggerPolicies
 	 *            A list of trigger policies
 	 * @param evictionPolicies
 	 *            A list of eviction policies
-	 * @param sample
-	 *            A sample of the OUT data type required to gather type
-	 *            information
-	 * @return The single output operator
+	 * @param reduceFunction
+	 *            Any reduce function
+	 * @return A {@link SingleOutputStreamOperator} providing further operations
 	 */
-	public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenWindow(
+	public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> window(
 			LinkedList<TriggerPolicy<OUT>> triggerPolicies,
-			LinkedList<EvictionPolicy<OUT>> evictionPolicies,
-			ReduceFunction<OUT> reduceFunction) {
+			LinkedList<EvictionPolicy<OUT>> evictionPolicies, ReduceFunction<OUT> reduceFunction) {
 		String[] sample = { "" };
 		return addFunction("NextGenWindowReduce", reduceFunction, new FunctionTypeWrapper<OUT>(
 				reduceFunction, ReduceFunction.class, 0), new CombineTypeWrapper<OUT, String[]>(
 				this.outTypeWrapper, new ObjectTypeWrapper<String[]>(sample)),
-				new WindowingInvokable<OUT>(reduceFunction, triggerPolicies,
-						evictionPolicies));
+				new WindowingInvokable<OUT>(reduceFunction, triggerPolicies, evictionPolicies));
 	}
 
 	/**
-	 * This is a prototype implementation for new windowing features based on
-	 * trigger and eviction policies
+	 * Sets up windowing based on policies.
 	 * 
-	 * @see DataStream#nextGenWindow(LinkedList, LinkedList, Object)
+	 * @param triggerPolicy
+	 *            Any trigger policy
+	 * @param evictionPolicy
+	 *            Any eviction policy
+	 * @param reduceFunction
+	 *            Any reduce function
+	 * @return A {@link SingleOutputStreamOperator} providing further operations
 	 */
-	public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenWindow(
+	public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> window(
 			TriggerPolicy<OUT> triggerPolicy, EvictionPolicy<OUT> evictionPolicy,
 			ReduceFunction<OUT> reduceFunction) {
 		LinkedList<TriggerPolicy<OUT>> triggerPolicyList = new LinkedList<TriggerPolicy<OUT>>();
 		triggerPolicyList.add(triggerPolicy);
 		LinkedList<EvictionPolicy<OUT>> evictionPolicyList = new LinkedList<EvictionPolicy<OUT>>();
 		evictionPolicyList.add(evictionPolicy);
-		return nextGenWindow(triggerPolicyList, evictionPolicyList, reduceFunction);
+		return window(triggerPolicyList, evictionPolicyList, reduceFunction);
 	}
 
 	/**
-	 * This is a prototype implementation for new windowing features based on
-	 * trigger and eviction policies.
-	 * 
-	 * The eviction policy will be set to
-	 * {@link org.apache.flink.streaming.api.windowing.policy.TumblingEvictionPolicy}
-	 * , which leads to the expected behavior for a tumbling window.
+	 * Sets up windowing based on policies. The window will be a tumbling
+	 * window, which means that it always evicts all elements in case it has
+	 * been triggered.
 	 * 
 	 * @param triggerPolicies
 	 *            A list of trigger policies
-	 * @param sample
-	 *            A sample of the OUT data type required to gather type
-	 *            information
-	 * @return The single output operator
-	 * @see DataStream#nextGenWindow(LinkedList, LinkedList, Object)
+	 * @param reduceFunction
+	 *            Any reduce function
+	 * @return A {@link SingleOutputStreamOperator} providing further operations
 	 */
-	public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenBatch(
-			LinkedList<TriggerPolicy<OUT>> triggerPolicies,
-			ReduceFunction<OUT> reduceFunction) {
+	public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> window(
+			LinkedList<TriggerPolicy<OUT>> triggerPolicies, ReduceFunction<OUT> reduceFunction) {
 		LinkedList<EvictionPolicy<OUT>> evictionPolicyList = new LinkedList<EvictionPolicy<OUT>>();
 		evictionPolicyList.add(new TumblingEvictionPolicy<OUT>());
-		return nextGenWindow(triggerPolicies, evictionPolicyList, reduceFunction);
+		return window(triggerPolicies, evictionPolicyList, reduceFunction);
 	}
 
 	/**
-	 * This is a prototype implementation for new windowing features based on
-	 * trigger and eviction policies.
+	 * Sets up windowing based on policies. The window will be a tumbling
+	 * window, which means that it always evicts all elements in case it has
+	 * been triggered.
 	 * 
-	 * @see DataStream#nextGenBatch(LinkedList, Object)
+	 * @param triggerPolicy
+	 *            Any trigger policy
+	 * @param reduceFunction
+	 *            Any reduce function
+	 * @return A {@link SingleOutputStreamOperator} providing further operations
 	 */
-	public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> nextGenBatch(
+	public SingleOutputStreamOperator<Tuple2<OUT, String[]>, ?> window(
 			TriggerPolicy<OUT> triggerPolicy, ReduceFunction<OUT> reduceFunction) {
 		LinkedList<TriggerPolicy<OUT>> triggerPolicyList = new LinkedList<TriggerPolicy<OUT>>();
 		triggerPolicyList.add(triggerPolicy);
-		return nextGenBatch(triggerPolicyList, reduceFunction);
+		return window(triggerPolicyList, reduceFunction);
 	}
-	
+
+	/**
+	 * This allows you to set up windowing threw a nice API using
+	 * {@link WindowingHelper} such as {@link Time}, {@link Count} and
+	 * {@link Delta}.
+	 * 
+	 * @param policyHelpers
+	 *            Any {@link WindowingHelper} such as {@link Time},
+	 *            {@link Count} and {@link Delta}.
+	 * @return A {@link WindowedDataStream} providing further operations.
+	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public NextGenWindowedDataStream<OUT> window(WindowingHelper... policyHelpers){
-		return new NextGenWindowedDataStream<OUT>(this, policyHelpers);
+	public WindowedDataStream<OUT> window(WindowingHelper... policyHelpers) {
+		return new WindowedDataStream<OUT>(this, policyHelpers);
 	}
 
 	/**

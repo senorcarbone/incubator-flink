@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.examples.nextgen;
+package org.apache.flink.streaming.examples.windowing;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -24,7 +24,10 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.helper.Count;
 import org.apache.flink.streaming.examples.basictopology.BasicTopology.BasicSource;
 
-public class NextGenBasicExample {
+/**
+ * A minimal example as introduction to the policy based windowing
+ */
+public class BasicExample {
 
 	private static final int PARALLELISM = 1;
 	private static final int SOURCE_PARALLELISM = 1;
