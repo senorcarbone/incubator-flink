@@ -216,11 +216,15 @@ public class WindowingInvokableTest {
 		for (Integer i = 1; i <= 10; i++) {
 			inputs.add(i);
 		}
-		// VAL: 1,2,3,4,5,6,7,8,9,10
-		// TR1: | | | | |
-		// TR2: | | |
-		// EV1: 2 2 2 2 2
-		// EV2: 3 3 3
+		/**
+		 * <code>
+		 * VAL: 1,2,3,4,5,6,7,8,9,10
+		 * TR1:   |   |   |   |   |
+		 * TR2:     |     |     |
+		 * EV1:   2   2   2   2   2
+		 * EV2:     3     3     3
+		 * </code>
+		 */
 
 		List<Integer> expected = new ArrayList<Integer>();
 		expected.add(3);
