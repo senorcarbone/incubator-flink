@@ -91,8 +91,9 @@ public class SlidingExample {
 		public void invoke(Collector<String> collector) throws Exception {
 			// continuous emit
 			while (true) {
-				if (counter > 9999)
+				if (counter > 9999) {
 					counter = 0;
+				}
 				collector.collect("V" + counter++);
 			}
 		}
