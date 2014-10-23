@@ -67,8 +67,9 @@ public class DeltaExtractExample {
 		@Override
 		public void invoke(Collector<Tuple3<Double, Double, String>> collector) throws Exception {
 			while (true) {
-				if (counter > 9999)
+				if (counter > 9999) {
 					counter = 0;
+				}
 				collector.collect(new Tuple3<Double, Double, String>((double) counter,
 						(double) counter + 1, "V" + counter++));
 			}
