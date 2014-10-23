@@ -78,9 +78,12 @@ public class WindowingInvokable<IN> extends StreamInvokable<IN, Tuple2<IN, Strin
 	public void open(org.apache.flink.configuration.Configuration parameters) throws Exception {
 		super.open(parameters);
 		for (ActiveTriggerPolicy<IN> tp : activeTriggerPolicies) {
-			Thread thread = new Thread(tp.createActiveTriggerRunnable(new WindowingCallback(tp)));
-			activePolicyTreads.add(thread);
-			thread.start();
+			Runnable target=tp.createActiveTriggerRunnable(new WindowingCallback(tp));
+			if (target!=null){
+				Thread thread = new Thread(target);
+				activePolicyTreads.add(thread);
+				thread.start();
+			}
 		}
 	};
 
