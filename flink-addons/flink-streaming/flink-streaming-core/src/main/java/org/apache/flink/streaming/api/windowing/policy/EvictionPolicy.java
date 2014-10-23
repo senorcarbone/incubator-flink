@@ -20,10 +20,10 @@ package org.apache.flink.streaming.api.windowing.policy;
 import java.io.Serializable;
 
 /**
- * A eviction policies specifies under which condition data points should be
- * deleted from the buffer. Deletions must be done in the order of the elements
- * arrivals. Therefore, the policy only returns the number of elements to evict
- * on each element arrival.
+ * An eviction policy specifies under which condition data points should be
+ * deleted from the buffer. Deletions must be done only in the order the
+ * elements arrived. Therefore, the policy only returns the number of elements
+ * to evict on each element arrival.
  * 
  * @param <DATA>
  *            the type of the data handled by this policy
