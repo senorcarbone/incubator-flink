@@ -43,7 +43,7 @@ public class TimeEvictionPolicy<DATA> implements ActiveEvictionPolicy<DATA> {
 	private LinkedList<DATA> buffer = new LinkedList<DATA>();
 
 	/**
-	 * This eviction policy evicts all elements which are older then a specified
+	 * This eviction policy evicts all elements which are older than a specified
 	 * time. The time is measured using a given {@link TimeStamp}
 	 * implementation. A point in time is always represented as long. Therefore,
 	 * the granularity can be set as long value as well. If this value is set to

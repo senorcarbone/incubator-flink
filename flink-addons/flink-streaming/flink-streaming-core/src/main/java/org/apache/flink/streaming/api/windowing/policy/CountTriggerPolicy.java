@@ -50,10 +50,10 @@ public class CountTriggerPolicy<IN> implements TriggerPolicy<IN> {
 	 * In addition to {@link CountTriggerPolicy#CountTriggerPolicy(int)} this
 	 * constructor allows to set a custom start value for the element counter.
 	 * This can be used to delay the first trigger by setting a negative start
-	 * value. Often the fist trigger should be delayed in case of sliding
+	 * value. Often the first trigger should be delayed in case of sliding
 	 * windows. For example if the size of a window should be 4 and a trigger
 	 * should happen every 2, a start value of -2 would allow to also have the
-	 * fist window of size 4.
+	 * first window of size 4.
 	 * 
 	 * @param max
 	 *            The number of arriving elements before the trigger occurs.
