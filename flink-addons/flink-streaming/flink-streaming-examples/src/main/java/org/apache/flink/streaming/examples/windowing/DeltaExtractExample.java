@@ -22,6 +22,8 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.function.source.SourceFunction;
+import org.apache.flink.streaming.api.windowing.deltafunction.EuclideanDistance;
+import org.apache.flink.streaming.api.windowing.extractor.ArrayFromTuple;
 import org.apache.flink.streaming.api.windowing.helper.Count;
 import org.apache.flink.streaming.api.windowing.helper.Delta;
 import org.apache.flink.util.Collector;
@@ -48,11 +50,8 @@ public class DeltaExtractExample {
 
 		DataStream dstream = env
 				.addSource(new CountingSource())
-				// .window(Delta.of(new EuclideanDistance(new FieldsFromTuple(0,
-				// 1)), new Tuple3(0d, 0d, "foo"), 1))
-				.window(Delta.of(1.2).onFields(0, 1).fromTuple().measuredWithEucledianDistance()
-						.initializedWith(new Tuple3<Double, Double, String>(0d, 0d, "foo")))
-				.every(Count.of(2)).reduce(concatStrings);
+				.window(Delta.of(new EuclideanDistance(new ArrayFromTuple(0, 1)), new Tuple3(0d,
+						0d, "foo"), 1.2)).every(Count.of(2)).reduce(concatStrings);
 
 		dstream.print();
 		env.execute();
