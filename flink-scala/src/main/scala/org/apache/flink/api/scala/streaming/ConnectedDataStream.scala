@@ -19,16 +19,16 @@ package org.apache.flink.api.scala.streaming
 
 import java.util
 
-import scala.collection.JavaConversions._
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.functions.KeySelector
 import org.apache.flink.api.scala.streaming.StreamExecutionEnvironment._
 import org.apache.flink.streaming.api.datastream.{ConnectedDataStream => JavaCStream}
-import org.apache.flink.streaming.api.function.co.{CoWindowFunction, CoFlatMapFunction, CoMapFunction, CoReduceFunction}
+import org.apache.flink.streaming.api.function.co.{CoFlatMapFunction, CoMapFunction, CoReduceFunction, CoWindowFunction}
 import org.apache.flink.streaming.api.invokable.operator.co.{CoFlatMapInvokable, CoMapInvokable, CoReduceInvokable}
 import org.apache.flink.util.Collector
+import org.apache.flink.api.scala.streaming.StreamingConversions._
 
-
+import scala.collection.JavaConversions._
 import scala.reflect.ClassTag
 
 class ConnectedDataStream[IN1,IN2] (javaStream: JavaCStream[IN1,IN2]) {
@@ -139,7 +139,7 @@ class ConnectedDataStream[IN1,IN2] (javaStream: JavaCStream[IN1,IN2]) {
    * @return @return The transformed { @link ConnectedDataStream}
    */
   def groupBy(keyPosition1 : Int,keyPosition2: Int) : ConnectedDataStream[IN1,IN2] = {
-    new ConnectedDataStream[IN1,IN2](javaStream.groupBy(keyPosition1,keyPosition2))
+    javaStream.groupBy(keyPosition1,keyPosition2)
   }
 
   /**
@@ -155,7 +155,7 @@ class ConnectedDataStream[IN1,IN2] (javaStream: JavaCStream[IN1,IN2]) {
    * @return @return The transformed { @link ConnectedDataStream}
    */
   def groupBy(keyPositions1 : Array[Int],keyPositions2: Array[Int]) : ConnectedDataStream[IN1,IN2] = {
-    new ConnectedDataStream[IN1,IN2](javaStream.groupBy(keyPositions1,keyPositions2))
+    javaStream.groupBy(keyPositions1,keyPositions2)
   }
 
   /**
@@ -172,7 +172,7 @@ class ConnectedDataStream[IN1,IN2] (javaStream: JavaCStream[IN1,IN2]) {
    * @return The grouped { @link ConnectedDataStream}
    */
   def groupBy(field1 : String, field2: String) : ConnectedDataStream[IN1,IN2] = {
-    new ConnectedDataStream[IN1,IN2](javaStream.groupBy(field1,field2))
+    javaStream.groupBy(field1,field2)
   }
 
   /**
@@ -190,7 +190,7 @@ class ConnectedDataStream[IN1,IN2] (javaStream: JavaCStream[IN1,IN2]) {
    * @return The grouped { @link ConnectedDataStream}
    */
   def groupBy(fields1 : Array[String],fields2: Array[String]) : ConnectedDataStream[IN1,IN2] = {
-    new ConnectedDataStream[IN1,IN2](javaStream.groupBy(fields1,fields2))
+    javaStream.groupBy(fields1,fields2)
   }
 
   /**
@@ -214,7 +214,7 @@ class ConnectedDataStream[IN1,IN2] (javaStream: JavaCStream[IN1,IN2]) {
       def getKey(in: IN2) = clean(fun2)(in)
     }
 
-    new ConnectedDataStream[IN1,IN2](javaStream.groupBy(keyExtractor1,keyExtractor2))
+    javaStream.groupBy(keyExtractor1,keyExtractor2)
   }
 
   /**
@@ -297,7 +297,7 @@ class ConnectedDataStream[IN1,IN2] (javaStream: JavaCStream[IN1,IN2]) {
       throw new NullPointerException("CoWindow function must no be null")
     }
 
-    new DataStream[R](javaStream.windowReduce(coWindowFunction, windowSize, slideInterval))
+    javaStream.windowReduce(coWindowFunction, windowSize, slideInterval)
   }
 
   /**
@@ -326,7 +326,7 @@ class ConnectedDataStream[IN1,IN2] (javaStream: JavaCStream[IN1,IN2]) {
        def coWindow(first: util.List[IN1], second: util.List[IN2], out: Collector[R]): Unit = clean(coWindower)(first,second,out)
     }
 
-    new DataStream[R](javaStream.windowReduce(coWindowFun, windowSize, slideInterval))
+    javaStream.windowReduce(coWindowFun, windowSize, slideInterval)
   }
 
   /**
@@ -335,7 +335,7 @@ class ConnectedDataStream[IN1,IN2] (javaStream: JavaCStream[IN1,IN2]) {
    * @return The first DataStream.
    */
   def getFirst(): DataStream[IN1] = {
-     new DataStream[IN1](javaStream.getFirst)
+     javaStream.getFirst
   }
 
   /**
@@ -344,7 +344,7 @@ class ConnectedDataStream[IN1,IN2] (javaStream: JavaCStream[IN1,IN2]) {
    * @return The second DataStream.
    */
   def getSecond(): DataStream[IN2] = {
-    new DataStream[IN2](javaStream.getSecond)
+    javaStream.getSecond
   }
 
   /**
