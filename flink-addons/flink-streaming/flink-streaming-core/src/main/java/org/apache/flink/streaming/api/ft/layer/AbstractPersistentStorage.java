@@ -15,27 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.windowing.policy;
+package org.apache.flink.streaming.api.ft.layer;
 
-import static org.junit.Assert.assertEquals;
+public interface AbstractPersistentStorage<U, V> {
 
-import org.junit.Test;
+	public void push(U Id, V record);
 
-public class TumblingEvictionPolicyTest {
+	public V get(U Id);
 
-	@Test
-	public void testTumblingEviction() {
-		EvictionPolicy<Integer> policy = new TumblingEvictionPolicy<Integer>();
+	public boolean contains(U id);
 
-		int counter = 0;
-
-		for (int i = 0; i < 10; i++) {
-			for (int j = 0; j < i; j++) {
-				assertEquals(0, policy.notifyEviction(0, false, counter++));
-			}
-			assertEquals(counter, policy.notifyEviction(0, true, counter));
-			counter = 1;
-		}
-	}
-
+	public void remove(U Id);
 }

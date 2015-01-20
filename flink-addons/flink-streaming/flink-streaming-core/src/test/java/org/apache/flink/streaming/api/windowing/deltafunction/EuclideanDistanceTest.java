@@ -17,7 +17,7 @@
 
 package org.apache.flink.streaming.api.windowing.deltafunction;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 

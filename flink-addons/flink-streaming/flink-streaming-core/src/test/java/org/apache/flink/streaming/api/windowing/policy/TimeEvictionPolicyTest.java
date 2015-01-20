@@ -17,13 +17,14 @@
 
 package org.apache.flink.streaming.api.windowing.policy;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.LinkedList;
 
 import org.apache.flink.streaming.api.windowing.helper.Timestamp;
 import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 public class TimeEvictionPolicyTest {
 

@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,27 +15,25 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.windowing.policy;
+package org.apache.flink.streaming.api.ft.layer.util;
 
-import static org.junit.Assert.assertEquals;
+import java.io.IOException;
 
-import org.junit.Test;
+import org.apache.flink.core.memory.DataOutputView;
 
-public class TumblingEvictionPolicyTest {
+public class AsStreamRecordSerializer extends SemiDeserializedStreamRecordSerializer {
+	private static final long serialVersionUID = 1L;
 
-	@Test
-	public void testTumblingEviction() {
-		EvictionPolicy<Integer> policy = new TumblingEvictionPolicy<Integer>();
+	public AsStreamRecordSerializer() {
+		super();
+	}
 
-		int counter = 0;
-
-		for (int i = 0; i < 10; i++) {
-			for (int j = 0; j < i; j++) {
-				assertEquals(0, policy.notifyEviction(0, false, counter++));
-			}
-			assertEquals(counter, policy.notifyEviction(0, true, counter));
-			counter = 1;
-		}
+	@Override
+	public void serialize(SemiDeserializedStreamRecord record, DataOutputView target)
+			throws IOException {
+		record.getId().write(target);
+		final int len = record.getRecordLength();
+		target.write(record.getArray(), 0, len);
 	}
 
 }

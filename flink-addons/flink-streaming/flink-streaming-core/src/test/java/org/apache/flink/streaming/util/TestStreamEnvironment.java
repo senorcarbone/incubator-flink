@@ -18,7 +18,6 @@
 
 package org.apache.flink.streaming.util;
 
-import akka.actor.ActorRef;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.client.JobClient;
@@ -26,6 +25,8 @@ import org.apache.flink.runtime.client.JobExecutionException;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.test.util.ForkableFlinkMiniCluster;
+
+import akka.actor.ActorRef;
 
 public class TestStreamEnvironment extends StreamExecutionEnvironment {
 	private static final String DEFAULT_JOBNAME = "TestStreamingJob";

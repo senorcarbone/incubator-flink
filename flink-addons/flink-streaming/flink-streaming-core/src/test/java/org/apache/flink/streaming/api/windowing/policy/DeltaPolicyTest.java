@@ -17,15 +17,16 @@
 
 package org.apache.flink.streaming.api.windowing.policy;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.windowing.deltafunction.DeltaFunction;
-import org.apache.flink.streaming.api.windowing.policy.DeltaPolicy;
 import org.junit.Test;
-
-import java.util.List;
-import java.util.Arrays;
-
-import static org.junit.Assert.*;
 
 public class DeltaPolicyTest {
 

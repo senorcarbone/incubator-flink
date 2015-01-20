@@ -17,9 +17,8 @@
 
 package org.apache.flink.streaming.api.windowing.extractor;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
-import org.apache.flink.streaming.api.windowing.extractor.FieldFromArray;
 import org.junit.Test;
 
 public class FieldFromArrayTest {

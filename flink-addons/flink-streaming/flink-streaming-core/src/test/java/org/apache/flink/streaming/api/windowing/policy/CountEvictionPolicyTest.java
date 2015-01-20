@@ -17,13 +17,12 @@
 
 package org.apache.flink.streaming.api.windowing.policy;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 public class CountEvictionPolicyTest {
 

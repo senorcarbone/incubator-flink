@@ -17,15 +17,9 @@
 
 package org.apache.flink.streaming.api.windowing.extractor;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.streaming.api.windowing.extractor.ArrayFromTuple;
-import org.apache.flink.streaming.api.windowing.extractor.ConcatinatedExtract;
-import org.apache.flink.streaming.api.windowing.extractor.Extractor;
-import org.apache.flink.streaming.api.windowing.extractor.FieldFromArray;
-import org.apache.flink.streaming.api.windowing.extractor.FieldFromTuple;
-import org.apache.flink.streaming.api.windowing.extractor.FieldsFromArray;
 import org.junit.Before;
 import org.junit.Test;
 
