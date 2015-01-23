@@ -17,11 +17,6 @@
 
 package org.apache.flink.streaming.api.environment;
 
-import java.io.File;
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.List;
-
 import org.apache.commons.lang3.Validate;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.io.InputFormat;
@@ -42,16 +37,19 @@ import org.apache.flink.streaming.api.function.source.FromElementsFunction;
 import org.apache.flink.streaming.api.function.source.GenSequenceFunction;
 import org.apache.flink.streaming.api.function.source.GenericSourceFunction;
 import org.apache.flink.streaming.api.function.source.ParallelSourceFunction;
-import org.apache.flink.streaming.api.function.source.RichParallelSourceFunction;
 import org.apache.flink.streaming.api.function.source.SocketTextStreamFunction;
 import org.apache.flink.streaming.api.function.source.SourceFunction;
 import org.apache.flink.streaming.api.invokable.SourceInvokable;
 import org.apache.flink.streaming.api.invokable.StreamInvokable;
 
+import java.io.File;
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.List;
+
 /**
  * {@link ExecutionEnvironment} for streaming jobs. An instance of it is
  * necessary to construct streaming topologies.
- * 
  */
 public abstract class StreamExecutionEnvironment {
 
@@ -60,6 +58,8 @@ public abstract class StreamExecutionEnvironment {
 	private long bufferTimeout = 100;
 
 	private ExecutionConfig config = new ExecutionConfig();
+
+	private static StreamExecutionEnvironment currentEnvironment;
 
 	protected StreamGraph streamGraph;
 
@@ -93,9 +93,9 @@ public abstract class StreamExecutionEnvironment {
 	 * Gets the degree of parallelism with which operation are executed by
 	 * default. Operations can individually override this value to use a
 	 * specific degree of parallelism.
-	 * 
+	 *
 	 * @return The degree of parallelism used by operations, unless they
-	 *         override that value.
+	 * override that value.
 	 */
 	public int getDegreeOfParallelism() {
 		return config.getDegreeOfParallelism();
@@ -110,9 +110,8 @@ public abstract class StreamExecutionEnvironment {
 	 * number of hardware contexts (CPU cores / threads). When executing the
 	 * program via the command line client from a JAR file, the default degree
 	 * of parallelism is the one configured for that setup.
-	 * 
-	 * @param degreeOfParallelism
-	 *            The degree of parallelism
+	 *
+	 * @param degreeOfParallelism The degree of parallelism
 	 */
 	public StreamExecutionEnvironment setDegreeOfParallelism(int degreeOfParallelism) {
 		if (degreeOfParallelism < 1) {
@@ -127,7 +126,7 @@ public abstract class StreamExecutionEnvironment {
 	 * output buffers. By default the output buffers flush frequently to provide
 	 * low latency and to aid smooth developer experience. Setting the parameter
 	 * can result in three logical modes:
-	 * 
+	 * <p/>
 	 * <ul>
 	 * <li>
 	 * A positive integer triggers flushing periodically by that integer</li>
@@ -137,9 +136,8 @@ public abstract class StreamExecutionEnvironment {
 	 * -1 triggers flushing only when the output buffer is full thus maximizing
 	 * throughput</li>
 	 * </ul>
-	 * 
-	 * @param timeoutMillis
-	 *            The maximum time between two output flushes.
+	 *
+	 * @param timeoutMillis The maximum time between two output flushes.
 	 */
 	public StreamExecutionEnvironment setBufferTimeout(long timeoutMillis) {
 		if (timeoutMillis < -1) {
@@ -154,7 +152,7 @@ public abstract class StreamExecutionEnvironment {
 	 * Sets the maximum time frequency (milliseconds) for the flushing of the
 	 * output buffers. For clarification on the extremal values see
 	 * {@link #setBufferTimeout(long)}.
-	 * 
+	 *
 	 * @return The timeout of the buffer.
 	 */
 	public long getBufferTimeout() {
@@ -164,10 +162,9 @@ public abstract class StreamExecutionEnvironment {
 	/**
 	 * Sets the default parallelism that will be used for the local execution
 	 * environment created by {@link #createLocalEnvironment()}.
-	 * 
-	 * @param degreeOfParallelism
-	 *            The degree of parallelism to use as the default local
-	 *            parallelism.
+	 *
+	 * @param degreeOfParallelism The degree of parallelism to use as the default local
+	 *                            parallelism.
 	 */
 	public static void setDefaultLocalParallelism(int degreeOfParallelism) {
 		defaultLocalDop = degreeOfParallelism;
@@ -181,10 +178,9 @@ public abstract class StreamExecutionEnvironment {
 	 * Creates a DataStream that represents the Strings produced by reading the
 	 * given file line wise. The file will be read with the system's default
 	 * character set.
-	 * 
-	 * @param filePath
-	 *            The path of the file, as a URI (e.g.,
-	 *            "file:///some/local/file" or "hdfs://host:port/file/path").
+	 *
+	 * @param filePath The path of the file, as a URI (e.g.,
+	 *                 "file:///some/local/file" or "hdfs://host:port/file/path").
 	 * @return The DataStream representing the text file.
 	 */
 	public DataStreamSource<String> readTextFile(String filePath) {
@@ -198,10 +194,9 @@ public abstract class StreamExecutionEnvironment {
 	/**
 	 * Creates a DataStream that represents the Strings produced by reading the
 	 * given file line wise. The file will be read with the given character set.
-	 * 
-	 * @param filePath
-	 *            The path of the file, as a URI (e.g.,
-	 *            "file:///some/local/file" or "hdfs://host:port/file/path").
+	 *
+	 * @param filePath The path of the file, as a URI (e.g.,
+	 *                 "file:///some/local/file" or "hdfs://host:port/file/path").
 	 * @return The DataStream representing the text file.
 	 */
 	public DataStreamSource<String> readTextFile(String filePath, String charsetName) {
@@ -218,10 +213,9 @@ public abstract class StreamExecutionEnvironment {
 	 * given file line wise multiple times(infinite). The file will be read with
 	 * the system's default character set. This functionality can be used for
 	 * testing a topology.
-	 * 
-	 * @param filePath
-	 *            The path of the file, as a URI (e.g.,
-	 *            "file:///some/local/file" or "hdfs://host:port/file/path").
+	 *
+	 * @param filePath The path of the file, as a URI (e.g.,
+	 *                 "file:///some/local/file" or "hdfs://host:port/file/path").
 	 * @return The DataStream representing the text file.
 	 */
 	public DataStreamSource<String> readTextStream(String filePath) {
@@ -250,11 +244,9 @@ public abstract class StreamExecutionEnvironment {
 	 * The sequence of elements must not be empty. Furthermore, the elements
 	 * must be serializable (as defined in java.io.Serializable), because the
 	 * execution environment may ship the elements into the cluster.
-	 * 
-	 * @param data
-	 *            The collection of elements to create the DataStream from.
-	 * @param <OUT>
-	 *            type of the returned stream
+	 *
+	 * @param data  The collection of elements to create the DataStream from.
+	 * @param <OUT> type of the returned stream
 	 * @return The DataStream representing the elements.
 	 */
 	public <OUT extends Serializable> DataStreamSource<OUT> fromElements(OUT... data) {
@@ -275,11 +267,9 @@ public abstract class StreamExecutionEnvironment {
 	 * DataStream is that of the elements in the collection. The elements need
 	 * to be serializable (as defined by java.io.Serializable), because the
 	 * framework may move the elements into the cluster if needed.
-	 * 
-	 * @param data
-	 *            The collection of elements to create the DataStream from.
-	 * @param <OUT>
-	 *            type of the returned stream
+	 *
+	 * @param data  The collection of elements to create the DataStream from.
+	 * @param <OUT> type of the returned stream
 	 * @return The DataStream representing the elements.
 	 */
 	public <OUT extends Serializable> DataStreamSource<OUT> fromCollection(Collection<OUT> data) {
@@ -301,14 +291,11 @@ public abstract class StreamExecutionEnvironment {
 	 * Creates a new DataStream that contains the strings received infinitely
 	 * from socket. Received strings are decoded by the system's default
 	 * character set.
-	 * 
-	 * @param hostname
-	 *            The host name which a server socket bind.
-	 * @param port
-	 *            The port number which a server socket bind. A port number of 0
-	 *            means that the port number is automatically allocated.
-	 * @param delimiter
-	 *            A character which split received strings into records.
+	 *
+	 * @param hostname  The host name which a server socket bind.
+	 * @param port      The port number which a server socket bind. A port number of 0
+	 *                  means that the port number is automatically allocated.
+	 * @param delimiter A character which split received strings into records.
 	 * @return A DataStream, containing the strings received from socket.
 	 */
 	public DataStreamSource<String> socketTextStream(String hostname, int port, char delimiter) {
@@ -320,12 +307,10 @@ public abstract class StreamExecutionEnvironment {
 	 * Creates a new DataStream that contains the strings received infinitely
 	 * from socket. Received strings are decoded by the system's default
 	 * character set, uses '\n' as delimiter.
-	 * 
-	 * @param hostname
-	 *            The host name which a server socket bind.
-	 * @param port
-	 *            The port number which a server socket bind. A port number of 0
-	 *            means that the port number is automatically allocated.
+	 *
+	 * @param hostname The host name which a server socket bind.
+	 * @param port     The port number which a server socket bind. A port number of 0
+	 *                 means that the port number is automatically allocated.
 	 * @return A DataStream, containing the strings received from socket.
 	 */
 	public DataStreamSource<String> socketTextStream(String hostname, int port) {
@@ -334,11 +319,9 @@ public abstract class StreamExecutionEnvironment {
 
 	/**
 	 * Creates a new DataStream that contains a sequence of numbers.
-	 * 
-	 * @param from
-	 *            The number to start at (inclusive).
-	 * @param to
-	 *            The number to stop at (inclusive)
+	 *
+	 * @param from The number to start at (inclusive).
+	 * @param to   The number to stop at (inclusive)
 	 * @return A DataStrean, containing all number in the [from, to] interval.
 	 */
 	public DataStreamSource<Long> generateSequence(long from, long to) {
@@ -349,7 +332,7 @@ public abstract class StreamExecutionEnvironment {
 	}
 
 	private DataStreamSource<String> addFileSource(InputFormat<String, ?> inputFormat,
-			TypeInformation<String> typeInfo) {
+	TypeInformation<String> typeInfo) {
 		FileSourceFunction function = new FileSourceFunction(inputFormat, typeInfo);
 		DataStreamSource<String> returnStream = addSource(function, null, "fileSource");
 		streamGraph.setInputFormat(returnStream.getId(), inputFormat);
@@ -364,12 +347,9 @@ public abstract class StreamExecutionEnvironment {
 	 * {@link RichParallelSourceFunction}. In these cases the resulting source
 	 * will have the parallelism of the environment. To change this afterwards
 	 * call {@link DataStreamSource#setParallelism(int)}
-	 * 
-	 * 
-	 * @param function
-	 *            the user defined function
-	 * @param <OUT>
-	 *            type of the returned stream
+	 *
+	 * @param function the user defined function
+	 * @param <OUT>    type of the returned stream
 	 * @return the data stream constructed
 	 */
 	public <OUT> DataStreamSource<OUT> addSource(SourceFunction<OUT> function) {
@@ -386,17 +366,14 @@ public abstract class StreamExecutionEnvironment {
 	 * {@link RichParallelSourceFunction}. In these cases the resulting source
 	 * will have the parallelism of the environment. To change this afterwards
 	 * call {@link DataStreamSource#setParallelism(int)}
-	 * 
-	 * @param function
-	 *            the user defined function
-	 * @param outTypeInfo
-	 *            the user defined type information for the stream
-	 * @param <OUT>
-	 *            type of the returned stream
+	 *
+	 * @param function    the user defined function
+	 * @param outTypeInfo the user defined type information for the stream
+	 * @param <OUT>       type of the returned stream
 	 * @return the data stream constructed
 	 */
 	public <OUT> DataStreamSource<OUT> addSource(SourceFunction<OUT> function,
-			TypeInformation<OUT> outTypeInfo) {
+	TypeInformation<OUT> outTypeInfo) {
 		return addSource(function, outTypeInfo, function.getClass().getName());
 	}
 
@@ -405,20 +382,16 @@ public abstract class StreamExecutionEnvironment {
 	 * {@link DataStream}. Only in very special cases does the user need to
 	 * support type information. Otherwise use
 	 * {@link #addSource(SourceFunction)}
-	 * 
-	 * @param function
-	 *            the user defined function
-	 * @param outTypeInfo
-	 *            the user defined type information for the stream
-	 * @param sourceName
-	 *            Name of the data source
-	 * @param <OUT>
-	 *            type of the returned stream
+	 *
+	 * @param function    the user defined function
+	 * @param outTypeInfo the user defined type information for the stream
+	 * @param sourceName  Name of the data source
+	 * @param <OUT>       type of the returned stream
 	 * @return the data stream constructed
 	 */
 	@SuppressWarnings("unchecked")
 	private <OUT> DataStreamSource<OUT> addSource(SourceFunction<OUT> function,
-			TypeInformation<OUT> outTypeInfo, String sourceName) {
+	TypeInformation<OUT> outTypeInfo, String sourceName) {
 
 		if (outTypeInfo == null) {
 			if (function instanceof GenericSourceFunction) {
@@ -452,23 +425,27 @@ public abstract class StreamExecutionEnvironment {
 	 * program is currently executed. If the program is invoked standalone, this
 	 * method returns a local execution environment, as returned by
 	 * {@link #createLocalEnvironment()}.
-	 * 
+	 *
 	 * @return The execution environment of the context in which the program is
-	 *         executed.
+	 * executed.
 	 */
 	public static StreamExecutionEnvironment getExecutionEnvironment() {
+		if (currentEnvironment != null) {
+			return currentEnvironment;
+		}
 		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 		if (env instanceof ContextEnvironment) {
 			ContextEnvironment ctx = (ContextEnvironment) env;
-			return createContextEnvironment(ctx.getClient(), ctx.getJars(),
+			currentEnvironment = createContextEnvironment(ctx.getClient(), ctx.getJars(),
 					ctx.getDegreeOfParallelism());
+			return currentEnvironment;
 		} else {
 			return createLocalEnvironment();
 		}
 	}
 
 	private static StreamExecutionEnvironment createContextEnvironment(Client client,
-			List<File> jars, int dop) {
+	List<File> jars, int dop) {
 		return new StreamContextEnvironment(client, jars, dop);
 	}
 
@@ -479,7 +456,7 @@ public abstract class StreamExecutionEnvironment {
 	 * local environment is the number of hardware contexts (CPU cores /
 	 * threads), unless it was specified differently by
 	 * {@link #setDegreeOfParallelism(int)}.
-	 * 
+	 *
 	 * @return A local execution environment.
 	 */
 	public static LocalStreamEnvironment createLocalEnvironment() {
@@ -491,42 +468,40 @@ public abstract class StreamExecutionEnvironment {
 	 * will run the program in a multi-threaded fashion in the same JVM as the
 	 * environment was created in. It will use the degree of parallelism
 	 * specified in the parameter.
-	 * 
-	 * @param degreeOfParallelism
-	 *            The degree of parallelism for the local environment.
+	 *
+	 * @param degreeOfParallelism The degree of parallelism for the local environment.
 	 * @return A local execution environment with the specified degree of
-	 *         parallelism.
+	 * parallelism.
 	 */
 	public static LocalStreamEnvironment createLocalEnvironment(int degreeOfParallelism) {
-		LocalStreamEnvironment lee = new LocalStreamEnvironment();
-		lee.setDegreeOfParallelism(degreeOfParallelism);
-		return lee;
+		currentEnvironment = new LocalStreamEnvironment();
+		currentEnvironment.setDegreeOfParallelism(degreeOfParallelism);
+		return (LocalStreamEnvironment) currentEnvironment;
 	}
 
 	// TODO:fix cluster default parallelism
+
 	/**
 	 * Creates a {@link RemoteStreamEnvironment}. The remote environment sends
 	 * (parts of) the program to a cluster for execution. Note that all file
 	 * paths used in the program must be accessible from the cluster. The
 	 * execution will use no parallelism, unless the parallelism is set
 	 * explicitly via {@link #setDegreeOfParallelism}.
-	 * 
-	 * @param host
-	 *            The host name or address of the master (JobManager), where the
-	 *            program should be executed.
-	 * @param port
-	 *            The port of the master (JobManager), where the program should
-	 *            be executed.
-	 * @param jarFiles
-	 *            The JAR files with code that needs to be shipped to the
-	 *            cluster. If the program uses user-defined functions,
-	 *            user-defined input formats, or any libraries, those must be
-	 *            provided in the JAR files.
+	 *
+	 * @param host     The host name or address of the master (JobManager), where the
+	 *                 program should be executed.
+	 * @param port     The port of the master (JobManager), where the program should
+	 *                 be executed.
+	 * @param jarFiles The JAR files with code that needs to be shipped to the
+	 *                 cluster. If the program uses user-defined functions,
+	 *                 user-defined input formats, or any libraries, those must be
+	 *                 provided in the JAR files.
 	 * @return A remote environment that executes the program on a cluster.
 	 */
 	public static StreamExecutionEnvironment createRemoteEnvironment(String host, int port,
-			String... jarFiles) {
-		return new RemoteStreamEnvironment(host, port, jarFiles);
+	String... jarFiles) {
+		currentEnvironment = new RemoteStreamEnvironment(host, port, jarFiles);
+		return currentEnvironment;
 	}
 
 	/**
@@ -534,58 +509,52 @@ public abstract class StreamExecutionEnvironment {
 	 * (parts of) the program to a cluster for execution. Note that all file
 	 * paths used in the program must be accessible from the cluster. The
 	 * execution will use the specified degree of parallelism.
-	 * 
-	 * @param host
-	 *            The host name or address of the master (JobManager), where the
-	 *            program should be executed.
-	 * @param port
-	 *            The port of the master (JobManager), where the program should
-	 *            be executed.
-	 * @param degreeOfParallelism
-	 *            The degree of parallelism to use during the execution.
-	 * @param jarFiles
-	 *            The JAR files with code that needs to be shipped to the
-	 *            cluster. If the program uses user-defined functions,
-	 *            user-defined input formats, or any libraries, those must be
-	 *            provided in the JAR files.
+	 *
+	 * @param host                The host name or address of the master (JobManager), where the
+	 *                            program should be executed.
+	 * @param port                The port of the master (JobManager), where the program should
+	 *                            be executed.
+	 * @param degreeOfParallelism The degree of parallelism to use during the execution.
+	 * @param jarFiles            The JAR files with code that needs to be shipped to the
+	 *                            cluster. If the program uses user-defined functions,
+	 *                            user-defined input formats, or any libraries, those must be
+	 *                            provided in the JAR files.
 	 * @return A remote environment that executes the program on a cluster.
 	 */
 	public static StreamExecutionEnvironment createRemoteEnvironment(String host, int port,
-			int degreeOfParallelism, String... jarFiles) {
-		RemoteStreamEnvironment rec = new RemoteStreamEnvironment(host, port, jarFiles);
-		rec.setDegreeOfParallelism(degreeOfParallelism);
-		return rec;
+	int degreeOfParallelism, String... jarFiles) {
+		currentEnvironment = new RemoteStreamEnvironment(host, port, jarFiles);
+		currentEnvironment.setDegreeOfParallelism(degreeOfParallelism);
+		return currentEnvironment;
 	}
 
 	/**
 	 * Triggers the program execution. The environment will execute all parts of
 	 * the program that have resulted in a "sink" operation. Sink operations are
 	 * for example printing results or forwarding them to a message queue.
-	 * <p>
+	 * <p/>
 	 * The program execution will be logged and displayed with a generated
 	 * default name.
-	 * 
+	 *
 	 * @throws Exception
-	 **/
+	 */
 	public abstract void execute() throws Exception;
 
 	/**
 	 * Triggers the program execution. The environment will execute all parts of
 	 * the program that have resulted in a "sink" operation. Sink operations are
 	 * for example printing results or forwarding them to a message queue.
-	 * <p>
+	 * <p/>
 	 * The program execution will be logged and displayed with the provided name
-	 * 
-	 * @param jobName
-	 *            Desired name of the job
-	 * 
+	 *
+	 * @param jobName Desired name of the job
 	 * @throws Exception
-	 **/
+	 */
 	public abstract void execute(String jobName) throws Exception;
 
 	/**
 	 * Getter of the {@link StreamGraph} of the streaming job.
-	 * 
+	 *
 	 * @return The streamgraph representing the transformations
 	 */
 	public StreamGraph getStreamGraph() {
