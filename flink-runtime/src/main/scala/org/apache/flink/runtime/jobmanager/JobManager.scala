@@ -358,7 +358,7 @@ class JobManager(val configuration: Configuration,
    *
    * @param jobGraph representing the Flink job
    * @param listenToEvents true if the sender wants to listen to job status and execution state
-   *                       change notificatinos. false if not.
+   *                       change notifications. false if not.
    * @param detached true if the job runs in detached mode, meaning that the sender does not wait
    *                 for the result of the job. false otherwise.
    */
