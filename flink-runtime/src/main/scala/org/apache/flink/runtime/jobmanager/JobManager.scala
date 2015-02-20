@@ -40,7 +40,7 @@ import org.apache.flink.runtime.{JobException, ActorLogMessages}
 import org.apache.flink.runtime.akka.AkkaUtils
 import org.apache.flink.runtime.execution.librarycache.BlobLibraryCacheManager
 import org.apache.flink.runtime.instance.InstanceManager
-import org.apache.flink.runtime.jobgraph.{JobGraph, JobStatus, JobID}
+import org.apache.flink.runtime.jobgraph.{ScheduleMode,JobGraph,JobStatus,JobID}
 import org.apache.flink.runtime.jobmanager.accumulators.AccumulatorManager
 import org.apache.flink.runtime.jobmanager.scheduler.{Scheduler => FlinkScheduler}
 import org.apache.flink.runtime.messages.JobManagerMessages._
@@ -103,7 +103,7 @@ class JobManager(val configuration: Configuration,
 
   // List of current jobs running
   val currentJobs = scala.collection.mutable.HashMap[JobID, (ExecutionGraph, JobInfo)]()
-
+  val barrierMonitors = scala.collection.mutable.HashMap[JobID, ActorRef]()
 
   override def preStart(): Unit = {
     LOG.info(s"Starting JobManager at ${self.path}.")
@@ -289,11 +289,36 @@ class JobManager(val configuration: Configuration,
                 jobInfo.client ! Failure(exception)
                 throw exception
             }
-
+            barrierMonitors.get(jobID) match {
+                         case Some(monitor) =>
+                              monitor ! PoisonPill
+                              barrierMonitors.remove(jobID)
+                          case None =>
+                        }
             removeJob(jobID)
+          }
+          else {
+            newJobStatus match {
+              case JobStatus.RUNNING => currentJobs.get(jobID) match {
+              case Some((executionGraph, _)) => 
+              //FIXME this is just a fast n dirty check for determining streaming jobs 
+              if (executionGraph.getScheduleMode == ScheduleMode.ALL) {
+                barrierMonitors += jobID -> StreamStateMonitor.props(context, executionGraph)
+              }
+              case None =>
+                log.error("Cannot create state monitor for job ID {}.", jobID)
+                new IllegalStateException("Cannot find execution graph for job ID " + jobID)
+              }
+            }
           }
         case None =>
           removeJob(jobID)
+      }
+
+    case BarrierAck(jobID, jobVertex, instanceID, checkpoint) =>
+      barrierMonitors.get(jobID) match {
+        case Some(monitor) => monitor ! BarrierAck(jobID, jobVertex, instanceID, checkpoint)
+        case None =>
       }
 
     case ScheduleOrUpdateConsumers(jobId, executionId, partitionIndex) =>
