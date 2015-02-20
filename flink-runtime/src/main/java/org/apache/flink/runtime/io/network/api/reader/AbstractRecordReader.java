@@ -18,15 +18,23 @@
 
 package org.apache.flink.runtime.io.network.api.reader;
 
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Set;
+
 import org.apache.flink.core.io.IOReadableWritable;
+import org.apache.flink.runtime.event.task.AbstractEvent;
+import org.apache.flink.runtime.event.task.StreamingSuperstep;
 import org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer;
 import org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer.DeserializationResult;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.partition.consumer.BufferOrEvent;
 import org.apache.flink.runtime.io.network.partition.consumer.InputGate;
 import org.apache.flink.runtime.io.network.serialization.SpillingAdaptiveSpanningRecordDeserializer;
-
-import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A record-oriented reader.
@@ -37,14 +45,19 @@ import java.io.IOException;
  */
 abstract class AbstractRecordReader<T extends IOReadableWritable> extends AbstractReader implements ReaderBase {
 
+	private static final Logger LOG = LoggerFactory.getLogger(AbstractRecordReader.class);
+	
 	private final RecordDeserializer<T>[] recordDeserializers;
 
 	private RecordDeserializer<T> currentRecordDeserializer;
 
 	private boolean isFinished;
+	
+	private final BarrierBuffer barrierBuffer;
 
 	protected AbstractRecordReader(InputGate inputGate) {
 		super(inputGate);
+		barrierBuffer = new BarrierBuffer();
 
 		// Initialize one deserializer per input channel
 		this.recordDeserializers = new SpillingAdaptiveSpanningRecordDeserializer[inputGate.getNumberOfInputChannels()];
@@ -71,23 +84,49 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 					return true;
 				}
 			}
+		    
+			BufferOrEvent bufferOrEvent = null;
 
-			final BufferOrEvent bufferOrEvent = inputGate.getNextBufferOrEvent();
+			if (barrierBuffer.containsNonprocessed()) {
+				bufferOrEvent = barrierBuffer.getNonProcessed();
+			} else {
+				while (bufferOrEvent == null) {
+					BufferOrEvent nextBufferOrEvent = inputGate.getNextBufferOrEvent();
+					if (barrierBuffer.isBlocked(nextBufferOrEvent)) {
+						barrierBuffer.store(nextBufferOrEvent);
+					} else {
+						bufferOrEvent = nextBufferOrEvent;
+					}
+				}
+			}
 
 			if (bufferOrEvent.isBuffer()) {
 				currentRecordDeserializer = recordDeserializers[bufferOrEvent.getChannelIndex()];
 				currentRecordDeserializer.setNextBuffer(bufferOrEvent.getBuffer());
-			}
-			else if (handleEvent(bufferOrEvent.getEvent())) {
-				if (inputGate.isFinished()) {
-					isFinished = true;
+			}else{
+				// Event received
+				final AbstractEvent event = bufferOrEvent.getEvent();
 
-					return false;
+				if (event.getClass() == StreamingSuperstep.class) {
+					if (!barrierBuffer.isBlocked(bufferOrEvent)) {
+						StreamingSuperstep superstep = (StreamingSuperstep) event;
+						if (!barrierBuffer.receivedSuperstep()) {
+							barrierBuffer.startSuperstep(superstep);
+						}
+						barrierBuffer.blockChannel(bufferOrEvent);
+					} else {
+						barrierBuffer.store(bufferOrEvent);
+					}
+				} else {
+					if (handleEvent(event)) {
+						if (inputGate.isFinished()) {
+							isFinished = true;
+							return false;
+						} else if (hasReachedEndOfSuperstep()) {
+							return false;
+						} // else: More data is coming...
+					}
 				}
-				else if (hasReachedEndOfSuperstep()) {
-
-					return false;
-				} // else: More data is coming...
 			}
 		}
 	}
@@ -99,5 +138,77 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 				buffer.recycle();
 			}
 		}
+	}
+	
+	private class BarrierBuffer {
+
+		private Queue<BufferOrEvent> bufferOrEvents = new LinkedList<BufferOrEvent>();
+		private Queue<BufferOrEvent> unprocessed = new LinkedList<BufferOrEvent>();
+
+		private Set<Integer> blockedChannels = new HashSet<Integer>();
+		private int totalNumberOfInputChannels;
+
+		private StreamingSuperstep currentSuperstep;
+		private boolean receivedSuperstep;
+
+		public BarrierBuffer() {
+			totalNumberOfInputChannels = inputGate.getNumberOfInputChannels();
+		}
+
+		public void startSuperstep(StreamingSuperstep superstep) {
+			this.currentSuperstep = superstep;
+			this.receivedSuperstep = true;
+			if (LOG.isDebugEnabled()) {
+				LOG.debug("Superstep started with id: " + superstep.getId());
+			}
+		}
+
+		public void store(BufferOrEvent bufferOrEvent) {
+			bufferOrEvents.add(bufferOrEvent);
+		}
+
+		public BufferOrEvent getNonProcessed() {
+			return unprocessed.poll();
+		}
+
+		public boolean isBlocked(BufferOrEvent bufferOrEvent) {
+			return blockedChannels.contains(bufferOrEvent.getChannelIndex());
+		}
+
+		public boolean containsNonprocessed() {
+			return !unprocessed.isEmpty();
+		}
+
+		public boolean receivedSuperstep() {
+			return receivedSuperstep;
+		}
+
+		public void blockChannel(BufferOrEvent bufferOrEvent) {
+			Integer channelIndex = bufferOrEvent.getChannelIndex();
+			if (!blockedChannels.contains(channelIndex)) {
+				blockedChannels.add(channelIndex);
+				if (LOG.isDebugEnabled()) {
+					LOG.debug("Channel blocked with index: " + channelIndex);
+				}
+				if (blockedChannels.size() == totalNumberOfInputChannels) {
+					publish(currentSuperstep);
+					unprocessed.addAll(bufferOrEvents);
+					bufferOrEvents.clear();
+					blockedChannels.clear();
+					receivedSuperstep = false;
+					if (LOG.isDebugEnabled()) {
+						LOG.debug("All barriers received, blocks released");
+					}
+				}
+
+			} else {
+				throw new RuntimeException("Tried to block an already blocked channel");
+			}
+		}
+
+		public String toString() {
+			return blockedChannels.toString();
+		}
+
 	}
 }
