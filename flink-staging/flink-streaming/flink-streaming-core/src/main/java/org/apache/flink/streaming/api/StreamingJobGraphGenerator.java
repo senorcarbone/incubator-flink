@@ -188,13 +188,15 @@ public class StreamingJobGraphGenerator {
 		builtNodes.add(vertexName);
 		jobGraph.addVertex(vertex);
 
-		return new StreamConfig(vertex.getConfiguration());
+		StreamConfig retConfig = new StreamConfig(vertex.getConfiguration());
+		retConfig.setOperatorName(chainedNames.get(vertexName));
+		return retConfig;
 	}
 
 	private void setVertexConfig(String vertexName, StreamConfig config,
 			List<String> chainableOutputs, List<String> nonChainableOutputs) {
 
-		config.setVertexName(vertexName);
+		config.setTaskName(vertexName);
 		config.setBufferTimeout(streamGraph.getBufferTimeout(vertexName));
 
 		config.setTypeSerializerIn1(streamGraph.getInSerializer1(vertexName));

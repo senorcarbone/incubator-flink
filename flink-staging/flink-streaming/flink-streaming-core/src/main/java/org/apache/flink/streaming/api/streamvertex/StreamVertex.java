@@ -17,10 +17,16 @@
 
 package org.apache.flink.streaming.api.streamvertex;
 
+import java.io.IOException;
 import java.util.Map;
 
+import org.apache.flink.runtime.event.task.StreamingSuperstep;
+import org.apache.flink.runtime.event.task.TaskEvent;
 import org.apache.flink.runtime.execution.Environment;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
+import org.apache.flink.runtime.jobgraph.tasks.BarrierTransceiver;
+import org.apache.flink.runtime.jobmanager.BarrierAck;
+import org.apache.flink.runtime.util.event.EventListener;
 import org.apache.flink.streaming.api.StreamConfig;
 import org.apache.flink.streaming.api.invokable.ChainableInvokable;
 import org.apache.flink.streaming.api.invokable.StreamInvokable;
@@ -30,8 +36,15 @@ import org.apache.flink.streaming.io.IndexedReaderIterator;
 import org.apache.flink.streaming.state.OperatorState;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.MutableObjectIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class StreamVertex<IN, OUT> extends AbstractInvokable implements StreamTaskContext<OUT> {
+import akka.actor.ActorRef;
+
+public class StreamVertex<IN, OUT> extends AbstractInvokable implements StreamTaskContext<OUT>,
+		BarrierTransceiver {
+
+	private static final Logger LOG = LoggerFactory.getLogger(StreamVertex.class);
 
 	private static int numTasks;
 
@@ -48,10 +61,13 @@ public class StreamVertex<IN, OUT> extends AbstractInvokable implements StreamTa
 
 	protected ClassLoader userClassLoader;
 
+	private EventListener<TaskEvent> superstepListener;
+
 	public StreamVertex() {
 		userInvokable = null;
 		numTasks = newVertex();
 		instanceID = numTasks;
+		superstepListener = new SuperstepEventListener();
 	}
 
 	protected static int newVertex() {
@@ -89,6 +105,22 @@ public class StreamVertex<IN, OUT> extends AbstractInvokable implements StreamTa
 			invokable.close();
 		}
 
+	}
+
+	@Override
+	public void broadcastBarrier(long id) {
+		//Only called at input vertices
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Received barrier from jobmanager: " + id);
+		}
+		actOnBarrier(id);
+	}
+
+	@Override
+	public void confirmBarrier(long barrierID) {
+		getEnvironment().getJobManager().tell(
+				new BarrierAck(getEnvironment().getJobID(), getEnvironment().getJobVertexId(),
+						context.getIndexOfThisSubtask(), barrierID), ActorRef.noSender());
 	}
 
 	public void setInputsOutputs() {
@@ -166,4 +198,35 @@ public class StreamVertex<IN, OUT> extends AbstractInvokable implements StreamTa
 		throw new IllegalArgumentException("CoReader not available");
 	}
 
+	public EventListener<TaskEvent> getSuperstepListener() {
+		return this.superstepListener;
+	}
+
+	private void actOnBarrier(long id) {
+		try {
+			outputHandler.broadcastBarrier(id);
+			System.out.println("Superstep " + id + " processed: " + StreamVertex.this);
+			if (LOG.isDebugEnabled()) {
+				LOG.debug("Superstep " + id + " processed: " + StreamVertex.this);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public String toString() {
+		return configuration.getOperatorName() + " (" + context.getIndexOfThisSubtask() + ")";
+	}
+
+	private class SuperstepEventListener implements EventListener<TaskEvent> {
+
+		@Override
+		public void onEvent(TaskEvent event) {
+			actOnBarrier(((StreamingSuperstep) event).getId());
+		}
+
+	}
 }

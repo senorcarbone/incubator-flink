@@ -48,6 +48,7 @@ public class StreamConfig implements Serializable {
 	private static final String OUTPUT_NAME = "outputName_";
 	private static final String PARTITIONER_OBJECT = "partitionerObject_";
 	private static final String VERTEX_NAME = "vertexName";
+	private static final String OPERATOR_NAME = "operatorName";
 	private static final String ITERATION_ID = "iteration-id";
 	private static final String OUTPUT_SELECTOR = "outputSelector";
 	private static final String DIRECTED_EMIT = "directedEmit";
@@ -79,12 +80,20 @@ public class StreamConfig implements Serializable {
 		return config;
 	}
 
-	public void setVertexName(String vertexName) {
+	public void setTaskName(String vertexName) {
 		config.setString(VERTEX_NAME, vertexName);
 	}
 
 	public String getTaskName() {
 		return config.getString(VERTEX_NAME, "Missing");
+	}
+
+	public void setOperatorName(String name) {
+		config.setString(OPERATOR_NAME, name);
+	}
+
+	public String getOperatorName() {
+		return config.getString(OPERATOR_NAME, "Missing");
 	}
 
 	public void setTypeSerializerIn1(StreamRecordSerializer<?> serializer) {
