@@ -17,6 +17,7 @@
 
 package org.apache.flink.runtime.io.network.api.reader;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -45,12 +46,15 @@ public class BarrierBuffer {
 
 	private AbstractReader reader;
 
+	private InputGate inputGate;
+
 	public BarrierBuffer(InputGate inputGate, AbstractReader reader) {
+		this.inputGate = inputGate;
 		totalNumberOfInputChannels = inputGate.getNumberOfInputChannels();
 		this.reader = reader;
 	}
 
-	public void startSuperstep(StreamingSuperstep superstep) {
+	private void startSuperstep(StreamingSuperstep superstep) {
 		this.currentSuperstep = superstep;
 		this.receivedSuperstep = true;
 		if (LOG.isDebugEnabled()) {
@@ -58,35 +62,46 @@ public class BarrierBuffer {
 		}
 	}
 
-	public void store(BufferOrEvent bufferOrEvent) {
+	private void store(BufferOrEvent bufferOrEvent) {
 		bufferOrEvents.add(bufferOrEvent);
 	}
 
-	public BufferOrEvent getNonProcessed() {
+	private BufferOrEvent getNonProcessed() {
 		return unprocessed.poll();
 	}
 
-	public boolean isBlocked(int channelIndex) {
+	private boolean isBlocked(int channelIndex) {
 		return blockAll || blockedChannels.contains(channelIndex);
 	}
-
-	public void blockAll() {
-		this.blockAll = true;
-	}
-
-	public void releaseAllBlock() {
-		this.blockAll = false;
-	}
-
-	public boolean containsNonprocessed() {
+	
+	private boolean containsNonprocessed() {
 		return !unprocessed.isEmpty();
 	}
 
-	public boolean receivedSuperstep() {
+	private boolean receivedSuperstep() {
 		return receivedSuperstep;
 	}
 
-	public void blockChannel(int channelIndex) {
+	public BufferOrEvent getNextNonBlocked() throws IOException,
+			InterruptedException {
+		BufferOrEvent bufferOrEvent = null;
+
+		if (containsNonprocessed()) {
+			bufferOrEvent = getNonProcessed();
+		} else {
+			while (bufferOrEvent == null) {
+				BufferOrEvent nextBufferOrEvent = inputGate.getNextBufferOrEvent();
+				if (isBlocked(nextBufferOrEvent.getChannelIndex())) {
+					store(nextBufferOrEvent);
+				} else {
+					bufferOrEvent = nextBufferOrEvent;
+				}
+			}
+		}
+		return bufferOrEvent;
+	}
+
+	private void blockChannel(int channelIndex) {
 		if (!blockedChannels.contains(channelIndex)) {
 			blockedChannels.add(channelIndex);
 			if (LOG.isDebugEnabled()) {
@@ -110,6 +125,19 @@ public class BarrierBuffer {
 
 	public String toString() {
 		return blockedChannels.toString();
+	}
+
+	public void processSuperstep(BufferOrEvent bufferOrEvent) {
+		int channelIndex = bufferOrEvent.getChannelIndex();
+		if (isBlocked(channelIndex)) {
+			store(bufferOrEvent);
+		} else {
+			StreamingSuperstep superstep = (StreamingSuperstep) bufferOrEvent.getEvent();
+			if (!receivedSuperstep()) {
+				startSuperstep(superstep);
+			}
+			blockChannel(channelIndex);
+		}
 	}
 
 }

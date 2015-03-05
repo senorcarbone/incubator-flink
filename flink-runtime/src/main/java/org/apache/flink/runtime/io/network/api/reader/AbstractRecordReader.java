@@ -86,20 +86,7 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 				}
 			}
 
-			BufferOrEvent bufferOrEvent = null;
-
-			if (barrierBuffer.containsNonprocessed()) {
-				bufferOrEvent = barrierBuffer.getNonProcessed();
-			} else {
-				while (bufferOrEvent == null) {
-					BufferOrEvent nextBufferOrEvent = inputGate.getNextBufferOrEvent();
-					if (barrierBuffer.isBlocked(nextBufferOrEvent.getChannelIndex())) {
-						barrierBuffer.store(nextBufferOrEvent);
-					} else {
-						bufferOrEvent = nextBufferOrEvent;
-					}
-				}
-			}
+			final BufferOrEvent bufferOrEvent = barrierBuffer.getNextNonBlocked();
 
 			if (bufferOrEvent.isBuffer()) {
 				currentRecordDeserializer = recordDeserializers[bufferOrEvent.getChannelIndex()];
@@ -109,16 +96,7 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 				final AbstractEvent event = bufferOrEvent.getEvent();
 
 				if (event instanceof StreamingSuperstep) {
-					int channelIndex = bufferOrEvent.getChannelIndex();
-					if (barrierBuffer.isBlocked(channelIndex)) {
-						barrierBuffer.store(bufferOrEvent);
-					} else {
-						StreamingSuperstep superstep = (StreamingSuperstep) event;
-						if (!barrierBuffer.receivedSuperstep()) {
-							barrierBuffer.startSuperstep(superstep);
-						}
-						barrierBuffer.blockChannel(channelIndex);
-					}
+					barrierBuffer.processSuperstep(bufferOrEvent);
 				} else {
 					if (handleEvent(event)) {
 						if (inputGate.isFinished()) {
