@@ -65,6 +65,8 @@ public class StreamVertex<IN, OUT> extends AbstractInvokable implements StreamTa
 	protected ClassLoader userClassLoader;
 
 	private EventListener<TaskEvent> superstepListener;
+	
+	private boolean onRecovery;
 
 	public StreamVertex() {
 		userInvokable = null;
@@ -88,7 +90,10 @@ public class StreamVertex<IN, OUT> extends AbstractInvokable implements StreamTa
 	protected void initialize() {
 		this.userClassLoader = getUserCodeClassLoader();
 		this.configuration = new StreamConfig(getTaskConfiguration());
-		this.states = configuration.getOperatorStates(userClassLoader);
+		if(!onRecovery)
+		{
+			this.states = configuration.getOperatorStates(userClassLoader);
+		}
 		this.context = createRuntimeContext(getEnvironment().getTaskName(), this.states);
 	}
 
@@ -122,12 +127,12 @@ public class StreamVertex<IN, OUT> extends AbstractInvokable implements StreamTa
 	@Override
 	public void confirmBarrier(long barrierID) {
 		
-		if(states != null && states.containsKey("kafka"))
+		if(configuration.getStateMonitoring() && states != null)
 		{
 			getEnvironment().getJobManager().tell(
 					new StateBarrierAck(getEnvironment().getJobID(), 
 							getEnvironment().getJobVertexId(), context.getIndexOfThisSubtask(), 
-							barrierID, states.get("kafka")), ActorRef.noSender());
+							barrierID, states), ActorRef.noSender());
 		}
 		else
 		{
@@ -290,8 +295,9 @@ public class StreamVertex<IN, OUT> extends AbstractInvokable implements StreamTa
 	}
 
 	@Override
-	public void injectState(OperatorState state) {
-		states.put("kafka", state);
+	public void injectStates(Map<String,OperatorState<?>> states) {
+		onRecovery = true;
+		this.states.putAll(states);
 	}
 	
 
