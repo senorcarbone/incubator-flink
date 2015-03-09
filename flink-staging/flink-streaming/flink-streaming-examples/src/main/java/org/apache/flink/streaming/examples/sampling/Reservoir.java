@@ -17,14 +17,17 @@ package org.apache.flink.streaming.examples.sampling;
  * limitations under the License.
  */
 
+ import org.apache.flink.util.IterableIterator;
+
  import java.io.Serializable;
  import java.util.ArrayList;
+ import java.util.Iterator;
  import java.util.Random;
 
 /**
  * Created by marthavk on 2015-03-05.
  */
-public class Reservoir<T> implements Serializable {
+public class Reservoir<T> implements Serializable, Iterable {
 
     private ArrayList<T> reservoir;
     private int maxSize;
@@ -103,5 +106,10 @@ public class Reservoir<T> implements Serializable {
         ArrayList<T> newReservoir = new ArrayList<T>();
         newReservoir.addAll(this.getReservoir());
         newReservoir.addAll(r1.getReservoir());
+    }
+
+    @Override
+    public Iterator iterator() {
+        return reservoir.iterator();
     }
 }

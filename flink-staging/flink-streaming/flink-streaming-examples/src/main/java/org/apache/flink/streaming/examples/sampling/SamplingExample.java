@@ -1,17 +1,17 @@
 package org.apache.flink.streaming.examples.sampling;
 
-import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
-import org.apache.flink.api.java.tuple.Tuple3;
-import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
+import org.apache.flink.api.java.tuple.*;
+import org.apache.flink.streaming.api.datastream.WindowedDataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.function.WindowMapFunction;
-import org.apache.flink.streaming.api.function.sink.SinkFunction;
+
 import org.apache.flink.streaming.api.windowing.helper.Count;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.util.Collector;
 
+import java.io.Serializable;
 import java.util.Random;
 /**
  * Created by marthavk on 2015-03-06.
@@ -29,12 +29,14 @@ public class SamplingExample {
         //DataStream<String> text = getTextDataStream(env);
 
         // generate stream
-        DataStream<Long> dataStream = getRandomSequence(env);
+        //DataStream<Long> dataStream = getRandomSequence(env);
+        DataStream<Double> gaussianStream = createGaussianStream(env, 10000);
 
         int windowSize = 100;
-        int reservoirSize = 15;
+        int reservoirSize = 20;
         //reservoirSampling(dataStream,reservoirSize);
-        windowSampling2(dataStream, reservoirSize, windowSize);
+        //windowSampling2(gaussianStream, reservoirSize, windowSize);
+        modelApproximation(gaussianStream, reservoirSize);
         //mdSampling(createMultidimensionalStream(dataStream), env, reservoirSize);
 
         env.execute("Sampling Example");
@@ -104,34 +106,76 @@ public class SamplingExample {
                 }).print();
     }
 
-    public static void windowSampling2(DataStream<Long> dataStream, final Integer rSize, final Integer wSize) {
-        dataStream
-                .window(Count.of(wSize)).mapWindow(new WindowMapFunction<Long, Reservoir<Long>>() {
-            @Override
-            public void mapWindow(Iterable<Long> values, Collector<Reservoir<Long>> out) throws Exception {
-                Reservoir<Long> r = new Reservoir<Long>(rSize);
-                int count = 0;
-                for (Long v : values) {
-                    count++;
-                    if (Coin.flip(count / rSize)) {
-                        r.insertElement(v);
+
+    public static void windowSampling2(DataStream<Double> dataStream, final Integer rSize, final Integer wSize) {
+        WindowedDataStream<Reservoir<Double>> w = dataStream.window(Count.of(wSize))
+                .mapWindow(new WindowMapFunction<Double, Reservoir<Double>>() {
+                    @Override
+                    public void mapWindow(Iterable<Double> values, Collector<Reservoir<Double>> out) throws Exception {
+                        Reservoir<Double> r = new Reservoir<Double>(rSize);
+                        int count = 0;
+                        for (Double v : values) {
+                            count++;
+                            if (Coin.flip(count / rSize)) {
+                                r.insertElement(v);
+                            }
+                        }
+                        out.collect(r);
                     }
-                }
-                out.collect(r);
-            }
-        }).flatten().print();
+                });
     }
 
-    public static void mdSampling(DataStream<Tuple3<Integer, Long, Long>> dataStream, StreamExecutionEnvironment env, final Integer rSize) {
+    public static void modelApproximation1(DataStream<Double> gaussianStream, final int rSize) {
+
+
+        DataStream<Tuple3<Reservoir<Double>, Nmodel, Nmodel>> transformedStream = gaussianStream
+
+                .map(new MapFunction<Double,  Tuple3 < Reservoir < Double >, Nmodel, Nmodel >> () {
+                    Nmodel<Double> generalModel = new Nmodel<Double>();
+                    Nmodel<Double> currentModel = new Nmodel<Double>();
+                    Reservoir<Double> r = new Reservoir<Double>(rSize);
+                    int count = 0;
+
+                    @Override
+                    public Tuple3 <Reservoir<Double>, Nmodel, Nmodel > map(Double aLong) throws Exception {
+                        //update model from all elements
+                        count++;
+                        generalModel.updateModel(aLong);
+                        if (Coin.flip(count / rSize)) {
+                            r.insertElement(aLong);
+                            currentModel.inferModel(r);
+                            //calculate model parameters from reservoir
+                        }
+                        return new Tuple3<Reservoir<Double>, Nmodel, Nmodel>(r, generalModel, currentModel);
+                    }
+
+                }).print();
+    }
+
+    public static void modelApproximation(DataStream<Double> gaussianStream, final int rSize) {
+        DataStream<Tuple2<Reservoir<Double>, Nmodel<Double>>> transformedStream = gaussianStream
+                .map(new MapFunction<Double, Tuple2<Reservoir<Double>, Nmodel<Double>>>() {
+                    Nmodel<Double> currentModel = new Nmodel<Double>();
+                    Reservoir<Double> r = new Reservoir<Double>(rSize);
+                    int count = 0;
+                    @Override
+                    public Tuple2<Reservoir<Double>, Nmodel<Double>> map(Double value) throws Exception {
+                        //update model from all elements
+                        count++;
+                        if (Coin.flip(count / rSize)) {
+                            r.insertElement(value);
+                            currentModel.inferModel(r);
+                            //calculate model parameters from reservoir
+                        }
+                        return new Tuple2<Reservoir<Double>, Nmodel<Double>>(r,currentModel);
+                    }
+                });
+    }
+
+    public static void mdSampling(DataStream<Tuple3<Integer, Long, Long>> dataStream, StreamExecutionEnvironment env, final int rSize) {
         env.setDegreeOfParallelism(Runtime.getRuntime().availableProcessors());
         //env.setDegreeOfParallelism(env.getDegreeOfParallelism());
-
-
     }
-
-    
-
-
 
 /*    private static DataStream<String> getTextDataStream(StreamExecutionEnvironment env) {
         return env.fromElements(WordCountData.WORDS);
@@ -160,9 +204,61 @@ public class SamplingExample {
         });
     }
 
+    private static DataStream<Double> createGaussianStream(StreamExecutionEnvironment env, int length) {
+        DataStream<Long> stream = env.generateSequence(1, length);
+        return stream.map(new MapFunction<Long, Double>() {
+            @Override
+            public Double map(Long value) throws Exception {
+                Random rand = new Random();
+                return rand.nextGaussian();
+            }
+        });
+    }
+
     private static final class Coin {
         public static boolean flip(int sides) {
             return (Math.random() * sides < 1);
+        }
+    }
+
+    public static class Nmodel<T> implements Serializable {
+        /** Normal Distribution Model **/
+        private double mean;
+        private double var;
+        private int size;
+
+        public Nmodel() {
+
+        }
+
+        public void inferModel(Iterable<T> sample){
+            //calculate the mean
+            size = 0;
+            for (T value : sample) {
+                size ++;
+                mean += (Double)value;
+            }
+            mean = mean / size;
+
+            //calculate the variance
+            for (T value : sample) {
+                var += Math.pow(((Double)value - mean),2);
+            }
+            var = var/size;
+        }
+
+
+        public void updateModel(T dataPoint) {
+            double new_mean = (size*mean + (Double)dataPoint)/(size+1);
+            var = (size*(var+Math.pow(mean,2))+Math.pow((Double)dataPoint,2))/(size+1) - Math.pow(new_mean,2);
+            mean = new_mean;
+            size ++;
+        }
+        
+
+        @Override
+        public String toString() {
+            return "" + "["+mean+","+var+"]";
         }
     }
 
