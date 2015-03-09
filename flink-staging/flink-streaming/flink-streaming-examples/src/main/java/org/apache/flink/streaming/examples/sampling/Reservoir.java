@@ -26,8 +26,8 @@ package org.apache.flink.streaming.examples.sampling;
  */
 public class Reservoir<T> implements Serializable {
 
-    ArrayList<T> reservoir;
-    int maxSize;
+    private ArrayList<T> reservoir;
+    private int maxSize;
 
     public Reservoir(int size) {
         reservoir = new ArrayList<T>();
@@ -35,6 +35,24 @@ public class Reservoir<T> implements Serializable {
         // maxSize = size;
     }
 
+    /** GETTERS AND SETTERS**/
+    public ArrayList<T> getReservoir() {
+        return reservoir;
+    }
+
+    public int getMaxSize() {
+        return maxSize;
+    }
+
+    public void setReservoir(ArrayList<T> reservoir) {
+        this.reservoir = reservoir;
+    }
+
+    public void setMaxSize(int maxSize) {
+        this.maxSize = maxSize;
+    }
+
+    /** INSERT & REPLACE METHODS **/
     void insertElement(T e) {
         if (!isFull()) reservoir.add(e);
         else replaceElement(e);
@@ -56,6 +74,7 @@ public class Reservoir<T> implements Serializable {
         else throw new ArrayIndexOutOfBoundsException();
     }
 
+    /** AUXILIARY METHODS **/
     boolean isFull() {
         return reservoir.isEmpty() ? false :  reservoir.size()==maxSize;
     }
@@ -69,5 +88,20 @@ public class Reservoir<T> implements Serializable {
 
     void print() {
         System.out.println(reservoir.toString());
+    }
+
+    /** MERGE METHODS **/
+    static Reservoir merge(Reservoir r1, Reservoir r2) {
+        Reservoir rout = new Reservoir(r1.maxSize+r2.maxSize);
+        rout.reservoir.addAll(r1.reservoir);
+        rout.reservoir.addAll(r2.reservoir);
+        return rout;
+    }
+
+    public void mergeWith(Reservoir<T> r1) {
+        this.setMaxSize(r1.getMaxSize() + this.getMaxSize());
+        ArrayList<T> newReservoir = new ArrayList<T>();
+        newReservoir.addAll(this.getReservoir());
+        newReservoir.addAll(r1.getReservoir());
     }
 }
