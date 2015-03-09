@@ -250,11 +250,11 @@ public class SamplingExample {
 
         public void updateModel(T dataPoint) {
             double new_mean = (size*mean + (Double)dataPoint)/(size+1);
-            var = (size*(var+Math.pow(mean,2))+Math.pow((Double)dataPoint,2))/(size+1) - Math.pow(new_mean,2);
+            var =   (size*(var+Math.pow(mean,2))+Math.pow((Double)dataPoint,2))/(size+1) - Math.pow(new_mean,2);
             mean = new_mean;
             size ++;
         }
-        
+
 
         @Override
         public String toString() {
