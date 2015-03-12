@@ -19,9 +19,7 @@
 package org.apache.flink.streaming.examples.sampling;
 
 import org.apache.flink.api.java.tuple.Tuple4;
-import org.apache.flink.types.NullValue;
 
-import java.io.Serializable;
 import java.util.HashSet;
 
 /**
