@@ -58,7 +58,7 @@ public class WordCountExample {
     public static void main(String[] args) throws Exception {
         final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
-	    DataSet<String> text = env.fromElements(
+        DataSet<String> text = env.fromElements(
             "Who's there?",
             "I think I hear them. Stand, ho! Who's there?");
 
@@ -1710,7 +1710,7 @@ Generic:
 val env  = ExecutionEnvironment.getExecutionEnvironment
 
 // read text file from local files system
-val localLiens = env.readTextFile("file:///path/to/my/textfile")
+val localLines = env.readTextFile("file:///path/to/my/textfile")
 
 // read text file from a HDFS running at nnHost:nnPort
 val hdfsLines = env.readTextFile("hdfs://nnHost:nnPort/path/to/my/textfile")
@@ -2222,7 +2222,7 @@ val initial = env.fromElements(0)
 val count = initial.iterate(10000) { iterationInput: DataSet[Int] =>
   val result = iterationInput.map { i => 
     val x = Math.random()
-    val y = Math.randon()
+    val y = Math.random()
     i + (if (x * x + y * y < 1) 1 else 0)
   }
   result

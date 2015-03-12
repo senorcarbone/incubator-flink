@@ -32,7 +32,6 @@ public class TumblingPreReducer<T> implements WindowBuffer<T>, CompletePreAggreg
 	private ReduceFunction<T> reducer;
 
 	private T reduced;
-	private int numOfElements = 0;
 	private TypeSerializer<T> serializer;
 
 	public TumblingPreReducer(ReduceFunction<T> reducer, TypeSerializer<T> serializer) {
@@ -46,7 +45,6 @@ public class TumblingPreReducer<T> implements WindowBuffer<T>, CompletePreAggreg
 			currentWindow.add(reduced);
 			collector.collect(currentWindow);
 			reduced = null;
-			numOfElements = 0;
 			return true;
 		} else {
 			return false;
@@ -59,14 +57,9 @@ public class TumblingPreReducer<T> implements WindowBuffer<T>, CompletePreAggreg
 		} else {
 			reduced = reducer.reduce(serializer.copy(reduced), element);
 		}
-		numOfElements++;
 	}
 
 	public void evict(int n) {
-	}
-
-	public int size() {
-		return numOfElements;
 	}
 
 	@Override
