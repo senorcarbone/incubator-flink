@@ -48,7 +48,7 @@ public class SamplingExample {
     /**
      * Performs standard reservoir sampling. Each item in the stream has 1/rSize final probability
      * to be included in the sample.
-     * As the stream evolves, each new element is picked by probability equal to  count/rSize where
+     * As the stream evolves, each new element is picked by probability equal to count/rSize where
      * count is its position in the stream.
      * That means if the reservoir size hasn't reached rSize, each element will be definitely picked.
      * If an item is picked and the reservoir is full then it replaces an existing element uniformly at
