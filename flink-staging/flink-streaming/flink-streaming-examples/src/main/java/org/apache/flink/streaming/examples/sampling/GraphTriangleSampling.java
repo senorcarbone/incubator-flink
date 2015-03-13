@@ -18,16 +18,12 @@
 
 package org.apache.flink.streaming.examples.sampling;
 
-import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.function.sink.SinkFunction;
-import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 
-import java.io.File;
 import java.io.Serializable;
 
 /**
@@ -39,13 +35,14 @@ public class GraphTriangleSampling implements Serializable{
     //Triangle<Edge<Long>> triangle = new Triangle<Edge<Long>>();
     //Edge<Long> dummy = new Edge<Long>();
 
+
     public GraphTriangleSampling() throws Exception {
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setDegreeOfParallelism(1);
         //create edges from file
 
-        DataStream<Edge<Long>> edges = env.readTextFile("flink-staging/flink-streaming/flink-streaming-examples/src/main/resources/random_graph3.txt")
+        DataStream<Edge<Long>> edges = env.readTextFile("flink-staging/flink-streaming/flink-streaming-examples/src/main/resources/random_graph.txt")
                 .map(new MapFunction<String, Edge<Long>>() {
                     @Override
                     public Edge<Long> map(String s) throws Exception {
@@ -56,10 +53,43 @@ public class GraphTriangleSampling implements Serializable{
                         return new Edge<Long>(src, trg);
                     }
                     // sample 1 or 0 triangles
-                }).flatMap(new FlatMapFunction<Edge<Long>, Edge<Long>>() {
+                });
+
+        edges.flatMap(new FlatMapFunction<Edge<Long>, Triangle<Edge<Long>>>() {
                     int counter = 0;
+
                     @Override
-                    public void flatMap(Edge<Long> edge, Collector<Edge<Long>> out) throws Exception {
+                    public void flatMap(Edge<Long> edge, Collector<Triangle<Edge<Long>>> out) throws Exception {
+                        counter++;
+                        if (Coin.flip(counter)) {
+                            est.reset();
+                            est.setR1(edge);
+                        } else {
+                            if (edge.isAdjacentTo(est.getR1())) {
+                                est.incrementC();
+                                if (Coin.flip(est.getC())) {
+                                    est.setR2(edge);
+                                    est.setT(null);
+                                } else {
+                                    if (est.isTriangle(edge)) {
+                                        System.out.println("true");
+                                        est.setT(new Triangle(est.getR1(), est.getR2(), edge));
+                                        System.out.println("estimator: " + est.toString());
+                                        out.collect(est.getTriangle());
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+                }).print();
+
+
+/*                .flatMap(new FlatMapFunction<Edge<Long>, Triangle<Edge<Long>>>() {
+                    int counter = 0;
+
+                    @Override
+                    public void flatMap(Edge<Long> edge, Collector<Triangle<Edge<Long>>> out) throws Exception {
                         counter++;
                         //System.out.println("Edge: " + edge.toString());
                         if (Coin.flip(counter)) {
@@ -80,9 +110,10 @@ public class GraphTriangleSampling implements Serializable{
                                         System.out.println("true");
                                         est.setT(new Triangle(est.getR1(), est.getR2(), edge));
                                         System.out.println("estimator: " + est.toString());
-                                        out.collect(est.getR1());
-                                        out.collect(est.getR2());
-                                        out.collect(edge);
+                                        out.collect(est.getTriangle());
+                                        //out.collect(est.getR1());
+                                        //out.collect(est.getR2());
+                                        //out.collect(edge);
 
                                     }
                                     //System.out.println("false");
@@ -90,7 +121,8 @@ public class GraphTriangleSampling implements Serializable{
                             }
                         }
                     }
-                }).print();
+                })*/
+                //.print();
 
                 /*
 

@@ -29,14 +29,15 @@ public class SamplingExample {
         //DataStream<String> text = getTextDataStream(env);
 
         // generate stream
-        //DataStream<Long> dataStream = getRandomSequence(env);
-        DataStream<Double> gaussianStream = createGaussianStream(env, 10000);
+        int seqSize = 11;
+        DataStream<Long> dataStream = getRandomSequence(env, seqSize);
+        //DataStream<Double> gaussianStream = createGaussianStream(env, 10000);
 
         int windowSize = 100;
-        int reservoirSize = 20;
-        //reservoirSampling(dataStream,reservoirSize);
+        int reservoirSize = 3;
+        reservoirSampling(dataStream,reservoirSize);
         //windowSampling2(gaussianStream, reservoirSize, windowSize);
-        modelApproximation(gaussianStream, reservoirSize);
+        //modelApproximation(gaussianStream, reservoirSize);
         //mdSampling(createMultidimensionalStream(dataStream), env, reservoirSize);
 
         env.execute("Sampling Example");
@@ -70,7 +71,7 @@ public class SamplingExample {
                 return r;
             }
 
-        });
+        }).print();
     }
 
     /**
@@ -181,8 +182,8 @@ public class SamplingExample {
         return env.fromElements(WordCountData.WORDS);
     }*/
 
-    private static DataStream<Long> getRandomSequence(StreamExecutionEnvironment env) {
-        return  env.generateSequence(1, 100);
+    private static DataStream<Long> getRandomSequence(StreamExecutionEnvironment env, int size) {
+        return  env.generateSequence(1, size);
     }
 
 
