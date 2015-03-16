@@ -18,21 +18,22 @@
 
 package org.apache.flink.api.common.functions;
 
-import org.apache.flink.util.Collector;
+import org.apache.flink.api.common.functions.AbstractRichFunction;
+import org.apache.flink.api.common.functions.FoldFunction;
+import org.apache.flink.api.common.functions.RichFunction;
 
 /**
- * Rich variant of the {@link MapPartitionFunction}. As a {@link RichFunction}, it gives access to the
+ * Rich variant of the {@link FoldFunction}. As a {@link RichFunction}, it gives access to the
  * {@link org.apache.flink.api.common.functions.RuntimeContext} and provides setup and teardown methods:
  * {@link RichFunction#open(org.apache.flink.configuration.Configuration)} and
  * {@link RichFunction#close()}.
- * 
- * @param <I> Type of the input elements.
- * @param <O> Type of the returned elements.
+ *
+ * @param <T> Type of the initial input and the returned element
+ * @param <O> Type of the elements that the group/list/stream contains
  */
-public abstract class RichMapPartitionFunction<I, O> extends AbstractRichFunction implements MapPartitionFunction<I, O> {
+public abstract class RichFoldFunction<O, T> extends AbstractRichFunction implements FoldFunction<O, T> {
 
 	private static final long serialVersionUID = 1L;
-	
-	@Override
-	public abstract void mapPartition(Iterable<I> values, Collector<O> out) throws Exception;
+
+	public abstract T fold(T accumulator, O value) throws Exception;
 }
