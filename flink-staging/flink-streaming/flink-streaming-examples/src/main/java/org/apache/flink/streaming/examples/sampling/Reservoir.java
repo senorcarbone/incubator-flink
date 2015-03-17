@@ -1,5 +1,3 @@
-package org.apache.flink.streaming.examples.sampling;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -17,6 +15,10 @@ package org.apache.flink.streaming.examples.sampling;
  * limitations under the License.
  */
 
+package org.apache.flink.streaming.examples.sampling;
+
+
+
  import org.apache.flink.util.IterableIterator;
 
  import java.io.Serializable;
@@ -32,9 +34,11 @@ public class Reservoir<T> implements Serializable, Iterable {
     private ArrayList<T> reservoir;
     private int maxSize;
 
+
     public Reservoir(int size) {
         reservoir = new ArrayList<T>();
         maxSize = size;
+
         // maxSize = size;
     }
 
@@ -54,6 +58,7 @@ public class Reservoir<T> implements Serializable, Iterable {
     public void setMaxSize(int maxSize) {
         this.maxSize = maxSize;
     }
+
 
     /** INSERT & REPLACE METHODS **/
     void insertElement(T e) {
