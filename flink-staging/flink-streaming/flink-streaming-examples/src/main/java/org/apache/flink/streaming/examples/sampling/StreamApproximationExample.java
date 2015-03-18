@@ -20,17 +20,11 @@ package org.apache.flink.streaming.examples.sampling;
 
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.function.WindowMapFunction;
 import org.apache.flink.streaming.api.function.source.RichSourceFunction;
-import org.apache.flink.streaming.api.windowing.helper.Count;
-import org.apache.flink.streaming.api.windowing.policy.CountTriggerPolicy;
-import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 import org.apache.flink.util.Collector;
-//import org.apache.commons.math3.distribution.*;
 import org.apache.flink.api.java.tuple.*;
 
 
@@ -42,6 +36,8 @@ import java.util.Random;
  */
 public class StreamApproximationExample {
 
+    public static long MAX_COUNT = 10000000;
+
 
 
     public StreamApproximationExample() throws Exception {
@@ -52,8 +48,11 @@ public class StreamApproximationExample {
         int windowFrequency = 1; // frequency of new window trigger
         // create changing rng src
         //DataStream<Double> stream = createStreamFromFile(env);
-        Parameters params = new Parameters(0, 1, 1000, 0.1, 0.01);
-        createStream(env, params);
+        Parameters params = new Parameters(0, 1, 1, 0.1, 0);
+        createStream(env, params)
+                .shuffle()
+                .print();
+
         // reservoir sampling component
         //windowReservoirSampling(stream, reservoirSize, windowSize, windowFrequency);
         // evaluation component
@@ -102,7 +101,38 @@ public class StreamApproximationExample {
 
 
 
-    private static DataStream<Double> createStreamFromFile(StreamExecutionEnvironment env) {
+
+
+    private static DataStreamSource<Double> createStream(StreamExecutionEnvironment env, final Parameters params) {
+        return env.addSource(new RichSourceFunction<Double>() {
+            long count = 0;
+
+            @Override
+            public void run(Collector<Double> collector) throws Exception {
+
+                while (count<MAX_COUNT) {
+                    count++;
+                    //generate random gaussian double
+                    double newItem = Gaussian.nextGaussian(params.getCurrentMean(count), params.getCurrentStDev(count));
+                    //collect new item
+                    /*collector.collect(params.getCurrentMean(count));*/
+                    collector.collect(newItem);
+
+                   // collector.collect(Gaussian.nextGaussian(0,1));
+                }
+            }
+
+            @Override
+            public void cancel() {
+
+            }
+        });
+
+    }
+
+
+
+/*    private static DataStream<Double> createStreamFromFile(StreamExecutionEnvironment env) {
 
         //Single parallelism
         env.setDegreeOfParallelism(1);
@@ -122,25 +152,8 @@ public class StreamApproximationExample {
                     }
                 });
         return values;
-    }
+    }*/
 
-    private static void createStream(StreamExecutionEnvironment env, Parameters params) {
-        env.setDegreeOfParallelism(1);
-        env.addSource(new RichSourceFunction<Double>() {
-            @Override
-            public void run(Collector<Double> collector) throws Exception {
-                while(true) {
-                    Random rand = new Random();
-                    collector.collect(rand.nextGaussian());
-                }
-            }
-
-            @Override
-            public void cancel() {
-
-            }
-        }).print();
-    }
 
 
 
@@ -173,44 +186,8 @@ public class StreamApproximationExample {
         }
     }
 
-    private class Parameters {
-        double mean;
-        double stDev;
-        int changeInterval;
-        double mean_rate;
-        double stDev_rate;
-
-        public Parameters(double c_mean, double c_stDev, int c_interval, double c_mrate, double c_srate) {
-            this.mean = c_mean;
-            this.stDev = c_stDev;
-            this.changeInterval = c_interval;
-            this.mean_rate = c_mrate;
-            this.stDev_rate = c_srate;
-        }
-
+    private static final class Gaussian {
+        public static double nextGaussian(double mean, double stDev) { return (new Random().nextGaussian()*stDev + mean); }
     }
-
-    public class GaussD implements Serializable{
-        double mean;
-        double stDev;
-        public GaussD(double m, double s) {
-            this.mean = m;
-            this.stDev = s;
-        }
-
-        public double getMean() {
-            return mean;
-        }
-
-        public double getStDev() {
-            return stDev;
-        }
-
-        public void updateModel(Double item, int n) {
-            double newMean = ((n-1)*this.mean + item)/n;
-            double newVar = (n-2)/(n-1);
-        }
-    }
-
 
 }
