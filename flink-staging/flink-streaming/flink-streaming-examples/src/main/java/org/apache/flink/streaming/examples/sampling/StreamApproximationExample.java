@@ -22,6 +22,8 @@ import org.apache.commons.math.MathException;
 import org.apache.commons.math.distribution.NormalDistribution;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.IterativeDataStream;
@@ -46,9 +48,9 @@ public class StreamApproximationExample {
 
 	//set parameters for random evolving gaussian sample generator
 	public double meanInit = 0;
-	public double sigmaInit = 1;
-	public double mstep = 0;
-	public double sstep = 0;
+	public double sigmaInit = 100;
+	public double mstep = 1;
+	public double sstep = -0.05;
 	public int interval = 100;
 	public Parameters initParams = new Parameters(meanInit, sigmaInit, mstep, sstep, interval, rSize);
 
@@ -75,13 +77,17 @@ public class StreamApproximationExample {
 			public Double map(Distribution value) throws Exception {
 				return value.nextGaussian();
 			}
-		}).map(new MapFunction<Double, Reservoir<Double>>() {
+		}).map(new RichMapFunction<Double, Reservoir<Double>>() {
 			Reservoir<Double> r = new Reservoir<Double>(params.getSampleSize());
 			int count = 0;
 
 			@Override
 			public Reservoir<Double> map(Double value) throws Exception {
 				count++;
+
+				/*RuntimeContext context = getRuntimeContext();
+				if (context.getIndexOfThisSubtask() == 0) {}*/
+
 				if (Coin.flip(count / params.getSampleSize())) {
 					r.insertElement(value);
 				}
@@ -94,8 +100,8 @@ public class StreamApproximationExample {
 
 					@Override
 					public void flatMap1(Reservoir<Double> value, Collector<Double> out) throws Exception {
-						//System.out.println(currentDist.toString());
 						Distribution sampledDist = new Distribution(value);
+						//System.out.println(currentDist.toString() + " " + sampledDist.toString());
 						out.collect(Evaluator.evaluate(currentDist, sampledDist));
 					}
 
@@ -103,18 +109,22 @@ public class StreamApproximationExample {
 					public void flatMap2(Distribution value, Collector<Double> out) throws Exception {
 						currentDist = value;
 					}
-				}).addSink(new RichSinkFunction<Double>() {
-			@Override
-			public void invoke(Double value) throws Exception {
+				})
+				.addSink(new RichSinkFunction<Double>() {
+					@Override
+					public void invoke(Double value) throws Exception {
+						RuntimeContext context = getRuntimeContext();
+						if (context.getIndexOfThisSubtask() == 0) {
+							System.out.println(value);
+						}
 
-			}
+					}
 
-			@Override
-			public void cancel() {
+					@Override
+					public void cancel() {
 
-			}
-		});
-
+					}
+				});
 
 	}
 
