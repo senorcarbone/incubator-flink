@@ -28,39 +28,39 @@ import java.util.HashSet;
 /**
  * Created by marthavk on 2015-03-11.
  */
-public class Edge <VV extends Serializable> extends Tuple2<VV, VV>{
+public class Edge<VV extends Serializable> extends Tuple2<VV, VV> {
 
-    public Edge() {
-    }
+	public Edge() {
+	}
 
-    public Edge(VV value0, VV value1) {
-        super(value0, value1);
-    }
+	public Edge(VV value0, VV value1) {
+		super(value0, value1);
+	}
 
-    public VV getSrc(){
-        return this.f0;
-    }
+	public VV getSrc() {
+		return this.f0;
+	}
 
-    public VV getTrg() {
-        return this.f1;
-    }
+	public VV getTrg() {
+		return this.f1;
+	}
 
-    public boolean isAdjacentTo(Edge e) {
-        HashSet h = new HashSet();
-        h.add(this.getSrc());
-        h.add(this.getTrg());
-        if (h.contains(e.getSrc()) || h.contains(e.getTrg())) {
-            return true;
-        }
-        return false;
-    }
+	public boolean isAdjacentTo(Edge e) {
+		HashSet h = new HashSet();
+		h.add(this.getSrc());
+		h.add(this.getTrg());
+		if (h.contains(e.getSrc()) || h.contains(e.getTrg())) {
+			return true;
+		}
+		return false;
+	}
 
-    public ArrayList<VV> getVertices() {
-        ArrayList<VV> vertices = new ArrayList<VV>();
-        vertices.add(this.getSrc());
-        vertices.add(this.getTrg());
-        return vertices;
-    }
+	public ArrayList<VV> getVertices() {
+		ArrayList<VV> vertices = new ArrayList<VV>();
+		vertices.add(this.getSrc());
+		vertices.add(this.getTrg());
+		return vertices;
+	}
 
 
 }

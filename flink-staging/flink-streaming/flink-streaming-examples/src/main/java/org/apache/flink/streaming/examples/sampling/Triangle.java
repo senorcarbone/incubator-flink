@@ -25,13 +25,13 @@ import java.io.Serializable;
 /**
  * Created by marthavk on 2015-03-11.
  */
-public class Triangle <EV extends Serializable> extends Tuple3<EV, EV, EV> {
+public class Triangle<EV extends Serializable> extends Tuple3<EV, EV, EV> {
 
-    public Triangle() {
-    }
+	public Triangle() {
+	}
 
-    public Triangle(EV value0, EV value1, EV value2) {
-        super(value0, value1, value2);
-    }
+	public Triangle(EV value0, EV value1, EV value2) {
+		super(value0, value1, value2);
+	}
 
 }

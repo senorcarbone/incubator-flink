@@ -18,108 +18,117 @@
 package org.apache.flink.streaming.examples.sampling;
 
 
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
+import org.apache.flink.util.IterableIterator;
 
- import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
- import org.apache.flink.util.IterableIterator;
-
- import java.io.Serializable;
- import java.util.ArrayList;
- import java.util.Iterator;
- import java.util.Random;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Random;
 
 /**
  * Created by marthavk on 2015-03-05.
  */
 public class Reservoir<T> implements Serializable, Iterable {
 
-    private ArrayList<T> reservoir;
-    private int maxSize;
+	private ArrayList<T> reservoir;
+	private int maxSize;
 
 
-    public Reservoir(int size) {
-        reservoir = new ArrayList<T>();
-        maxSize = size;
+	public Reservoir(int size) {
+		reservoir = new ArrayList<T>();
+		maxSize = size;
 
-        // maxSize = size;
-    }
+		// maxSize = size;
+	}
 
-    /** GETTERS AND SETTERS**/
-    public ArrayList<T> getReservoir() {
-        return reservoir;
-    }
+	/**
+	 * GETTERS AND SETTERS*
+	 */
+	public ArrayList<T> getReservoir() {
+		return reservoir;
+	}
 
-    public int getMaxSize() {
-        return maxSize;
-    }
+	public int getMaxSize() {
+		return maxSize;
+	}
 
-    public int getSize() { return reservoir.size(); }
+	public int getSize() {
+		return reservoir.size();
+	}
 
-    public void setReservoir(ArrayList<T> reservoir) {
-        this.reservoir = reservoir;
-    }
+	public void setReservoir(ArrayList<T> reservoir) {
+		this.reservoir = reservoir;
+	}
 
-    public void setMaxSize(int maxSize) {
-        this.maxSize = maxSize;
-    }
-
-
-    /** INSERT & REPLACE METHODS **/
-    void insertElement(T e) {
-        if (!isFull()) reservoir.add(e);
-        else replaceElement(e);
-    }
+	public void setMaxSize(int maxSize) {
+		this.maxSize = maxSize;
+	}
 
 
-    /**
-     * Chooses an existing element uniformly at random and replaces it with e
-     * @param e
-     */
-
-    void replaceElement(T e) {
-        if (isFull()) {
-            // choose position uniformly at random
-            int pos = new Random().nextInt(maxSize);
-            // replace element at pos
-            reservoir.set(pos, e);
-        }
-        else throw new ArrayIndexOutOfBoundsException();
-    }
-
-    /** AUXILIARY METHODS **/
-    boolean isFull() {
-        return reservoir.isEmpty() ? false :  reservoir.size()==maxSize;
-    }
+	/**
+	 * INSERT & REPLACE METHODS *
+	 */
+	void insertElement(T e) {
+		if (!isFull()) reservoir.add(e);
+		else replaceElement(e);
+	}
 
 
-    @Override
-    public String toString() {
-        return reservoir.toString();
-    }
+	/**
+	 * Chooses an existing element uniformly at random and replaces it with e
+	 *
+	 * @param e
+	 */
+
+	void replaceElement(T e) {
+		if (isFull()) {
+			// choose position uniformly at random
+			int pos = new Random().nextInt(maxSize);
+			// replace element at pos
+			reservoir.set(pos, e);
+		} else throw new ArrayIndexOutOfBoundsException();
+	}
+
+	/**
+	 * AUXILIARY METHODS *
+	 */
+	boolean isFull() {
+		return reservoir.isEmpty() ? false : reservoir.size() == maxSize;
+	}
 
 
-    void print() {
-        System.out.println(reservoir.toString());
-    }
+	@Override
+	public String toString() {
+		return reservoir.toString();
+	}
 
-    /** MERGE METHODS **/
-    static Reservoir merge(Reservoir r1, Reservoir r2) {
-        Reservoir rout = new Reservoir(r1.maxSize+r2.maxSize);
-        rout.reservoir.addAll(r1.reservoir);
-        rout.reservoir.addAll(r2.reservoir);
-        return rout;
-    }
 
-    public void mergeWith(Reservoir<T> r1) {
-        this.setMaxSize(r1.getMaxSize() + this.getMaxSize());
-        ArrayList<T> newReservoir = new ArrayList<T>();
-        newReservoir.addAll(this.getReservoir());
-        newReservoir.addAll(r1.getReservoir());
-    }
+	void print() {
+		System.out.println(reservoir.toString());
+	}
 
-    @Override
-    public Iterator iterator() {
-        return reservoir.iterator();
-    }
+	/**
+	 * MERGE METHODS *
+	 */
+	static Reservoir merge(Reservoir r1, Reservoir r2) {
+		Reservoir rout = new Reservoir(r1.maxSize + r2.maxSize);
+		rout.reservoir.addAll(r1.reservoir);
+		rout.reservoir.addAll(r2.reservoir);
+		return rout;
+	}
+
+	public void mergeWith(Reservoir<T> r1) {
+		this.setMaxSize(r1.getMaxSize() + this.getMaxSize());
+		ArrayList<T> newReservoir = new ArrayList<T>();
+		newReservoir.addAll(this.getReservoir());
+		newReservoir.addAll(r1.getReservoir());
+	}
+
+	@Override
+	public Iterator iterator() {
+		return reservoir.iterator();
+	}
 
 
 }

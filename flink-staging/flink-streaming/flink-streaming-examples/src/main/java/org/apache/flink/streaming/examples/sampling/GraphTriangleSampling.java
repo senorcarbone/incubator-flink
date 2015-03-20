@@ -29,64 +29,64 @@ import java.io.Serializable;
 /**
  * Created by marthavk on 2015-03-11.
  */
-public class GraphTriangleSampling implements Serializable{
+public class GraphTriangleSampling implements Serializable {
 
-    Estimator<Edge, Triangle> est = new Estimator<Edge, Triangle>();
-    //Triangle<Edge<Long>> triangle = new Triangle<Edge<Long>>();
-    //Edge<Long> dummy = new Edge<Long>();
+	Estimator<Edge, Triangle> est = new Estimator<Edge, Triangle>();
+	//Triangle<Edge<Long>> triangle = new Triangle<Edge<Long>>();
+	//Edge<Long> dummy = new Edge<Long>();
 
 
-    public GraphTriangleSampling() throws Exception {
+	public GraphTriangleSampling() throws Exception {
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setDegreeOfParallelism(1);
-        //create edges from file
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		env.setDegreeOfParallelism(1);
+		//create edges from file
 
-        DataStream<Edge<Long>> edges = env.readTextFile("flink-staging/flink-streaming/flink-streaming-examples/src/main/resources/random_graph.txt")
-                .map(new MapFunction<String, Edge<Long>>() {
-                    @Override
-                    public Edge<Long> map(String s) throws Exception {
-                        // Parse lines from the text file
-                        String[] args = s.split(" ");
-                        long src = Long.parseLong(args[0]);
-                        long trg = Long.parseLong(args[1]);
-                        return new Edge<Long>(src, trg);
-                    }
-                    // sample 1 or 0 triangles
-                });
+		DataStream<Edge<Long>> edges = env.readTextFile("flink-staging/flink-streaming/flink-streaming-examples/src/main/resources/random_graph.txt")
+				.map(new MapFunction<String, Edge<Long>>() {
+					@Override
+					public Edge<Long> map(String s) throws Exception {
+						// Parse lines from the text file
+						String[] args = s.split(" ");
+						long src = Long.parseLong(args[0]);
+						long trg = Long.parseLong(args[1]);
+						return new Edge<Long>(src, trg);
+					}
+					// sample 1 or 0 triangles
+				});
 
-        edges.flatMap(new FlatMapFunction<Edge<Long>, Triangle<Edge<Long>>>() {
-                    int counter = 0;
+		edges.flatMap(new FlatMapFunction<Edge<Long>, Triangle<Edge<Long>>>() {
+			int counter = 0;
 
-                    @Override
-                    public void flatMap(Edge<Long> edge, Collector<Triangle<Edge<Long>>> out) throws Exception {
-                        counter++;
-                        if (Coin.flip(counter)) {
-                            est.reset();
-                            est.setR1(edge);
-                        } else {
-                            if (edge.isAdjacentTo(est.getR1())) {
-                                est.incrementC();
-                                if (Coin.flip(est.getC())) {
-                                    est.setR2(edge);
-                                    est.setT(null);
-                                } else {
-                                    if (est.isTriangle(edge)) {
-                                        System.out.println("true");
-                                        est.setT(new Triangle(est.getR1(), est.getR2(), edge));
-                                        System.out.println("estimator: " + est.toString());
-                                        out.collect(est.getTriangle());
-                                    }
-                                }
-                            }
-                        }
+			@Override
+			public void flatMap(Edge<Long> edge, Collector<Triangle<Edge<Long>>> out) throws Exception {
+				counter++;
+				if (Coin.flip(counter)) {
+					est.reset();
+					est.setR1(edge);
+				} else {
+					if (edge.isAdjacentTo(est.getR1())) {
+						est.incrementC();
+						if (Coin.flip(est.getC())) {
+							est.setR2(edge);
+							est.setT(null);
+						} else {
+							if (est.isTriangle(edge)) {
+								System.out.println("true");
+								est.setT(new Triangle(est.getR1(), est.getR2(), edge));
+								System.out.println("estimator: " + est.toString());
+								out.collect(est.getTriangle());
+							}
+						}
+					}
+				}
 
-                    }
-                }).print();
+			}
+		}).print();
 
 
 /*                .flatMap(new FlatMapFunction<Edge<Long>, Triangle<Edge<Long>>>() {
-                    int counter = 0;
+					int counter = 0;
 
                     @Override
                     public void flatMap(Edge<Long> edge, Collector<Triangle<Edge<Long>>> out) throws Exception {
@@ -122,7 +122,7 @@ public class GraphTriangleSampling implements Serializable{
                         }
                     }
                 })*/
-                //.print();
+		//.print();
 
                 /*
 
@@ -175,16 +175,16 @@ public class GraphTriangleSampling implements Serializable{
                     }
                 }); */
 
-        env.execute("Triangle Sampling");
-    }
+		env.execute("Triangle Sampling");
+	}
 
-    private static final class Coin {
-        public static boolean flip(int sides) {
-            return (Math.random() * sides < 1);
-        }
-    }
+	private static final class Coin {
+		public static boolean flip(int sides) {
+			return (Math.random() * sides < 1);
+		}
+	}
 
-    public static void main(String args[]) throws Exception {
-        new GraphTriangleSampling();
-    }
+	public static void main(String args[]) throws Exception {
+		new GraphTriangleSampling();
+	}
 }
