@@ -6,18 +6,55 @@ import java.io.Serializable;
  * Created by marthavk on 2015-03-18.
  */
 public class Parameters implements Serializable {
-    double mean0;
-    double stDev0;
-    int changeInterval;
+    double meanInit;
+    double sigmaInit;
     double mStep;
     double sStep;
+    int interval;
 
-    public Parameters(double c_mean, double c_stDev, int c_interval, double c_mrate, double c_srate) {
-        this.mean0 = c_mean;
-        this.stDev0 = c_stDev;
-        this.changeInterval = c_interval;
+    public Parameters(double c_mean, double c_sigma, double c_mrate, double c_srate, int c_interval) {
+        this.meanInit = c_mean;
+        this.sigmaInit = c_sigma;
+        this.interval = c_interval;
         this.mStep = c_mrate;
         this.sStep = c_srate;
+    }
+
+    public double getMeanInit() {
+        return meanInit;
+    }
+
+    public double getSigmaInit() {
+        return sigmaInit;
+    }
+
+    public double getmStep() {
+        return mStep;
+    }
+
+    public double getsStep() {
+        return sStep;
+    }
+
+    public int getInterval() {
+        return interval;
+    }
+
+    /*public void setMean(Long count) {
+
+        this.mean0 += (count%changeInterval == 0 ? mStep : 0);
+    }
+
+    public void setStDev(Long count) {
+        this.stDev0 += (count%changeInterval == 0 ? sStep : 0);
+    }
+
+    public double getMean() {
+        return this.mean0;
+    }
+
+    public double getStDev() {
+        return this.stDev0;
     }
 
     public Double getCurrentMean(Long count) {
@@ -32,7 +69,7 @@ public class Parameters implements Serializable {
         else {
             return 0;
         }
-    }
+    }*/
 
 
 }

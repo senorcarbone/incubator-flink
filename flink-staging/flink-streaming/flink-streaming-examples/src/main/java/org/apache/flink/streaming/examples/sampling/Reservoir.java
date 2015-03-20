@@ -19,6 +19,7 @@ package org.apache.flink.streaming.examples.sampling;
 
 
 
+ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
  import org.apache.flink.util.IterableIterator;
 
  import java.io.Serializable;
@@ -50,6 +51,8 @@ public class Reservoir<T> implements Serializable, Iterable {
     public int getMaxSize() {
         return maxSize;
     }
+
+    public int getSize() { return reservoir.size(); }
 
     public void setReservoir(ArrayList<T> reservoir) {
         this.reservoir = reservoir;
@@ -117,4 +120,6 @@ public class Reservoir<T> implements Serializable, Iterable {
     public Iterator iterator() {
         return reservoir.iterator();
     }
+
+
 }
