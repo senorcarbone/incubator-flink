@@ -16,12 +16,13 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.examples.sampling;
+package org.apache.flink.streaming.examples.sampling.applications;
 
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.examples.sampling.generators.Estimator;
 import org.apache.flink.util.Collector;
 
 import java.io.Serializable;

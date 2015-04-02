@@ -83,7 +83,7 @@ The command line can be used to
 
 -   List scheduled and running jobs (including their JobIDs):
 
-        ./bin/flink list -s -r
+        ./bin/flink list -s -reservoir
 
 -   Cancel a job:
 
@@ -140,7 +140,7 @@ Action "list" lists submitted Flink programs.
 
   "list" action arguments:
 
-     -r,--running                   Show running programs and their JobIDs
+     -reservoir,--running                   Show running programs and their JobIDs
 
      -s,--scheduled                 Show scheduled programs and their JobIDs
 

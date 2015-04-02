@@ -16,22 +16,51 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.examples.sampling;
+package org.apache.flink.streaming.examples.sampling.applications;
 
-import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.tuple.Tuple2;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashSet;
 
 /**
  * Created by marthavk on 2015-03-11.
  */
-public class Triangle<EV extends Serializable> extends Tuple3<EV, EV, EV> {
+public class Edge<VV extends Serializable> extends Tuple2<VV, VV> {
 
-	public Triangle() {
+	public Edge() {
 	}
 
-	public Triangle(EV value0, EV value1, EV value2) {
-		super(value0, value1, value2);
+	public Edge(VV value0, VV value1) {
+		super(value0, value1);
 	}
+
+	public VV getSrc() {
+		return this.f0;
+	}
+
+	public VV getTrg() {
+		return this.f1;
+	}
+
+	public boolean isAdjacentTo(Edge e) {
+		HashSet h = new HashSet();
+		h.add(this.getSrc());
+		h.add(this.getTrg());
+		if (h.contains(e.getSrc()) || h.contains(e.getTrg())) {
+			return true;
+		}
+		return false;
+	}
+
+	public ArrayList<VV> getVertices() {
+		ArrayList<VV> vertices = new ArrayList<VV>();
+		vertices.add(this.getSrc());
+		vertices.add(this.getTrg());
+		return vertices;
+	}
+
 
 }
+

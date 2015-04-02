@@ -15,11 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.examples.sampling;
+package org.apache.flink.streaming.examples.sampling.samplers;
 
 
-import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
-import org.apache.flink.util.IterableIterator;
+import org.apache.flink.streaming.examples.sampling.SamplingUtils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -29,31 +28,28 @@ import java.util.Random;
 /**
  * Created by marthavk on 2015-03-05.
  */
-public class Reservoir<T> implements Serializable, Iterable {
+public class Reservoir<T> implements Serializable, Iterable, Sampler<T> {
 
 	private ArrayList<T> reservoir;
-	private int maxSize;
+	private final int maxSize;
+	private int samplingFactor;
 
 
 	public Reservoir(int size) {
-		reservoir = new ArrayList<T>();
 		maxSize = size;
-
-		// maxSize = size;
+		reservoir = new ArrayList<T>(size);
 	}
 
 	/**
 	 * GETTERS AND SETTERS*
 	 */
-	public ArrayList<T> getReservoir() {
-		return reservoir;
-	}
 
 	public int getMaxSize() {
 		return maxSize;
 	}
 
-	public int getSize() {
+	@Override
+	public int size() {
 		return reservoir.size();
 	}
 
@@ -61,27 +57,36 @@ public class Reservoir<T> implements Serializable, Iterable {
 		this.reservoir = reservoir;
 	}
 
-	public void setMaxSize(int maxSize) {
-		this.maxSize = maxSize;
-	}
 
+	@Override
+	public T[] getElements() {
+		return (T[]) reservoir.toArray();
+	}
 
 	/**
 	 * INSERT & REPLACE METHODS *
 	 */
-	void insertElement(T e) {
-		if (!isFull()) reservoir.add(e);
-		else replaceElement(e);
+
+	@Override
+	public void sample(T element) {
+		samplingFactor++;
+		if (SamplingUtils.flip(samplingFactor / maxSize)) {
+			if (!isFull()) reservoir.add(element);
+			else replaceElement(element);
+		}
 	}
 
+	@Override
+	public Iterator iterator() {
+		return reservoir.iterator();
+	}
 
 	/**
 	 * Chooses an existing element uniformly at random and replaces it with e
 	 *
 	 * @param e
 	 */
-
-	void replaceElement(T e) {
+	private void replaceElement(T e) {
 		if (isFull()) {
 			// choose position uniformly at random
 			int pos = new Random().nextInt(maxSize);
@@ -93,8 +98,8 @@ public class Reservoir<T> implements Serializable, Iterable {
 	/**
 	 * AUXILIARY METHODS *
 	 */
-	boolean isFull() {
-		return reservoir.isEmpty() ? false : reservoir.size() == maxSize;
+	private boolean isFull() {
+		return reservoir.size() == maxSize;
 	}
 
 
@@ -104,31 +109,26 @@ public class Reservoir<T> implements Serializable, Iterable {
 	}
 
 
-	void print() {
+	private void print() {
 		System.out.println(reservoir.toString());
 	}
 
 	/**
 	 * MERGE METHODS *
 	 */
-	static Reservoir merge(Reservoir r1, Reservoir r2) {
+	public static Reservoir merge(Reservoir r1, Reservoir r2) {
 		Reservoir rout = new Reservoir(r1.maxSize + r2.maxSize);
 		rout.reservoir.addAll(r1.reservoir);
 		rout.reservoir.addAll(r2.reservoir);
 		return rout;
 	}
 
-	public void mergeWith(Reservoir<T> r1) {
-		this.setMaxSize(r1.getMaxSize() + this.getMaxSize());
-		ArrayList<T> newReservoir = new ArrayList<T>();
-		newReservoir.addAll(this.getReservoir());
-		newReservoir.addAll(r1.getReservoir());
-	}
-
-	@Override
-	public Iterator iterator() {
-		return reservoir.iterator();
-	}
-
+	//It's better to keep operations immutable
+//	public void mergeWith(Reservoir<T> r1) {
+//		this.setMaxSize(r1.getMaxSize() + this.getMaxSize());
+//		ArrayList<T> newReservoir = new ArrayList<T>();
+//		newReservoir.addAll(this.getReservoir());
+//		newReservoir.addAll(r1.getReservoir());
+//	}
 
 }

@@ -53,7 +53,7 @@ if ENV['BUILD_API'] == '1' then
   source = "../target/site/apidocs"
   dest = "api/java/"
 
-  puts "cp -r " + source + "/. " + dest
+  puts "cp -reservoir " + source + "/. " + dest
   cp_r(source + "/.", dest)
 
   # Build Scaladoc
@@ -67,7 +67,7 @@ if ENV['BUILD_API'] == '1' then
   source = "../flink-scala/target/site/scaladocs"
   dest = "api/scala/"
 
-  puts "cp -r " + source + "/. " + dest
+  puts "cp -reservoir " + source + "/. " + dest
   cp_r(source + "/.", dest)
 
 

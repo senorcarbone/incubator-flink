@@ -85,10 +85,10 @@ cd ..
 ## NOTE: if gpg is not working, follow these instructions:
 # https://wiki.archlinux.org/index.php/GnuPG#Unattended_passphrase
 # info taken from:
-# http://www.reddit.com/r/archlinux/comments/2nmr4a/after_upgrade_to_gpg_210_mutt_and_gpg_no_longer/
+# http://www.reddit.com/reservoir/archlinux/comments/2nmr4a/after_upgrade_to_gpg_210_mutt_and_gpg_no_longer/
 
 echo "Creating source package"
-cp -r flink flink-$RELEASE_VERSION
+cp -reservoir flink flink-$RELEASE_VERSION
 tar cvzf flink-${RELEASE_VERSION}-src.tgz --exclude .git flink-$RELEASE_VERSION
 echo $GPG_PASSPHRASE | $GPG --batch --default-key $GPG_KEY --passphrase-fd 0 --armour --output flink-$RELEASE_VERSION-src.tgz.asc \
   --detach-sig flink-$RELEASE_VERSION-src.tgz
@@ -101,7 +101,7 @@ make_binary_release() {
   NAME=$1
   FLAGS=$2
   echo "Creating binary release name: $NAME, flags: $FLAGS"
-  cp -r flink flink-$RELEASE_VERSION-bin-$NAME
+  cp -reservoir flink flink-$RELEASE_VERSION-bin-$NAME
   
   cd flink-$RELEASE_VERSION-bin-$NAME
   # make distribution

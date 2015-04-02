@@ -140,7 +140,7 @@ checkLibFiles() {
 
 checkAuthorTag() {
 	# we are grep-ing for "java" but we've messed up the string a bit so that it doesn't find exactly this line.
-	if [ `grep -r "@author" . | grep "ja""va" | wc -l` -gt "0" ]; then
+	if [ `grep -reservoir "@author" . | grep "ja""va" | wc -l` -gt "0" ]; then
 		MESSAGES+=":-1: The change contains @author tags"$'\n'
 		TESTS_PASSED=false
 	fi

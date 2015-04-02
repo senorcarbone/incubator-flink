@@ -46,36 +46,5 @@ public class Parameters implements Serializable {
 		return sampleSize;
 	}
 
-    /*public void setMean(Long count) {
-
-        this.mean0 += (count%changeInterval == 0 ? mStep : 0);
-    }
-
-    public void setStDev(Long count) {
-        this.stDev0 += (count%changeInterval == 0 ? sStep : 0);
-    }
-
-    public double getMean() {
-        return this.mean0;
-    }
-
-    public double getStDev() {
-        return this.stDev0;
-    }
-
-    public Double getCurrentMean(Long count) {
-        return mean0 + (count/changeInterval)*mStep;
-    }
-
-    public double getCurrentStDev(long count) {
-        double currentStDev = stDev0 + (count/changeInterval)*sStep;
-        if (currentStDev >= 0) {
-            return currentStDev;
-        }
-        else {
-            return 0;
-        }
-    }*/
-
 
 }

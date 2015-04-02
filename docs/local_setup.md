@@ -112,7 +112,7 @@ Starting Nephele job manager
 If you are installing Flink from the git repository and you are using the Windows git shell, Cygwin can produce a failure similiar to this one:
 
 ~~~bash
-c:/flink/bin/start-local.sh: line 30: $'\r': command not found
+c:/flink/bin/start-local.sh: line 30: $'\reservoir': command not found
 ~~~
 
 This error occurs, because git is automatically transforming UNIX line endings to Windows style line endings when running in Windows. The problem is, that Cygwin can only deal with UNIX style line endings. The solution is to adjust the Cygwin settings to deal with the correct line endings by following these three steps:

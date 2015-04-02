@@ -1,17 +1,13 @@
-package org.apache.flink.streaming.examples.sampling;
+package org.apache.flink.streaming.examples.sampling.generators;
 
 import java.io.Serializable;
-import java.util.Iterator;
-
-import org.apache.commons.math3.*;
-import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 /**
  * Created by marthavk on 2015-03-18.
  */
 public class Evaluator implements Serializable {
 
-	public static double evaluate(Distribution greal, Distribution gsampled) {
+	public static double evaluate(GaussianGenerator greal, GaussianGenerator gsampled) {
 
 		//Bhattacharyya distance
 		double m1 = greal.getMean();

@@ -27,6 +27,7 @@ import org.apache.flink.streaming.api.function.WindowMapFunction;
 
 import org.apache.flink.streaming.api.windowing.helper.Count;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.examples.sampling.samplers.Reservoir;
 import org.apache.flink.util.Collector;
 
 import java.io.Serializable;
@@ -78,17 +79,17 @@ public class SamplingExample {
 	 */
 	public static void reservoirSampling(DataStream<Long> dataStream, final Integer rSize) {
 
-		dataStream.map(new MapFunction<Long, Reservoir<Long>>() {
-			Reservoir<Long> r = new Reservoir<Long>(rSize);
+		dataStream.map(new MapFunction<Long,Reservoir<Long>>() {
+			Reservoir<Long> sampler = new Reservoir<Long>(rSize);
 			int count = 0;
 
 			@Override
 			public Reservoir<Long> map(Long aLong) throws Exception {
 				count++;
 				if (Coin.flip(count / rSize)) {
-					r.insertElement(aLong);
+					sampler.sample(aLong);
 				}
-				return r;
+				return sampler;
 			}
 
 		}).print();
@@ -112,7 +113,7 @@ public class SamplingExample {
 				for (Long v : values) {
 					count++;
 					if (Coin.flip(count / rSize)) {
-						r.insertElement(v);
+						r.sample(v);
 					}
 				}
 				out.collect(r);
@@ -139,7 +140,7 @@ public class SamplingExample {
 						for (Double v : values) {
 							count++;
 							if (Coin.flip(count / rSize)) {
-								r.insertElement(v);
+								r.sample(v);
 							}
 						}
 						out.collect(r);
@@ -164,7 +165,7 @@ public class SamplingExample {
 						count++;
 						generalModel.updateModel(aLong);
 						if (Coin.flip(count / rSize)) {
-							r.insertElement(aLong);
+							r.sample(aLong);
 							currentModel.inferModel(r);
 							//calculate model parameters from reservoir
 						}
@@ -186,7 +187,7 @@ public class SamplingExample {
 						//update model from all elements
 						count++;
 						if (Coin.flip(count / rSize)) {
-							r.insertElement(value);
+							r.sample(value);
 							currentModel.inferModel(r);
 							//calculate model parameters from reservoir
 						}

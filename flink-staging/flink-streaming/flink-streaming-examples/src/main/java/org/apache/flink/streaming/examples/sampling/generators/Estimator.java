@@ -16,9 +16,11 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.examples.sampling;
+package org.apache.flink.streaming.examples.sampling.generators;
 
 import org.apache.flink.api.java.tuple.Tuple4;
+import org.apache.flink.streaming.examples.sampling.applications.Edge;
+import org.apache.flink.streaming.examples.sampling.applications.Triangle;
 
 import java.util.HashSet;
 

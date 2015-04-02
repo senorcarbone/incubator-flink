@@ -18,24 +18,19 @@
 
 package org.apache.flink.streaming.examples.sampling;
 
-import org.apache.commons.math.MathException;
-import org.apache.commons.math.distribution.NormalDistribution;
-import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.functions.RuntimeContext;
-import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
-import org.apache.flink.streaming.api.datastream.IterativeDataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.function.co.CoFlatMapFunction;
-import org.apache.flink.streaming.api.function.co.CoMapFunction;
 import org.apache.flink.streaming.api.function.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.function.source.RichSourceFunction;
+import org.apache.flink.streaming.examples.sampling.generators.Evaluator;
+import org.apache.flink.streaming.examples.sampling.generators.GaussianGenerator;
+import org.apache.flink.streaming.examples.sampling.samplers.Reservoir;
 import org.apache.flink.util.Collector;
-import org.apache.flink.api.java.tuple.*;
-
-import java.util.Random;
 
 /**
  * Created by marthavk on 2015-03-13.
@@ -58,7 +53,6 @@ public class StreamApproximationExample {
 
 		//set execution environment
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-		//evaluationThroughIterator(env, initParams);
 		evaluateSampling(env, initParams);
 		env.execute();
 	} //end of StreamApproximationExample cTor
@@ -71,42 +65,36 @@ public class StreamApproximationExample {
 
 	public static void evaluateSampling(StreamExecutionEnvironment env, final Parameters params) {
 		//create source
-		DataStreamSource<Distribution> source = createSource(env, params);
-		source.map(new MapFunction<Distribution, Double>() {
+		DataStreamSource<GaussianGenerator> source = createSource(env, params);
+		source.map(new MapFunction<GaussianGenerator,Double>() {
 			@Override
-			public Double map(Distribution value) throws Exception {
-				return value.nextGaussian();
+			public Double map(GaussianGenerator generator) throws Exception {
+				return generator.generate();
 			}
-		}).map(new RichMapFunction<Double, Reservoir<Double>>() {
-			Reservoir<Double> r = new Reservoir<Double>(params.getSampleSize());
+		}).map(new RichMapFunction<Double,Reservoir<Double>>() {
+			Reservoir<Double> reservoir = new Reservoir<Double>(params.getSampleSize());
 			int count = 0;
 
 			@Override
 			public Reservoir<Double> map(Double value) throws Exception {
-				count++;
-
-				/*RuntimeContext context = getRuntimeContext();
-				if (context.getIndexOfThisSubtask() == 0) {}*/
-
-				if (Coin.flip(count / params.getSampleSize())) {
-					r.insertElement(value);
-				}
-				return r;
+				reservoir.sample(value);
+				return reservoir;
 			}
 		})
 				.connect(source)
-				.flatMap(new CoFlatMapFunction<Reservoir<Double>, Distribution, Double>() {
-					Distribution currentDist = new Distribution();
+				.flatMap(new CoFlatMapFunction<Reservoir<Double>,GaussianGenerator,Double>() {
+
+					GaussianGenerator currentDist = new GaussianGenerator();
 
 					@Override
 					public void flatMap1(Reservoir<Double> value, Collector<Double> out) throws Exception {
-						Distribution sampledDist = new Distribution(value);
+						GaussianGenerator sampledDist = new GaussianGenerator(value);
 						//System.out.println(currentDist.toString() + " " + sampledDist.toString());
 						out.collect(Evaluator.evaluate(currentDist, sampledDist));
 					}
 
 					@Override
-					public void flatMap2(Distribution value, Collector<Double> out) throws Exception {
+					public void flatMap2(GaussianGenerator value, Collector<Double> out) throws Exception {
 						currentDist = value;
 					}
 				})
@@ -117,7 +105,6 @@ public class StreamApproximationExample {
 						if (context.getIndexOfThisSubtask() == 0) {
 							System.out.println(value);
 						}
-
 					}
 
 					@Override
@@ -129,117 +116,25 @@ public class StreamApproximationExample {
 	}
 
 	/**
-	 * does not work due to broken iterations.
-	 *
-	 * @param env
-	 * @param initParams
-	 */
-	public static void evaluationThroughIterator(StreamExecutionEnvironment env, final Parameters initParams) {
-
-		//create source
-		DataStreamSource<Distribution> source = createSource(env, initParams);
-
-		//create iteration
-		IterativeDataStream<Tuple2<Distribution, Boolean>> iteration = source.map(new MapFunction<Distribution, Tuple2<Distribution, Boolean>>() {
-			@Override
-			public Tuple2<Distribution, Boolean> map(Distribution value) throws Exception {
-				return new Tuple2<Distribution, Boolean>(value, true);
-			}
-		}).iterate();
-
-		//define iteration head
-		DataStream<Tuple2<Double, Boolean>> head = iteration.map(new MapFunction<Tuple2<Distribution, Boolean>, Tuple2<Double, Boolean>>() {
-
-			Distribution currentDist = new Distribution(initParams.getMeanInit(), initParams.getSigmaInit());
-
-			@Override
-			public Tuple2<Double, Boolean> map(Tuple2<Distribution, Boolean> value) throws Exception {
-				if (value.f1) {
-					// must save latest distribution value
-
-					currentDist = value.f0;
-
-					// must be forwarded to sampler (flag should be true to pass the isFeedback filter)
-					return new Tuple2<Double, Boolean>(value.f0.nextGaussian(), true);
-				} else {
-
-					// must be compared with latest distribution value and evaluated
-					double distance = Evaluator.evaluate(currentDist, value.f0);
-					return new Tuple2<Double, Boolean>(distance, false);
-				}
-
-			}
-		});
-
-		//define iteration tail
-		DataStream<Tuple2<Distribution, Boolean>> tail = head.filter(new FilterFunction<Tuple2<Double, Boolean>>() {
-			@Override
-			//allow tuples generated from source to pass to the sampling phase
-			//is feedback
-			public boolean filter(Tuple2<Double, Boolean> value) throws Exception {
-				return value.f1;
-			}
-			//SAMPLING ALGORITHM
-			//RESERVOIR SAMPLING
-		}).map(new MapFunction<Tuple2<Double, Boolean>, Tuple2<Distribution, Boolean>>() {
-			Reservoir<Double> r = new Reservoir<Double>(initParams.getSampleSize());
-			int count = 0;
-
-			@Override
-			public Tuple2<Distribution, Boolean> map(Tuple2<Double, Boolean> value) throws Exception {
-				count++;
-				if (Coin.flip(count / initParams.getSampleSize())) {
-					r.insertElement(value.f0);
-				}
-
-				return new Tuple2<Distribution, Boolean>(new Distribution(r), false);
-			}
-		});
-
-		//close iteration with tail
-		iteration.closeWith(tail);
-
-		//filter out results from evaluator and sink
-		head.filter(new FilterFunction<Tuple2<Double, Boolean>>() {
-			@Override
-			public boolean filter(Tuple2<Double, Boolean> value) throws Exception {
-				return !value.f1;
-			}
-		}).addSink(new RichSinkFunction<Tuple2<Double, Boolean>>() {
-			@Override
-			public void invoke(Tuple2<Double, Boolean> value) throws Exception {
-				System.out.println("Distance: " + value.f0);
-			}
-
-			@Override
-			public void cancel() {
-
-			}
-		});
-
-	}
-
-
-	/**
 	 * Creates a DataStreamSource of Distribution items out of the params at input.
 	 *
 	 * @param env the StreamExecutionEnvironment.
 	 * @return the DataStreamSource
 	 */
-	public static DataStreamSource<Distribution> createSource(StreamExecutionEnvironment env, final Parameters params) {
-		return env.addSource(new RichSourceFunction<Distribution>() {
+	public static DataStreamSource<GaussianGenerator> createSource(StreamExecutionEnvironment env, final Parameters params) {
+		return env.addSource(new RichSourceFunction<GaussianGenerator>() {
 
 			long count = 0;
-			Distribution gaussD = new Distribution(params.getMeanInit(), params.getSigmaInit());
+			GaussianGenerator gaussD = new GaussianGenerator(params.getMeanInit(), params.getSigmaInit());
 
 			@Override
-			public void run(Collector<Distribution> collector) throws Exception {
+			public void run(Collector<GaussianGenerator> collector) throws Exception {
 
 				while (count < MAX_COUNT) {
 					count++;
 					gaussD.updateMean(count, params.getmStep(), params.getInterval());
 					gaussD.updateSigma(count, params.getsStep(), params.getInterval());
-					//double newItem = Gaussian.nextGaussian(gaussD.getMean(), gaussD.getSigma());
+					//double newItem = Gaussian.generate(gaussD.getMean(), gaussD.getSigma());
 
 					collector.collect(gaussD);
 				}
@@ -252,22 +147,22 @@ public class StreamApproximationExample {
 		});
 	}
 
-	public static DataStreamSource<Tuple2<Distribution, Boolean>> generateStream2(StreamExecutionEnvironment env, final Parameters initParams) {
-		return env.addSource(new RichSourceFunction<Tuple2<Distribution, Boolean>>() {
+	public static DataStreamSource<Tuple2<GaussianGenerator,Boolean>> generateStream2(StreamExecutionEnvironment env, final Parameters initParams) {
+		return env.addSource(new RichSourceFunction<Tuple2<GaussianGenerator,Boolean>>() {
 
 			long count = 0;
-			Distribution gaussD = new Distribution(initParams.getMeanInit(), initParams.getSigmaInit());
+			GaussianGenerator gaussD = new GaussianGenerator(initParams.getMeanInit(), initParams.getSigmaInit());
 
 			@Override
-			public void run(Collector<Tuple2<Distribution, Boolean>> collector) throws Exception {
+			public void run(Collector<Tuple2<GaussianGenerator,Boolean>> collector) throws Exception {
 
 				while (count < MAX_COUNT) {
 					count++;
 					gaussD.updateMean(count, initParams.getmStep(), initParams.getInterval());
 					gaussD.updateSigma(count, initParams.getsStep(), initParams.getInterval());
-					//double newItem = Gaussian.nextGaussian(gaussD.getMean(), gaussD.getSigma());
+					//double newItem = Gaussian.generate(gaussD.getMean(), gaussD.getSigma());
 
-					collector.collect(new Tuple2<Distribution, Boolean>(gaussD, true));
+					collector.collect(new Tuple2<GaussianGenerator,Boolean>(gaussD, true));
 				}
 			}
 
@@ -276,19 +171,6 @@ public class StreamApproximationExample {
 
 			}
 		});
-	}
-
-
-	private static final class Coin {
-		public static boolean flip(int sides) {
-			return (Math.random() * sides < 1);
-		}
-	}
-
-	private static final class Gaussian {
-		public static double nextGaussian(double mean, double stDev) {
-			return (new Random().nextGaussian() * stDev + mean);
-		}
 	}
 
 }

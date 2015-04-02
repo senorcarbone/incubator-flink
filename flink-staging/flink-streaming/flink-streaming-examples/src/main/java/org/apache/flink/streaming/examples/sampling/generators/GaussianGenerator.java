@@ -1,9 +1,9 @@
-package org.apache.flink.streaming.examples.sampling;
+package org.apache.flink.streaming.examples.sampling.generators;
 
 import org.apache.commons.math.MathException;
 import org.apache.commons.math.distribution.NormalDistribution;
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
-import org.apache.flink.util.IterableIterator;
+import org.apache.flink.streaming.examples.sampling.samplers.Reservoir;
 
 import java.io.Serializable;
 import java.util.Random;
@@ -12,29 +12,27 @@ import java.util.Random;
  * Created by marthavk on 2015-03-18.
  */
 
-public class Distribution implements Serializable, NormalDistribution {
+public class GaussianGenerator implements Serializable, NormalDistribution, NumberGenerator {
 
 	double mean;
 	double sigma;
 
-	public Distribution() {
-
+	public GaussianGenerator() {
 	}
 
-	public Distribution(double cMean, double cSigma) {
+	public GaussianGenerator(double cMean, double cSigma) {
 		this.mean = cMean;
 		this.sigma = cSigma;
 	}
 
-	public Distribution(Reservoir<Double> reservoir) {
+	public GaussianGenerator(Reservoir<Double> reservoir) {
 		SummaryStatistics stats = new SummaryStatistics();
-		for (Double value : reservoir.getReservoir()) {
+		for (Double value : reservoir.getElements()) {
 			stats.addValue(value);
 		}
-
+		
 		this.mean = stats.getMean();
 		this.sigma = stats.getStandardDeviation();
-
 	}
 
 
@@ -92,7 +90,8 @@ public class Distribution implements Serializable, NormalDistribution {
 		return 0;
 	}
 
-	public double nextGaussian() {
+	@Override
+	public double generate() {
 		return (new Random().nextGaussian() * sigma + mean);
 	}
 }

@@ -110,15 +110,15 @@ if [[ $TRAVIS_PULL_REQUEST == "false" ]] ; then
 		if [[ $TRAVIS_JOB_NUMBER == *4 ]] ; then
 			# move to current dir
 			mkdir flink-$CURRENT_FLINK_VERSION
-			cp -r flink-dist/target/flink-*-bin/flink-yarn*/* flink-$CURRENT_FLINK_VERSION/
+			cp -reservoir flink-dist/target/flink-*-bin/flink-yarn*/* flink-$CURRENT_FLINK_VERSION/
 			tar -czf flink-$CURRENT_FLINK_VERSION-bin-hadoop2-yarn.tgz flink-$CURRENT_FLINK_VERSION
 			travis-artifacts upload --path flink-$CURRENT_FLINK_VERSION-bin-hadoop2-yarn.tgz --target-path / 
 			HD="hadoop2"
-			rm -r flink-$CURRENT_FLINK_VERSION
+			rm -reservoir flink-$CURRENT_FLINK_VERSION
 		fi
 
 		mkdir flink-$CURRENT_FLINK_VERSION
-		cp -r flink-dist/target/flink-*-bin/flink-$CURRENT_FLINK_VERSION*/* flink-$CURRENT_FLINK_VERSION/
+		cp -reservoir flink-dist/target/flink-*-bin/flink-$CURRENT_FLINK_VERSION*/* flink-$CURRENT_FLINK_VERSION/
 		tar -czf flink-$CURRENT_FLINK_VERSION-bin-$HD.tgz flink-$CURRENT_FLINK_VERSION
 		travis-artifacts upload --path flink-$CURRENT_FLINK_VERSION-bin-$HD.tgz   --target-path / 
 		echo "doing a ls -lisah:"
