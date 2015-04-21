@@ -149,6 +149,28 @@ under the License.
 							</includes>
 						</configuration>
 					</execution>
+                    
+                    <!-- Paper -->
+                    <execution>
+                        <id>PaperExperiment</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>PaperExperiment</classifier>
+                            
+                            <archive>
+                                <manifestEntries>
+                                    <program-class>org.apache.flink.streaming.examples.paper.PaperExperiment</program-class>
+                                </manifestEntries>
+                            </archive>
+                            
+                            <includes>
+                                <include>org/apache/flink/streaming/examples/paper/*.class</include>
+                            </includes>
+                        </configuration>
+                    </execution>
 
 					<!-- IncrementalLearning -->
 					<execution>
