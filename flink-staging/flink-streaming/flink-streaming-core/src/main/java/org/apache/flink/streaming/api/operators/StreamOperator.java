@@ -30,6 +30,7 @@ import org.apache.flink.streaming.runtime.io.IndexedReaderIterator;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecordSerializer;
 import org.apache.flink.streaming.runtime.tasks.StreamTaskContext;
+import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.StringUtils;
 import org.slf4j.Logger;
@@ -48,6 +49,7 @@ public abstract class StreamOperator<IN, OUT> implements Serializable {
 	private static final Logger LOG = LoggerFactory.getLogger(StreamOperator.class);
 
 	protected StreamTaskContext<OUT> taskContext;
+	protected StreamingRuntimeContext runtimeContext;
 
 	protected ExecutionConfig executionConfig = null;
 
@@ -177,6 +179,7 @@ public abstract class StreamOperator<IN, OUT> implements Serializable {
 	}
 
 	public void setRuntimeContext(RuntimeContext t) {
+		runtimeContext = (StreamingRuntimeContext) t;
 		FunctionUtils.setFunctionRuntimeContext(userFunction, t);
 	}
 

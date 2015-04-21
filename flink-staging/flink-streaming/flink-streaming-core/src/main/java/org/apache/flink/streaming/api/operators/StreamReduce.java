@@ -18,12 +18,16 @@
 package org.apache.flink.streaming.api.operators;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.state.OperatorState;
 
 public class StreamReduce<IN> extends ChainableStreamOperator<IN, IN> {
 	private static final long serialVersionUID = 1L;
 
+	private static final String STATENAME = "reducerState";
+
 	protected ReduceFunction<IN> reducer;
-	private IN currentValue;
+	private OperatorState<IN> currentValue;
 
 	public StreamReduce(ReduceFunction<IN> reducer) {
 		super(reducer);
@@ -42,13 +46,24 @@ public class StreamReduce<IN> extends ChainableStreamOperator<IN, IN> {
 	protected void callUserFunction() throws Exception {
 
 		if (currentValue != null) {
-			currentValue = reducer.reduce(copy(currentValue), nextObject);
+			currentValue.update(reducer.reduce(copy(currentValue.getState()), nextObject));
 		} else {
-			currentValue = nextObject;
-
+			currentValue.update(nextObject);
 		}
-		collector.collect(currentValue);
+		collector.collect(currentValue.getState());
 
 	}
 
+	@SuppressWarnings("unchecked")
+	@Override
+	public void open(Configuration config) throws Exception {
+		super.open(config);
+
+		if (runtimeContext.containsState(STATENAME)) {
+			currentValue = (OperatorState<IN>) runtimeContext.getState(STATENAME);
+		} else {
+			currentValue = new OperatorState<IN>(null);
+			runtimeContext.registerState(STATENAME, currentValue);
+		}
+	}
 }
