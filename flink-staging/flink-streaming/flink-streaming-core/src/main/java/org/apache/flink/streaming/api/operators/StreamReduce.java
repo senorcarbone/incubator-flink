@@ -45,7 +45,7 @@ public class StreamReduce<IN> extends ChainableStreamOperator<IN, IN> {
 	@Override
 	protected void callUserFunction() throws Exception {
 
-		if (currentValue != null) {
+		if (currentValue.getState() != null) {
 			currentValue.update(reducer.reduce(copy(currentValue.getState()), nextObject));
 		} else {
 			currentValue.update(nextObject);
