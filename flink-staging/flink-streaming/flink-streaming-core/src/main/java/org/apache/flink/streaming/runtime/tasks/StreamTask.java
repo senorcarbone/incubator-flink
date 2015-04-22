@@ -17,10 +17,7 @@
 
 package org.apache.flink.streaming.runtime.tasks;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
+import akka.actor.ActorRef;
 import org.apache.flink.runtime.event.task.TaskEvent;
 import org.apache.flink.runtime.execution.Environment;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
@@ -43,7 +40,9 @@ import org.apache.flink.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.actor.ActorRef;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTaskContext<OUT>,
 		BarrierTransceiver, OperatorStateCarrier {
@@ -58,11 +57,11 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 
 	private InputHandler<IN> inputHandler;
 	protected OutputHandler<OUT> outputHandler;
-	private StreamOperator<IN, OUT> streamOperator;
+	private StreamOperator<IN,OUT> streamOperator;
 	protected volatile boolean isRunning = false;
 
 	private StreamingRuntimeContext context;
-	private Map<String, OperatorState<?>> states;
+	private Map<String,OperatorState<?>> states;
 
 	protected ClassLoader userClassLoader;
 
@@ -90,17 +89,19 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 	protected void initialize() {
 		this.userClassLoader = getUserCodeClassLoader();
 		this.configuration = new StreamConfig(getTaskConfiguration());
-		this.states = new HashMap<String, OperatorState<?>>();
+		this.states = new HashMap<String,OperatorState<?>>();
 		this.context = createRuntimeContext(getEnvironment().getTaskName(), this.states);
 	}
 
 	@Override
 	public void broadcastBarrierFromSource(long id) {
-		// Only called at input vertices
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("Received barrier from jobmanager: " + id);
 		}
-		actOnBarrier(id);
+		toggleOperation();
+		getEnvironment().getJobManager().tell(
+				new CheckpointingMessages.BarrierAck(getEnvironment().getJobID(), getEnvironment().getJobVertexId(),
+						context.getIndexOfThisSubtask(), id), ActorRef.noSender());
 	}
 
 	/**
@@ -110,18 +111,20 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 	 */
 	@Override
 	public void confirmBarrier(long barrierID) throws IOException {
+		//nothing to do here
+	}
 
-		if (configuration.getStateMonitoring() && !states.isEmpty()) {
+	@Override
+	public void takeSnapshot(long barrierID) {
+		try {
 			getEnvironment().getJobManager().tell(
-					new CheckpointingMessages.StateBarrierAck(getEnvironment().getJobID(), getEnvironment()
-							.getJobVertexId(), context.getIndexOfThisSubtask(), barrierID,
-							new LocalStateHandle(states)), ActorRef.noSender());
-		} else {
-			getEnvironment().getJobManager().tell(
-					new CheckpointingMessages.BarrierAck(getEnvironment().getJobID(), getEnvironment().getJobVertexId(),
-							context.getIndexOfThisSubtask(), barrierID), ActorRef.noSender());
+						new CheckpointingMessages.StateBarrierAck(getEnvironment().getJobID(), getEnvironment()
+								.getJobVertexId(), context.getIndexOfThisSubtask(), barrierID,
+								new LocalStateHandle(states)), ActorRef.noSender());
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
-
+		toggleOperation();
 	}
 
 	public void setInputsOutputs() {
@@ -143,7 +146,7 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 	}
 
 	public StreamingRuntimeContext createRuntimeContext(String taskName,
-			Map<String, OperatorState<?>> states) {
+	                                                    Map<String,OperatorState<?>> states) {
 		Environment env = getEnvironment();
 		return new StreamingRuntimeContext(taskName, env, getUserCodeClassLoader(),
 				getExecutionConfig(), states);
@@ -199,7 +202,7 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 	protected void openOperator() throws Exception {
 		streamOperator.open(getTaskConfiguration());
 
-		for (ChainableStreamOperator<?, ?> operator : outputHandler.chainedOperators) {
+		for (ChainableStreamOperator<?,?> operator : outputHandler.chainedOperators) {
 			operator.setRuntimeContext(context);
 			operator.open(getTaskConfiguration());
 		}
@@ -208,7 +211,7 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 	protected void closeOperator() throws Exception {
 		streamOperator.close();
 
-		for (ChainableStreamOperator<?, ?> operator : outputHandler.chainedOperators) {
+		for (ChainableStreamOperator<?,?> operator : outputHandler.chainedOperators) {
 			operator.close();
 		}
 	}
@@ -270,7 +273,7 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 	}
 
 	@Override
-	public <X, Y> CoReaderIterator<X, Y> getCoReader() {
+	public <X, Y> CoReaderIterator<X,Y> getCoReader() {
 		throw new IllegalArgumentException("CoReader not available");
 	}
 
@@ -282,24 +285,14 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 	 * Method to be called when a barrier is received from all the input
 	 * channels. It should broadcast the barrier to the output operators,
 	 * checkpoint the state and send an ack.
-	 * 
-	 * @param id
+	 *
 	 */
-	private synchronized void actOnBarrier(long id) {
+	private synchronized void toggleOperation() {
+		
 		if (isRunning) {
-			try {
-				outputHandler.broadcastBarrier(id);
-				confirmBarrier(id);
-				if (LOG.isDebugEnabled()) {
-					LOG.debug("Superstep " + id + " processed: " + StreamTask.this);
-				}
-			} catch (Exception e) {
-				// Only throw any exception if the vertex is still running
-				if (isRunning) {
-					throw new RuntimeException(e);
-				}
-			}
+			streamOperator.toggleBlock();
 		}
+
 	}
 
 	@Override
@@ -319,7 +312,7 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 
 		@Override
 		public void onEvent(TaskEvent event) {
-			actOnBarrier(((StreamingSuperstep) event).getId());
+			toggleOperation();
 		}
 
 	}

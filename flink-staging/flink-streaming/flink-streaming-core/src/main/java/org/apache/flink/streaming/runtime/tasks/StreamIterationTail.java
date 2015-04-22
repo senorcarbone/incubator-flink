@@ -111,4 +111,9 @@ public class StreamIterationTail<IN> extends StreamTask<IN, IN> {
 	@Override
 	protected void setOperator() {
 	}
+
+	@Override
+	public void takeSnapshot(long barrierID) {
+		
+	}
 }

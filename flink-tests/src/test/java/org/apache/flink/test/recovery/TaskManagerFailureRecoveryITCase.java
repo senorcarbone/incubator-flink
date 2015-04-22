@@ -119,7 +119,7 @@ public class TaskManagerFailureRecoveryITCase {
 			trigger.setDaemon(true);
 			trigger.start();
 
-			// block until all the mappers are actually deployed
+			// toggleBlock until all the mappers are actually deployed
 			// the mappers in turn are waiting
 			for (int i = 0; i < PARALLELISM; i++) {
 				FailingMapper.TASK_TO_COORD_QUEUE.take();

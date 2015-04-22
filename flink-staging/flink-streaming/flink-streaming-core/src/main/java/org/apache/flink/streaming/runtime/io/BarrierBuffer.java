@@ -180,7 +180,7 @@ public class BarrierBuffer {
 	 * Blocks the given channel index, from which a barrier has been received.
 	 * 
 	 * @param channelIndex
-	 *            The channel index to block.
+	 *            The channel index to toggleBlock.
 	 */
 	protected void blockChannel(int channelIndex) {
 		if (!blockedChannels.contains(channelIndex)) {
@@ -193,7 +193,7 @@ public class BarrierBuffer {
 			}
 
 		} else {
-			throw new RuntimeException("Tried to block an already blocked channel");
+			throw new RuntimeException("Tried to toggleBlock an already blocked channel");
 		}
 	}
 

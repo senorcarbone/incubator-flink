@@ -64,6 +64,7 @@ public abstract class StreamOperator<IN, OUT> implements Serializable {
 	protected volatile boolean isRunning;
 
 	private ChainingStrategy chainingStrategy = ChainingStrategy.HEAD;
+	private volatile boolean blocked;
 
 	public StreamOperator(Function userFunction) {
 		this.userFunction = userFunction;
@@ -97,7 +98,14 @@ public abstract class StreamOperator<IN, OUT> implements Serializable {
 	 * Reads the next record from the reader iterator and stores it in the
 	 * nextRecord variable
 	 */
-	protected StreamRecord<IN> readNext() throws IOException {
+	
+	protected StreamRecord<IN> readNext() throws IOException, InterruptedException {
+		
+		while(!blocked)
+		{
+			Thread.sleep(40);	
+		}
+		
 		this.nextRecord = inSerializer.createInstance();
 		try {
 			nextRecord = recordIterator.next(nextRecord);
@@ -125,6 +133,12 @@ public abstract class StreamOperator<IN, OUT> implements Serializable {
 			}
 		}
 	}
+	
+	public void toggleBlock()
+	{
+		blocked = !blocked;
+	}
+	
 
 	/**
 	 * The call of the user implemented function should be implemented here

@@ -77,7 +77,6 @@ extends Actor with ActorLogMessages with ActorLogging {
 
     case InitBarrierScheduler =>
       context.system.scheduler.schedule(interval,interval,self,BarrierTimeout)
-      context.system.scheduler.schedule(2 * interval,2 * interval,self,CompactAndUpdate)
       log.info("Started Stream State Monitor for job {}{}",
         executionGraph.getJobID,executionGraph.getJobName)
       
@@ -89,8 +88,7 @@ extends Actor with ActorLogMessages with ActorLogging {
         case RUNNING =>
           curId += 1
           log.debug("Sending Barrier to vertices of Job " + executionGraph.getJobName)
-          vertices.filter(v => v.getJobVertex.getJobVertex.isInputVertex &&
-                  v.getExecutionState == ExecutionState.RUNNING).foreach(vertex
+          vertices.filter(v => v.getExecutionState == ExecutionState.RUNNING).foreach(vertex
           => vertex.getCurrentAssignedResource.getInstance.getTaskManager
                     ! BarrierReq(vertex.getCurrentExecutionAttempt.getAttemptId,curId))
         case _ =>
@@ -99,8 +97,8 @@ extends Actor with ActorLogMessages with ActorLogging {
       }
       
     case StateBarrierAck(jobID, jobVertexID, instanceID, checkpointID, opState) =>
-      states += (jobVertexID, instanceID, checkpointID) -> opState
-      self ! BarrierAck(jobID, jobVertexID, instanceID, checkpointID)
+      //self ! BarrierAck(jobID, jobVertexID, instanceID, checkpointID)
+      
       
     case BarrierAck(jobID, jobVertexID,instanceID,checkpointID) =>
           acks.get(jobVertexID,instanceID) match {
@@ -109,17 +107,16 @@ extends Actor with ActorLogMessages with ActorLogging {
             case None =>
           }
           log.debug(acks.toString())
-      
-    case CompactAndUpdate =>
-      val barrierCount =
-        acks.values.foldLeft(TreeMap[JLong,Int]().withDefaultValue(0))((dict,myList)
-      => myList.foldLeft(dict)((dict2,elem) => dict2.updated(elem,dict2(elem) + 1)))
-      val keysToKeep = barrierCount.filter(_._2 == acks.size).keys
-      ackId = if(keysToKeep.nonEmpty) keysToKeep.max else ackId
-      acks.keys.foreach(x => acks = acks.updated(x,acks(x).filter(_ >= ackId)))
-      states = states.filterKeys(_._3 >= ackId)
-      log.debug("[FT-MONITOR] Last global barrier is " + ackId)
-      executionGraph.loadOperatorStates(states)
+      //check here if we got all acks 
+      if (vertices.size == acks.values.filter(list => list.contains(checkpointID)).size)
+      {
+        // initiate the snapshot 
+        vertices.foreach(vertex => vertex.getCurrentAssignedResource.getInstance.getTaskManager
+                ! InitiateCheckpoint(vertex.getCurrentExecutionAttempt.getAttemptId, checkpointID))
+        //remove the ack from the list
+        acks = acks map {case ((vertexId, instanceId), ackList) 
+        => ((vertexId, instanceId), ackList.filter(num => num != checkpointID))}
+      }
       
   }
 }

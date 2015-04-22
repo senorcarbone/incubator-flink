@@ -140,4 +140,9 @@ public class CoStreamTask<IN1, IN2, OUT> extends StreamTask<IN1, OUT> {
 	public <X, Y> CoReaderIterator<X, Y> getCoReader() {
 		return (CoReaderIterator<X, Y>) coIter;
 	}
+
+	@Override
+	public void takeSnapshot(long barrierID) {
+		
+	}
 }

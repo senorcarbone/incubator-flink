@@ -55,7 +55,7 @@ import org.apache.flink.runtime.jobgraph.IntermediateDataSetID
 import org.apache.flink.runtime.jobgraph.tasks.{OperatorStateCarrier,BarrierTransceiver}
 import org.apache.flink.runtime.jobmanager.JobManager
 import org.apache.flink.runtime.memorymanager.{MemoryManager, DefaultMemoryManager}
-import org.apache.flink.runtime.messages.CheckpointingMessages.{CheckpointingMessage, BarrierReq}
+import org.apache.flink.runtime.messages.CheckpointingMessages.{InitiateCheckpoint,CheckpointingMessage,BarrierReq}
 import org.apache.flink.runtime.messages.Messages._
 import org.apache.flink.runtime.messages.RegistrationMessages._
 import org.apache.flink.runtime.messages.TaskManagerMessages._
@@ -453,7 +453,25 @@ extends Actor with ActorLogMessages with ActorLogging {
                       attemptID)
         }
 
-      // unknown checkpoint message
+      case InitiateCheckpoint(attemptID, checkpointID) =>
+        runningTasks.get(attemptID) match {
+          case Some(i) =>
+            if(i.getExecutionState == ExecutionState.RUNNING) {
+              i.getEnvironment.getInvokable match {
+                case barrierTransceiver: BarrierTransceiver =>
+                  new Thread(new Runnable {
+                    override def run(): Unit =
+                      barrierTransceiver.takeSnapshot(checkpointID)
+                  }).start()
+
+                case _ => LOG.error(
+                  "Taskmanager received a checkpoint request for non-checkpointing task {}",
+                  attemptID)
+              }
+            }
+        }
+
+          // unknown checkpoint message
       case _ => unhandled(message)
     }
   }

@@ -33,12 +33,12 @@ import org.apache.flink.api.table.{ExpressionException, expressions}
 
 /** Base class for all code generation classes. This provides the functionality for generating
   * code from an [[Expression]] tree. Derived classes must embed this in a lambda function
-  * to form an executable code block.
+  * to form an executable code toggleBlock.
   *
   * @param inputs List of input variable names with corresponding [[TypeInformation]].
   * @param nullCheck Whether the generated code should include checks for NULL values.
   * @param cl The ClassLoader that is used to create the Scala reflection ToolBox
-  * @tparam R The type of the generated code block. In most cases a lambda function such
+  * @tparam R The type of the generated code toggleBlock. In most cases a lambda function such
   *           as "(IN1, IN2) => OUT".
   */
 abstract class ExpressionCodeGenerator[R](

@@ -43,6 +43,9 @@ object CheckpointingMessages {
                         jobVertexID:JobVertexID,
                         instanceID: Int,
                         checkpointID: Long) extends CheckpointingMessage
+  
+  case class InitiateCheckpoint(attemptID: ExecutionAttemptID,
+                                checkpointID: Long) extends CheckpointingMessage
 
   case class StateBarrierAck(jobID: JobID,
                              jobVertexID: JobVertexID,

@@ -17,8 +17,6 @@
 
 package org.apache.flink.streaming.examples.paper;
 
-import java.io.Serializable;
-
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.functions.KeySelector;
@@ -27,9 +25,11 @@ import org.apache.flink.runtime.state.OperatorState;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
-import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
+import org.apache.flink.streaming.api.functions.source.BlockingSourceFunction;
 import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 import org.apache.flink.util.Collector;
+
+import java.io.Serializable;
 
 @SuppressWarnings("serial")
 public class PaperExperiment implements Serializable {
@@ -60,7 +60,7 @@ public class PaperExperiment implements Serializable {
 		System.err.println(res.getNetRuntime());
 	}
 
-	public static class ModKey implements KeySelector<Long, Long> {
+	public static class ModKey implements KeySelector<Long,Long> {
 
 		Long mod;
 
@@ -75,7 +75,7 @@ public class PaperExperiment implements Serializable {
 
 	}
 
-	public static class StatefulMap extends RichMapFunction<Long, Long> {
+	public static class StatefulMap extends RichMapFunction<Long,Long> {
 
 		OperatorState<Long> state;
 
@@ -100,11 +100,12 @@ public class PaperExperiment implements Serializable {
 
 	}
 
-	public static class StatefulSource extends RichParallelSourceFunction<Long> {
+	public static class StatefulSource extends BlockingSourceFunction<Long> {
 
 		OperatorState<Long> offset;
 		private Long max;
 		private int taskIndex;
+		private volatile boolean blocked;
 
 		public StatefulSource(Long max) {
 			this.max = max;
@@ -114,6 +115,9 @@ public class PaperExperiment implements Serializable {
 		public void run(Collector<Long> collector) throws Exception {
 
 			for (Long i = offset.getState(); i < max; i++) {
+				while (blocked) {
+					Thread.sleep(40);
+				}
 				collector.collect(i);
 				offset.update(i);
 			}
@@ -138,6 +142,10 @@ public class PaperExperiment implements Serializable {
 			}
 		}
 
+		@Override
+		public void toggleBlock() {
+			blocked = !blocked;
+		}
 	}
 
 	public static class NoOpSink implements SinkFunction<Long> {

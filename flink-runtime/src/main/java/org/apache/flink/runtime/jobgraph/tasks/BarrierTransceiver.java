@@ -40,4 +40,6 @@ public interface BarrierTransceiver {
 	 */
 	public void confirmBarrier(long barrierID) throws IOException;
 	
+	public void takeSnapshot(long barrierID);
+	
 }

@@ -19,6 +19,7 @@ package org.apache.flink.streaming.api.operators;
 
 import java.io.Serializable;
 
+import org.apache.flink.streaming.api.functions.source.BlockingSourceFunction;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 
 public class StreamSource<OUT> extends StreamOperator<OUT, OUT> implements Serializable {
@@ -46,5 +47,13 @@ public class StreamSource<OUT> extends StreamOperator<OUT, OUT> implements Seria
 	public void cancel() {
 		super.cancel();
 		sourceFunction.cancel();
+	}
+
+	@Override
+	public void toggleBlock() {
+		if(sourceFunction instanceof BlockingSourceFunction)
+		{
+			((BlockingSourceFunction) sourceFunction).toggleBlock();
+		}
 	}
 }

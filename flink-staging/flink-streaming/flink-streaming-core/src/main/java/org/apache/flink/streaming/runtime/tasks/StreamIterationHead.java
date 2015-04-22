@@ -107,4 +107,9 @@ public class StreamIterationHead<OUT> extends StreamTask<OUT, OUT> {
 	@Override
 	protected void setOperator() {
 	}
+
+	@Override
+	public void takeSnapshot(long barrierID) {
+		
+	}
 }
