@@ -18,6 +18,10 @@
 
 package org.apache.flink.test.checkpointing;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -26,21 +30,17 @@ import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.functions.RichReduceFunction;
+import org.apache.flink.api.common.state.OperatorState;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.checkpoint.Checkpointed;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
 import org.apache.flink.test.util.ForkableFlinkMiniCluster;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * A simple test that runs a streaming topology with checkpointing enabled.
@@ -169,7 +169,7 @@ public class StreamCheckpointingITCase {
 			// verify that we counted exactly right
 			
 			// this line should be uncommented once the "exactly one off by one" is fixed
-//			assertEquals(NUM_STRINGS, countSum);
+			assertEquals(NUM_STRINGS, countSum);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -181,15 +181,14 @@ public class StreamCheckpointingITCase {
 	//  Custom Functions
 	// --------------------------------------------------------------------------------------------
 	
-	private static class StringGeneratingSourceFunction extends RichParallelSourceFunction<String> 
-			implements Checkpointed<Long> {
+	private static class StringGeneratingSourceFunction extends RichParallelSourceFunction<String> {
 
 		private final long numElements;
 		
 		private Random rnd;
 		private StringBuilder stringBuilder;
 
-		private long index;
+		private OperatorState<Long> index;
 		private int step;
 
 
@@ -203,36 +202,24 @@ public class StreamCheckpointingITCase {
 			stringBuilder = new StringBuilder();
 			step = getRuntimeContext().getNumberOfParallelSubtasks();
 			
-			if (index == 0) {
-				index = getRuntimeContext().getIndexOfThisSubtask();
-			}
+			index = getRuntimeContext().getOperatorState((long) getRuntimeContext().getIndexOfThisSubtask());
 		}
 
 		@Override
 		public boolean reachedEnd() throws Exception {
-			return index >= numElements;
+			return index.getState() >= numElements;
 		}
 
 		@Override
 		public String next() throws Exception {
-			char first = (char) ((index % 40) + 40);
+			char first = (char) ((index.getState() % 40) + 40);
 
 			stringBuilder.setLength(0);
 			stringBuilder.append(first);
 
 			String result = randomString(stringBuilder, rnd);
-			index += step;
+			index.updateState(index.getState() + step);
 			return result;
-		}
-
-		@Override
-		public Long snapshotState(long checkpointId, long checkpointTimestamp) {
-			return this.index;
-		}
-
-		@Override
-		public void restoreState(Long state) {
-			this.index = state;
 		}
 
 		private static String randomString(StringBuilder bld, Random rnd) {
@@ -247,33 +234,28 @@ public class StreamCheckpointingITCase {
 		}
 	}
 	
-	private static class StatefulCounterFunction extends RichMapFunction<PrefixCount, PrefixCount> 
-			implements Checkpointed<Long> {
+	private static class StatefulCounterFunction extends RichMapFunction<PrefixCount, PrefixCount> {
 
 		static final long[] counts = new long[PARALLELISM];
 
-		private long count = 0;
+		private OperatorState<Long> count;
 
 		@Override
 		public PrefixCount map(PrefixCount value) throws Exception {
-			count++;
+			count.updateState(count.getState() + 1);
 			return value;
+		}
+		
+		@Override
+		public void open(Configuration conf) {
+			count = getRuntimeContext().getOperatorState(0L);
 		}
 
 		@Override
 		public void close() {
-			counts[getRuntimeContext().getIndexOfThisSubtask()] = count;
+			counts[getRuntimeContext().getIndexOfThisSubtask()] = count.getState();
 		}
-
-		@Override
-		public Long snapshotState(long checkpointId, long checkpointTimestamp) {
-			return count;
-		}
-
-		@Override
-		public void restoreState(Long state) {
-			count = state;
-		}
+		
 	}
 	
 	private static class OnceFailingReducer extends RichReduceFunction<PrefixCount> {

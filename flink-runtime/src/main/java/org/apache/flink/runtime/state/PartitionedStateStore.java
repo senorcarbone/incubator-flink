@@ -16,22 +16,32 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.api.checkpoint;
+package org.apache.flink.runtime.state;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
- * This interface marks a function/operator as <i>asynchronously checkpointed</i>.
- * Similar to the {@link Checkpointed} interface, the function must produce a
- * snapshot of its state. However, the function must be able to continue working
- * and mutating its state without mutating the returned state snapshot.
+ * Interface for storing and accessing partitioned state. The interface is
+ * designed in a way that allows implementations for lazily state access.
  * 
- * <p>Asynchronous checkpoints are desirable, because they allow the data streams at the
- * point of the checkpointed function/operator to continue running while the checkpoint
- * is in progress.</p>
- * 
- * <p>To be able to support asynchronous snapshots, the state returned by the
- * {@link #snapshotState(long, long)} method is typically a copy or shadow copy
- * of the actual state.</p>
+ * @param <S>
+ *            Type of the state.
+ * @param <C>
+ *            Type of the state snapshot.
  */
-public interface CheckpointedAsynchronously<T extends Serializable> extends Checkpointed<T> {}
+public interface PartitionedStateStore<S, C extends Serializable> {
+
+	S getStateForKey(Serializable key) throws Exception;
+
+	void setStateForKey(Serializable key, S state);
+
+	Map<Serializable, S> getPartitionedState() throws Exception;
+
+	Map<Serializable, StateHandle<C>> snapshotStates(long checkpointId, long checkpointTimestamp) throws Exception;
+
+	void restoreStates(Map<Serializable, StateHandle<C>> snapshots) throws Exception;
+
+	boolean containsKey(Serializable key);
+
+}

@@ -38,10 +38,10 @@ import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.api.common.state.OperatorState;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.state.FileStateHandle;
-import org.apache.flink.streaming.api.checkpoint.Checkpointed;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
@@ -95,7 +95,7 @@ public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailur
 					}
 				})
 				// populate the coordinate directory so we can proceed to TaskManager failure
-				.map(new StatefulMapper(coordinateDir));				
+				.map(new Mapper(coordinateDir));				
 
 		//write result to temporary file
 		result.addSink(new RichSinkFunction<Long>() {
@@ -152,8 +152,7 @@ public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailur
 		}
 	}
 
-	public static class SleepyDurableGenerateSequence extends RichParallelSourceFunction<Long>
-			implements Checkpointed<Long> {
+	public static class SleepyDurableGenerateSequence extends RichParallelSourceFunction<Long> {
 
 		private static final long SLEEP_TIME = 50;
 
@@ -161,11 +160,11 @@ public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailur
 		private final long end;
 
 		private long toCollect;
-		private long collected;
 		private boolean checkForProceedFile;
 		private File proceedFile;
 		private long stepSize;
 		private long congruence;
+		private OperatorState<Long> collected;
 
 		public SleepyDurableGenerateSequence(File coordinateDir, long end) {
 			this.coordinateDir = coordinateDir;
@@ -177,15 +176,14 @@ public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailur
 			stepSize = getRuntimeContext().getNumberOfParallelSubtasks();
 			congruence = getRuntimeContext().getIndexOfThisSubtask();
 			toCollect = (end % stepSize > congruence) ? (end / stepSize + 1) : (end / stepSize);
-			collected = 0L;
-
+			collected = getRuntimeContext().getOperatorState(0L);
 			proceedFile = new File(coordinateDir, PROCEED_MARKER_FILE);
 			checkForProceedFile = true;
 		}
 
 		@Override
 		public boolean reachedEnd() throws Exception {
-			return collected >= toCollect;
+			return collected.getState() >= toCollect;
 		}
 
 		@Override
@@ -201,29 +199,17 @@ public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailur
 				}
 			}
 
-			long result = collected * stepSize + congruence;
-			collected++;
+			long result = collected.getState() * stepSize + congruence;
+			collected.updateState(collected.getState() + 1);
 			return result;
-		}
-
-		@Override
-		public Long snapshotState(long checkpointId, long checkpointTimestamp) throws Exception {
-			return collected;
-		}
-
-		@Override
-		public void restoreState(Long state) {
-			collected = state;
 		}
 	}
 	
-	public static class StatefulMapper extends RichMapFunction<Long, Long> implements
-			Checkpointed<Integer> {
+	public static class Mapper extends RichMapFunction<Long, Long> {
 		private boolean markerCreated = false;
 		private File coordinateDir;
-		private boolean restored = false;
 
-		public StatefulMapper(File coordinateDir) {
+		public Mapper(File coordinateDir) {
 			this.coordinateDir = coordinateDir;
 		}
 
@@ -235,23 +221,6 @@ public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailur
 				markerCreated = true;
 			}
 			return value;
-		}
-
-		@Override
-		public void close() {
-			if (!restored) {
-				fail();
-			}
-		}
-
-		@Override
-		public Integer snapshotState(long checkpointId, long checkpointTimestamp) throws Exception {
-			return 1;
-		}
-
-		@Override
-		public void restoreState(Integer state) {
-			restored = true;
 		}
 	}
 
