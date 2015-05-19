@@ -38,6 +38,7 @@ import static org.junit.Assert.assertEquals;
 @SuppressWarnings("serial")
 @RunWith(Parameterized.class)
 public class ProcessFailureBatchRecoveryITCase extends AbstractProcessFailureRecoveryTest {
+	private static final int DEFAULT_DOP = 4;
 
 	// --------------------------------------------------------------------------------------------
 	//  Parametrization (run pipelined and batch)
@@ -64,7 +65,7 @@ public class ProcessFailureBatchRecoveryITCase extends AbstractProcessFailureRec
 	public void testProgram(int jobManagerPort, final File coordinateDir) throws Exception {
 
 		ExecutionEnvironment env = ExecutionEnvironment.createRemoteEnvironment("localhost", jobManagerPort);
-		env.setParallelism(PARALLELISM);
+		env.setParallelism(getParallelism());
 		env.setNumberOfExecutionRetries(1);
 		env.getConfig().setExecutionMode(executionMode);
 		env.getConfig().disableSysoutLogging();
@@ -111,5 +112,10 @@ public class ProcessFailureBatchRecoveryITCase extends AbstractProcessFailureRec
 
 		long sum = result.collect().get(0);
 		assertEquals(NUM_ELEMENTS * (NUM_ELEMENTS + 1L) / 2L, sum);
+	}
+
+	@Override
+	public int getParallelism() {
+		return DEFAULT_DOP;
 	}
 }

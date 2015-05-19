@@ -72,8 +72,6 @@ public abstract class AbstractProcessFailureRecoveryTest {
 	protected static final String READY_MARKER_FILE_PREFIX = "ready_";
 	protected static final String PROCEED_MARKER_FILE = "proceed";
 
-	protected static final int PARALLELISM = 4;
-
 	@Test
 	public void testTaskManagerProcessFailure() {
 
@@ -167,8 +165,7 @@ public abstract class AbstractProcessFailureRecoveryTest {
 
 			// wait until all marker files are in place, indicating that all tasks have started
 			// max 20 seconds
-			waitForMarkerFiles(coordinateTempDir, PARALLELISM, 20000);
-
+			waitForMarkerFiles(coordinateTempDir, getParallelism(), 20000);
 			// start the third TaskManager
 			taskManagerProcess3 = new ProcessBuilder(command).start();
 			new PipeForwarder(taskManagerProcess3.getErrorStream(), processOutput3);
@@ -177,9 +174,10 @@ public abstract class AbstractProcessFailureRecoveryTest {
 			waitUntilNumTaskManagersAreRegistered(jmActor, 3, 30000);
 
 			// kill one of the previous TaskManagers, triggering a failure and recovery
+			System.err.println("Destroying Task Manager...");
 			taskManagerProcess1.destroy();
 			taskManagerProcess1 = null;
-
+			System.err.println("Updating the marker file...");
 			// we create the marker file which signals the program functions tasks that they can complete
 			touchFile(new File(coordinateTempDir, PROCEED_MARKER_FILE));
 
@@ -348,6 +346,11 @@ public abstract class AbstractProcessFailureRecoveryTest {
 
 		fail("The tasks were not started within time (" + timeout + "msecs)");
 	}
+
+	/**
+	 * A getter for the default parallelism used in the respective implementation of the recovery test
+	 */
+	public abstract int getParallelism();
 
 	// --------------------------------------------------------------------------------------------
 

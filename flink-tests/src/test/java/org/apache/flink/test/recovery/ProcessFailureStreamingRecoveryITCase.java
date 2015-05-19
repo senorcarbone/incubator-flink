@@ -64,6 +64,7 @@ import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunctio
 public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailureRecoveryTest {
 
 	private static final int DATA_COUNT = 10000;
+	private static final int DEFAULT_DOP = 4;
 
 	@Override
 	public void testProgram(int jobManagerPort, final File coordinateDir) throws Exception {
@@ -80,7 +81,7 @@ public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailur
 
 		StreamExecutionEnvironment env = StreamExecutionEnvironment
 									.createRemoteEnvironment("localhost", jobManagerPort);
-		env.setParallelism(PARALLELISM);
+		env.setParallelism(getParallelism());
 		env.getConfig().disableSysoutLogging();
 		env.setNumberOfExecutionRetries(1);
 		env.enableCheckpointing(200);
@@ -135,7 +136,7 @@ public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailur
 			env.execute();
 
 			// validate
-			fileBatchHasEveryNumberLower(PARALLELISM, DATA_COUNT, tempTestOutput);
+			fileBatchHasEveryNumberLower(getParallelism(), DATA_COUNT, tempTestOutput);
 			
 			// TODO: Figure out why this fails when ran with other tests
 			// Check whether checkpoints have been cleaned up properly
@@ -150,6 +151,11 @@ public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailur
 				FileUtils.deleteDirectory(tempCheckpointDir);
 			}
 		}
+	}
+
+	@Override
+	public int getParallelism() {
+		return DEFAULT_DOP;
 	}
 
 	public static class SleepyDurableGenerateSequence extends RichParallelSourceFunction<Long>
