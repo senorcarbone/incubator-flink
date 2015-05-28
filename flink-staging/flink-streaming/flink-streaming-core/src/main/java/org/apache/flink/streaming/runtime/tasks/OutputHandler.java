@@ -219,16 +219,16 @@ public class OutputHandler<OUT> {
 	}
 
 	private static class OperatorCollector<T> implements Output<T> {
-		private OneInputStreamOperator operator;
+		private OneInputStreamOperator<Object, T> operator;
 
-		public OperatorCollector(OneInputStreamOperator<?, T> operator) {
+		public OperatorCollector(OneInputStreamOperator<Object, T> operator) {
 			this.operator = operator;
 		}
 
 		@Override
 		public void collect(T record) {
-
 			try {
+				operator.getRuntimeContext().setNextInput(record);
 				operator.processElement(record);
 			} catch (Exception e) {
 				if (LOG.isErrorEnabled()) {

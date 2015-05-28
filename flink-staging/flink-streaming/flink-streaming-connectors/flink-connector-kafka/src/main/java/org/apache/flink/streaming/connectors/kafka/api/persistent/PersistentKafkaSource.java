@@ -148,7 +148,7 @@ public class PersistentKafkaSource<OUT> extends RichParallelSourceFunction<OUT> 
 		long[] defaultOffset = new long[numPartitions];
 		Arrays.fill(defaultOffset, -1);
 		
-		this.lastOffsets = getRuntimeContext().getOperatorState(defaultOffset);
+		this.lastOffsets = getRuntimeContext().getOperatorState("offset", defaultOffset);
 		
 		//TODO: commit fetched offset to ZK if not default
 		

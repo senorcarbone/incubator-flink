@@ -176,7 +176,7 @@ public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailur
 			stepSize = getRuntimeContext().getNumberOfParallelSubtasks();
 			congruence = getRuntimeContext().getIndexOfThisSubtask();
 			toCollect = (end % stepSize > congruence) ? (end / stepSize + 1) : (end / stepSize);
-			collected = getRuntimeContext().getOperatorState(0L);
+			collected = getRuntimeContext().getOperatorState("offset",0L);
 			proceedFile = new File(coordinateDir, PROCEED_MARKER_FILE);
 			checkForProceedFile = true;
 		}

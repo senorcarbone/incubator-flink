@@ -64,4 +64,9 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 	public final ChainingStrategy getChainingStrategy() {
 		return chainingStrategy;
 	}
+	
+	@Override
+	public StreamingRuntimeContext getRuntimeContext(){
+		return runtimeContext;
+	}
 }

@@ -48,6 +48,8 @@ public interface StreamOperator<OUT> extends Serializable {
 	 * This method is called after no more elements for can arrive for processing.
 	 */
 	public void close() throws Exception;
+	
+	public StreamingRuntimeContext getRuntimeContext();
 
 	public void setChainingStrategy(ChainingStrategy strategy);
 
