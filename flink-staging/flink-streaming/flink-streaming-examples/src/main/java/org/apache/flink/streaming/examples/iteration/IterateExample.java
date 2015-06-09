@@ -110,20 +110,24 @@ public class IterateExample {
 
 		private Random rnd = new Random();
 
+		private volatile boolean isRunning = true;
+
 		@Override
-		public boolean reachedEnd() throws Exception {
-			return false;
+		public void run(SourceContext<Tuple2<Integer, Integer>> ctx) throws Exception {
+
+			while (isRunning) {
+				int first = rnd.nextInt(BOUND / 2 - 1) + 1;
+				int second = rnd.nextInt(BOUND / 2 - 1) + 1;
+
+				ctx.collect(new Tuple2<Integer, Integer>(first, second));
+				Thread.sleep(500L);
+			}
 		}
 
 		@Override
-		public Tuple2<Integer, Integer> next() throws Exception {
-			int first = rnd.nextInt(BOUND / 2 - 1) + 1;
-			int second = rnd.nextInt(BOUND / 2 - 1) + 1;
-
-			Thread.sleep(500L);
-			return new Tuple2<Integer, Integer>(first, second);
+		public void cancel() {
+			isRunning = false;
 		}
-
 	}
 
 	/**

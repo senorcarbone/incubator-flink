@@ -31,10 +31,10 @@ import org.apache.flink.api.java.functions.KeySelector
 import org.apache.flink.api.java.typeutils.TupleTypeInfoBase
 import org.apache.flink.api.streaming.scala.ScalaStreamingAggregator
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
-import org.apache.flink.streaming.api.datastream.{DataStream => JavaStream, GroupedDataStream, SingleOutputStreamOperator}
+import org.apache.flink.streaming.api.datastream.{DataStream => JavaStream, DataStreamSink, GroupedDataStream, SingleOutputStreamOperator}
 import org.apache.flink.streaming.api.functions.aggregation.AggregationFunction.AggregationType
 import org.apache.flink.streaming.api.functions.aggregation.SumFunction
-import org.apache.flink.streaming.api.functions.sink.SinkFunction
+import org.apache.flink.streaming.api.functions.sink.{FileSinkFunctionByMillis, SinkFunction}
 import org.apache.flink.streaming.api.operators.{StreamGroupedReduce, StreamReduce}
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment.clean
 import org.apache.flink.streaming.api.windowing.helper.WindowingHelper
@@ -50,7 +50,7 @@ class DataStream[T](javaStream: JavaStream[T]) {
   def getJavaStream: JavaStream[T] = javaStream
 
   /**
-   * Returns the ID of the {@link DataStream}.
+   * Returns the ID of the DataStream.
    *
    * @return ID of the DataStream
    */
@@ -59,7 +59,7 @@ class DataStream[T](javaStream: JavaStream[T]) {
   /**
    * Returns the TypeInformation for the elements of this DataStream.
    */
-  def getType(): TypeInformation[T] = javaStream.getType
+  def getType(): TypeInformation[T] = javaStream.getType()
 
   /**
    * Sets the parallelism of this operation. This must be at least 1.
@@ -87,7 +87,7 @@ class DataStream[T](javaStream: JavaStream[T]) {
    * @return Name of the stream.
    */
   def getName : String = javaStream match {
-    case stream : SingleOutputStreamOperator[_,_] => javaStream.getName
+    case stream : SingleOutputStreamOperator[T,_] => stream.getName
     case _ => throw new
         UnsupportedOperationException("Only supported for operators.")
   }
@@ -99,7 +99,7 @@ class DataStream[T](javaStream: JavaStream[T]) {
    * @return The named operator
    */
   def name(name: String) : DataStream[T] = javaStream match {
-    case stream : SingleOutputStreamOperator[_,_] => javaStream.name(name)
+    case stream : SingleOutputStreamOperator[T,_] => stream.name(name)
     case _ => throw new
         UnsupportedOperationException("Only supported for operators.")
     this
@@ -108,7 +108,7 @@ class DataStream[T](javaStream: JavaStream[T]) {
   /**
    * Turns off chaining for this operator so thread co-location will not be
    * used as an optimization. </p> Chaining can be turned off for the whole
-   * job by {@link StreamExecutionEnvironment#disableOperatorChaining()}
+   * job by [[StreamExecutionEnvironment.disableOperatorChaining()]]
    * however it is not advised for performance considerations.
    * 
    */
@@ -575,7 +575,7 @@ class DataStream[T](javaStream: JavaStream[T]) {
    * Creates a new [[DataStream]] by folding the elements of this DataStream
    * using an associative fold function and an initial value.
    */
-  def fold[R: TypeInformation: ClassTag](initialValue: R)(fun: (R,T) => R): DataStream[R] = {
+  def fold[R: TypeInformation: ClassTag](initialValue: R, fun: (R,T) => R): DataStream[R] = {
     if (fun == null) {
       throw new NullPointerException("Fold function must not be null.")
     }
@@ -704,16 +704,17 @@ class DataStream[T](javaStream: JavaStream[T]) {
    * written.
    *
    */
-  def print(): DataStream[T] = javaStream.print
+  def print(): DataStream[T] = javaStream.print()
 
   /**
-   * Writes a DataStream to the standard output stream (stderr).<br>
+   * Writes a DataStream to the standard output stream (stderr).
+   * 
    * For each element of the DataStream the result of
-   * {@link Object#toString()} is written.
+   * [[AnyRef.toString()]] is written.
    *
    * @return The closed DataStream.
    */
-  def printToErr() = javaStream.printToErr
+  def printToErr() = javaStream.printToErr()
 
   /**
    * Writes a DataStream to the file specified by path in text format. The
@@ -743,12 +744,20 @@ class DataStream[T](javaStream: JavaStream[T]) {
     if (writeMode != null) {
       of.setWriteMode(writeMode)
     }
-    javaStream.writeToFile(of.asInstanceOf[OutputFormat[T]], millis)
+    javaStream.write(of.asInstanceOf[OutputFormat[T]], millis)
+  }
+
+  /**
+   * Writes a DataStream using the given [[OutputFormat]]. The
+   * writing is performed periodically, in every millis milliseconds.
+   */
+  def write(format: OutputFormat[T], millis: Long): DataStreamSink[T] = {
+    javaStream.write(format, millis)
   }
 
   /**
    * Writes the DataStream to a socket as a byte array. The format of the output is
-   * specified by a {@link SerializationSchema}.
+   * specified by a [[SerializationSchema]].
    */
   def writeToSocket(hostname: String, port: Integer, schema: SerializationSchema[T, Array[Byte]]):
     DataStream[T] = javaStream.writeToSocket(hostname, port, schema)
@@ -759,8 +768,8 @@ class DataStream[T](javaStream: JavaStream[T]) {
    * method is called.
    *
    */
-  def addSink(sinkFuntion: SinkFunction[T]): DataStream[T] =
-    javaStream.addSink(sinkFuntion)
+  def addSink(sinkFunction: SinkFunction[T]): DataStream[T] =
+    javaStream.addSink(sinkFunction)
 
   /**
    * Adds the given sink to this DataStream. Only streams with sinks added

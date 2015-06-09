@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*    http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.flink.streaming.examples.windowing;
 
@@ -31,13 +31,17 @@ import java.util.Arrays;
 import java.util.Random;
 
 /**
-* An example of grouped stream windowing where different eviction and trigger
-* policies can be used. A source fetches events from cars every 1 sec
-* containing their id, their current speed (kmh), overall elapsed distance (m)
-* and a timestamp. The streaming example triggers the top speed of each car
-* every x meters elapsed for the last y seconds.
-*/
+ * An example of grouped stream windowing where different eviction and trigger
+ * policies can be used. A source fetches events from cars every 1 sec
+ * containing their id, their current speed (kmh), overall elapsed distance (m)
+ * and a timestamp. The streaming example triggers the top speed of each car
+ * every x meters elapsed for the last y seconds.
+ */
 public class TopSpeedWindowingExample {
+
+	// *************************************************************************
+	// PROGRAM
+	// *************************************************************************
 
 	public static void main(String[] args) throws Exception {
 
@@ -58,6 +62,9 @@ public class TopSpeedWindowingExample {
 				.window(Time.of(evictionSec, new CarTimestamp()))
 				.every(Delta.of(triggerMeters,
 						new DeltaFunction<Tuple4<Integer, Integer, Double, Long>>() {
+							private static final long serialVersionUID = 1L;
+
+
 							@Override
 							public double getDelta(
 									Tuple4<Integer, Integer, Double, Long> oldDataPoint,
@@ -74,6 +81,10 @@ public class TopSpeedWindowingExample {
 		env.execute("CarTopSpeedWindowingExample");
 	}
 
+	// *************************************************************************
+	// USER FUNCTIONS
+	// *************************************************************************
+
 	private static class CarSource implements SourceFunction<Tuple4<Integer, Integer, Double, Long>> {
 
 		private static final long serialVersionUID = 1L;
@@ -82,7 +93,7 @@ public class TopSpeedWindowingExample {
 
 		private Random rand = new Random();
 
-		private int carId = 0;
+		private volatile boolean isRunning = true;
 
 		private CarSource(int numOfCars) {
 			speeds = new Integer[numOfCars];
@@ -96,27 +107,28 @@ public class TopSpeedWindowingExample {
 		}
 
 		@Override
-		public boolean reachedEnd() throws Exception {
-			return false;
+		public void run(SourceContext<Tuple4<Integer, Integer, Double, Long>> ctx) throws Exception {
+
+			while (isRunning) {
+				Thread.sleep(1000);
+				for (int carId = 0; carId < speeds.length; carId++) {
+					if (rand.nextBoolean()) {
+						speeds[carId] = Math.min(100, speeds[carId] + 5);
+					} else {
+						speeds[carId] = Math.max(0, speeds[carId] - 5);
+					}
+					distances[carId] += speeds[carId] / 3.6d;
+					Tuple4<Integer, Integer, Double, Long> record = new Tuple4<Integer, Integer, Double, Long>(carId,
+							speeds[carId], distances[carId], System.currentTimeMillis());
+					ctx.collect(record);
+				}
+			}
 		}
 
 		@Override
-		public Tuple4<Integer, Integer, Double, Long> next() throws Exception {
-			if (rand.nextBoolean()) {
-				speeds[carId] = Math.min(100, speeds[carId] + 5);
-			} else {
-				speeds[carId] = Math.max(0, speeds[carId] - 5);
-			}
-			distances[carId] += speeds[carId] / 3.6d;
-			Tuple4<Integer, Integer, Double, Long> record = new Tuple4<Integer, Integer, Double, Long>(carId,
-					speeds[carId], distances[carId], System.currentTimeMillis());
-			carId++;
-			if (carId >= speeds.length) {
-				carId = 0;
-			}
-			return record;
+		public void cancel() {
+			isRunning = false;
 		}
-
 	}
 
 	private static class ParseCarData extends
@@ -133,12 +145,17 @@ public class TopSpeedWindowingExample {
 	}
 
 	private static class CarTimestamp implements Timestamp<Tuple4<Integer, Integer, Double, Long>> {
+		private static final long serialVersionUID = 1L;
 
 		@Override
 		public long getTimestamp(Tuple4<Integer, Integer, Double, Long> value) {
 			return value.f3;
 		}
 	}
+
+	// *************************************************************************
+	// UTIL METHODS
+	// *************************************************************************
 
 	private static boolean fileInput = false;
 	private static boolean fileOutput = false;
@@ -151,18 +168,13 @@ public class TopSpeedWindowingExample {
 	private static boolean parseParameters(String[] args) {
 
 		if (args.length > 0) {
-			if (args.length == 3) {
-				numOfCars = Integer.valueOf(args[0]);
-				evictionSec = Integer.valueOf(args[1]);
-				triggerMeters = Double.valueOf(args[2]);
-			} else if (args.length == 2) {
+			if (args.length == 2) {
 				fileInput = true;
 				fileOutput = true;
 				inputPath = args[0];
 				outputPath = args[1];
 			} else {
-				System.err
-						.println("Usage: TopSpeedWindowingExample <numCars> <evictSec> <triggerMeters>");
+				System.err.println("Usage: TopSpeedWindowingExample <input path> <output path>");
 				return false;
 			}
 		}

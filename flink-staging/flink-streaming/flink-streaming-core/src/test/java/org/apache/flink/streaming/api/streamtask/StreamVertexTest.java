@@ -44,22 +44,23 @@ public class StreamVertexTest {
 	private static Map<Integer, Integer> data = new HashMap<Integer, Integer>();
 
 	public static class MySource implements SourceFunction<Tuple1<Integer>> {
+		private static final long serialVersionUID = 1L;
+
 		private Tuple1<Integer> tuple = new Tuple1<Integer>(0);
 
 		private int i = 0;
 
 		@Override
-		public boolean reachedEnd() throws Exception {
-			return i >= 10;
+		public void run(SourceContext<Tuple1<Integer>> ctx) throws Exception {
+			for (int i = 0; i < 10; i++) {
+				tuple.f0 = i;
+				ctx.collect(tuple);
+			}
 		}
 
 		@Override
-		public Tuple1<Integer> next() throws Exception {
-			tuple.f0 = i;
-			i++;
-			return tuple;
+		public void cancel() {
 		}
-
 	}
 
 	public static class MyTask extends RichMapFunction<Tuple1<Integer>, Tuple2<Integer, Integer>> {

@@ -46,13 +46,11 @@ public class ChainedRuntimeContextTest {
 	private static class TestSource extends RichParallelSourceFunction<Integer> {
 
 		@Override
-		public boolean reachedEnd() throws Exception {
-			return true;
+		public void run(SourceContext<Integer> ctx) throws Exception {
 		}
 
 		@Override
-		public Integer next() throws Exception {
-			return null;
+		public void cancel() {
 		}
 
 		@Override

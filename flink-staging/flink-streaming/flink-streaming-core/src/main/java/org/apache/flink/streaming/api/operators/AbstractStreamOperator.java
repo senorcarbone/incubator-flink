@@ -37,11 +37,13 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
 	public transient Output<OUT> output;
 
+	protected boolean inputCopyDisabled = false;
+
 	// A sane default for most operators
 	protected ChainingStrategy chainingStrategy = ChainingStrategy.HEAD;
 
 	@Override
-	public final void setup(Output<OUT> output, RuntimeContext runtimeContext) {
+	public void setup(Output<OUT> output, RuntimeContext runtimeContext) {
 		this.output = output;
 		this.executionConfig = runtimeContext.getExecutionConfig();
 		this.runtimeContext = runtimeContext;
@@ -63,5 +65,18 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 	@Override
 	public final ChainingStrategy getChainingStrategy() {
 		return chainingStrategy;
+	}
+
+	@Override
+	public boolean isInputCopyingDisabled() {
+		return inputCopyDisabled;
+	}
+
+	/**
+	 * Enable object-reuse for this operator instance. This overrides the setting in
+	 * the {@link org.apache.flink.api.common.ExecutionConfig}/
+	 */
+	public void disableInputCopy() {
+		this.inputCopyDisabled = true;
 	}
 }

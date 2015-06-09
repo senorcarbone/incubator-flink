@@ -55,7 +55,7 @@ under the License.
 
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-streaming-connectors</artifactId>
+			<artifactId>flink-connector-twitter</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
@@ -370,29 +370,6 @@ under the License.
 								<include>org/apache/flink/streaming/examples/socket/SocketTextStreamWordCount.class</include>
 								<include>org/apache/flink/streaming/examples/wordcount/WordCount.class</include>
 								<include>org/apache/flink/streaming/examples/wordcount/WordCount$*.class</include>
-							</includes>
-						</configuration>
-					</execution>
-
-					<!-- StockPrices -->
-					<execution>
-						<id>StockPrices</id>
-						<phase>package</phase>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-						<configuration>
-							<classifier>StockPrices</classifier>
-
-							<archive>
-								<manifestEntries>
-									<program-class>org.apache.flink.streaming.examples.windowing.StockPrices</program-class>
-								</manifestEntries>
-							</archive>
-
-							<includes>
-								<include>org/apache/flink/streaming/examples/windowing/StockPrices.class</include>
-								<include>org/apache/flink/streaming/examples/windowing/StockPrices$*.class</include>
 							</includes>
 						</configuration>
 					</execution>

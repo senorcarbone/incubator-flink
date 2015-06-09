@@ -83,10 +83,9 @@ under the License.
 		<akka.version>2.3.7</akka.version>
 		<scala.macros.version>2.0.1</scala.macros.version>
 		<kryoserialization.version>0.3.2</kryoserialization.version>
-		<protobuf.version>2.5.0</protobuf.version>
 		<chill.version>0.5.2</chill.version>
-		<asm.version>5.0.3</asm.version>
-        <tez.version>0.6.0</tez.version>
+		<asm.version>5.0.4</asm.version>
+		<tez.version>0.6.1</tez.version>
 	</properties>
 
 	<dependencies>
@@ -624,6 +623,7 @@ under the License.
 								</goals>
 								<configuration>
 									<additionalparam>-Xdoclint:none</additionalparam>
+									<detectOfflineLinks>false</detectOfflineLinks>
 								</configuration>
 							</execution>
 						</executions>
@@ -734,6 +734,7 @@ under the License.
 						<!-- Administrative files in the main trunk. -->
 						<exclude>**/README.md</exclude>
 						<exclude>CHANGELOG</exclude>
+						<exclude>CONTRIBUTING.md</exclude>
 						<exclude>CONTRIBUTORS</exclude>
 						<exclude>DEPENDENCIES</exclude>
 						<!-- Build files -->
@@ -878,8 +879,9 @@ under the License.
 							<createDependencyReducedPom>true</createDependencyReducedPom>
 							<dependencyReducedPomLocation>${project.basedir}/target/dependency-reduced-pom.xml</dependencyReducedPomLocation>
 							<filters>
+								<!-- Globally exclude log4j.properties from our JAR files. -->
 								<filter>
-									<artifact>org.apache.flink:*</artifact>
+									<artifact>*</artifact>
 									<excludes>
 										<exclude>log4j.properties</exclude>
 										<exclude>log4j-test.properties</exclude>

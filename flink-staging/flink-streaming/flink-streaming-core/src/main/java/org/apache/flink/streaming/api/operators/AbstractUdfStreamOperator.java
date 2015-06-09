@@ -19,6 +19,7 @@
 package org.apache.flink.streaming.api.operators;
 
 import org.apache.flink.api.common.functions.Function;
+import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.functions.util.FunctionUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.checkpoint.CheckpointCommitter;
@@ -43,9 +44,15 @@ public abstract class AbstractUdfStreamOperator<OUT, F extends Function & Serial
 	}
 
 	@Override
+	public final void setup(Output<OUT> output, RuntimeContext runtimeContext) {
+		super.setup(output, runtimeContext);
+		FunctionUtils.setFunctionRuntimeContext(userFunction, runtimeContext);
+	}
+
+
+	@Override
 	public void open(Configuration parameters) throws Exception {
 		super.open(parameters);
-		FunctionUtils.setFunctionRuntimeContext(userFunction, runtimeContext);
 		FunctionUtils.openFunction(userFunction, parameters);
 	}
 
@@ -82,6 +89,10 @@ public abstract class AbstractUdfStreamOperator<OUT, F extends Function & Serial
 				throw new Exception("Error while confirming checkpoint " + checkpointId + " to the stream function", e);
 			}
 		}
+	}
+
+	public F getUserFunction() {
+		return userFunction;
 	}
 
 	private static <T extends Serializable> void setStateOnFunction(Serializable state, Function function) {

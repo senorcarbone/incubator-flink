@@ -17,64 +17,51 @@
 
 package org.apache.flink.streaming.connectors.kafka;
 
-import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.connectors.kafka.api.KafkaSink;
 import org.apache.flink.streaming.util.serialization.JavaDefaultStringSchema;
 
+@SuppressWarnings("serial")
 public class KafkaProducerExample {
 
-	private static String host;
-	private static int port;
-	private static String topic;
-
 	public static void main(String[] args) throws Exception {
-
-		if (!parseParameters(args)) {
+		
+		if (args.length < 3) {
+			System.err.println("Usage: KafkaProducerExample <host> <port> <topic>");
 			return;
 		}
 
+		final String host = args[0];
+		final int port = Integer.parseInt(args[1]);
+		final String topic = args[2];
+
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment().setParallelism(4);
-
-		@SuppressWarnings({ "unused", "serial" })
-		DataStream<String> stream1 = env.addSource(new SourceFunction<String>() {
-
-			private int index = 0;
-
+		
+		env.addSource(new SourceFunction<String>() {
+			
+			private volatile boolean running = true;
+			
 			@Override
-			public boolean reachedEnd() throws Exception {
-				return index >= 20;
-			}
-
-			@Override
-			public String next() throws Exception {
-				if (index < 20) {
-					String result = "message #" + index;
-					index++;
-					return result;
+			public void run(SourceContext<String> ctx) throws Exception {
+				for (int i = 0; i < 20 && running; i++) {
+					ctx.collect("message #" + i);
+					Thread.sleep(100L);
 				}
 
-				return "q";
+				ctx.collect("q");
 			}
 
-		}).addSink(
-				new KafkaSink<String>(host + ":" + port, topic, new JavaDefaultStringSchema())
-		)
-		.setParallelism(3);
+			@Override
+			public void cancel() {
+				running = false;
+			}
+
+
+		})
+			.addSink(new KafkaSink<String>(host + ":" + port, topic, new JavaDefaultStringSchema()))
+				.setParallelism(3);
 
 		env.execute();
-	}
-
-	private static boolean parseParameters(String[] args) {
-		if (args.length == 3) {
-			host = args[0];
-			port = Integer.parseInt(args[1]);
-			topic = args[2];
-			return true;
-		} else {
-			System.err.println("Usage: KafkaProducerExample <host> <port> <topic>");
-			return false;
-		}
 	}
 }

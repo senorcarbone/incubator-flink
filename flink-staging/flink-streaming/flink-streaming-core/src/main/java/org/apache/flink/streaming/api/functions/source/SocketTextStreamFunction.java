@@ -44,11 +44,7 @@ public class SocketTextStreamFunction extends RichSourceFunction<String> {
 	private static final int CONNECTION_TIMEOUT_TIME = 0;
 	private static final int CONNECTION_RETRY_SLEEP = 1000;
 
-	private transient StringBuffer buffer;
-	private transient BufferedReader reader;
-
-	private boolean socketClosed;
-	private transient String nextElement;
+	private volatile boolean isRunning;
 
 	public SocketTextStreamFunction(String hostname, int port, char delimiter, long maxRetry) {
 		this.hostname = hostname;
@@ -63,18 +59,81 @@ public class SocketTextStreamFunction extends RichSourceFunction<String> {
 		super.open(parameters);
 		socket = new Socket();
 		socket.connect(new InetSocketAddress(hostname, port), CONNECTION_TIMEOUT_TIME);
-		buffer = new StringBuffer();
-		reader = new BufferedReader(new InputStreamReader(
-				socket.getInputStream()));
-		socketClosed = false;
+		isRunning = true;
 	}
 
 	@Override
-	public void close() throws Exception {
-		super.close();
-		if (reader != null) {
-			reader.close();
+	public void run(SourceContext<String> ctx) throws Exception {
+		streamFromSocket(ctx, socket);
+	}
+
+	public void streamFromSocket(SourceContext<String> ctx, Socket socket) throws Exception {
+		try {
+			StringBuffer buffer = new StringBuffer();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(
+					socket.getInputStream()));
+
+			while (isRunning) {
+				int data;
+				try {
+					data = reader.read();
+				} catch (SocketException e) {
+					if (!isRunning) {
+						break;
+					} else {
+						throw e;
+					}
+				}
+
+				if (data == -1) {
+					socket.close();
+					long retry = 0;
+					boolean success = false;
+					while (retry < maxRetry && !success) {
+						if (!retryForever) {
+							retry++;
+						}
+						LOG.warn("Lost connection to server socket. Retrying in "
+								+ (CONNECTION_RETRY_SLEEP / 1000) + " seconds...");
+						try {
+							socket = new Socket();
+							socket.connect(new InetSocketAddress(hostname, port),
+									CONNECTION_TIMEOUT_TIME);
+							success = true;
+						} catch (ConnectException ce) {
+							Thread.sleep(CONNECTION_RETRY_SLEEP);
+						}
+					}
+
+					if (success) {
+						LOG.info("Server socket is reconnected.");
+					} else {
+						LOG.error("Could not reconnect to server socket.");
+						break;
+					}
+					reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+					continue;
+				}
+
+				if (data == delimiter) {
+					ctx.collect(buffer.toString());
+					buffer = new StringBuffer();
+				} else if (data != '\r') { // ignore carriage return
+					buffer.append((char) data);
+				}
+			}
+
+			if (buffer.length() > 0) {
+				ctx.collect(buffer.toString());
+			}
+		} finally {
+			socket.close();
 		}
+	}
+
+	@Override
+	public void cancel() {
+		isRunning = false;
 		if (socket != null && !socket.isClosed()) {
 			try {
 				socket.close();
@@ -84,81 +143,5 @@ public class SocketTextStreamFunction extends RichSourceFunction<String> {
 				}
 			}
 		}
-
 	}
-
-	public String blockingRead(Socket socket) throws Exception {
-
-		while (true) {
-			int data;
-			try {
-				data = reader.read();
-			} catch (SocketException e) {
-				socketClosed = true;
-				break;
-			}
-
-			if (data == -1) {
-				socket.close();
-				long retry = 0;
-				boolean success = false;
-				while (retry < maxRetry && !success) {
-					if (!retryForever) {
-						retry++;
-					}
-					LOG.warn("Lost connection to server socket. Retrying in "
-							+ (CONNECTION_RETRY_SLEEP / 1000) + " seconds...");
-					try {
-						socket = new Socket();
-						socket.connect(new InetSocketAddress(hostname, port),
-								CONNECTION_TIMEOUT_TIME);
-						success = true;
-					} catch (ConnectException ce) {
-						Thread.sleep(CONNECTION_RETRY_SLEEP);
-					}
-				}
-
-				if (success) {
-					LOG.info("Server socket is reconnected.");
-				} else {
-					LOG.error("Could not reconnect to server socket.");
-					break;
-				}
-				reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				continue;
-			}
-
-			if (data == delimiter) {
-				String result = buffer.toString();
-				buffer = new StringBuffer();
-				return result;
-			} else if (data != '\r') { // ignore carriage return
-				buffer.append((char) data);
-			}
-		}
-
-		return null;
-	}
-
-
-	@Override
-	public boolean reachedEnd() throws Exception {
-		if (socketClosed) {
-			return false;
-		}
-
-		nextElement = blockingRead(socket);
-
-		return nextElement == null;
-	}
-
-	@Override
-	public String next() throws Exception {
-		if (nextElement == null) {
-			reachedEnd();
-		}
-
-		return nextElement;
-	}
-
 }
