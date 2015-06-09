@@ -23,7 +23,12 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.Configuration;
-import org.apache.flink.streaming.sampling.samplers.*;
+import org.apache.flink.streaming.sampling.samplers.BiasedReservoirSampler;
+import org.apache.flink.streaming.sampling.samplers.ChainSampler;
+import org.apache.flink.streaming.sampling.samplers.FiFoSampler;
+import org.apache.flink.streaming.sampling.samplers.PrioritySampler;
+import org.apache.flink.streaming.sampling.samplers.UniformSampler;
+import org.apache.flink.streaming.sampling.samplers.StreamSampler;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 
 /**
