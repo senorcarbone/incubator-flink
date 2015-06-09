@@ -34,16 +34,15 @@ public class DebugSource implements SourceFunction<Long> {
 	}
 
 	@Override
-	public boolean reachedEnd() throws Exception {
-		if (count < end) {
-			return false;
+	public void run(SourceContext<Long> ctx) throws Exception {
+		while (count < end) {
+			count ++;
+			ctx.collect(count);
 		}
-		return true;
 	}
 
 	@Override
-	public Long next() throws Exception {
-		count++;
-		return count;
+	public void cancel() {
+		//
 	}
 }

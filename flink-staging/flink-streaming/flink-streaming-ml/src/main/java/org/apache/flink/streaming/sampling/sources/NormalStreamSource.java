@@ -64,35 +64,28 @@ public class NormalStreamSource implements SourceFunction<GaussianDistribution> 
 		}
 	}
 
+
 	@Override
-	public boolean reachedEnd() throws Exception {
-		if (count < numberOfEvents) {
-			return false;
+	public void run(SourceContext<GaussianDistribution> ctx) throws Exception {
+		while (count < numberOfEvents) {
+			count ++;
+			if (count < stablePoints) {
+				ctx.collect(new GaussianDistribution(mean, stDev, outlierRate));
+			} else if (count < numberOfEvents - stablePoints) {
+				long interval = numberOfEvents - 2 * stablePoints;
+				long countc = count - stablePoints;
+				double multiplier = Math.floor(countc * steps / interval);
+				mean = meanInit + meanStep * multiplier;
+				stDev = stDevInit + stDevStep * multiplier;
+				ctx.collect(new GaussianDistribution(mean, stDev, outlierRate));
+			} else {
+				ctx.collect(new GaussianDistribution(mean, stDev, outlierRate));
+			}
 		}
-		return true;
 	}
 
 	@Override
-	public GaussianDistribution next() throws Exception {
-		if (count < stablePoints) {
-			count++;
-			return new GaussianDistribution(mean, stDev, outlierRate);
-		} else if (count < numberOfEvents - stablePoints) {
-			long interval = numberOfEvents - 2 * stablePoints;
-			long countc = count - stablePoints;
-			double multiplier = Math.floor(countc * steps / interval);
-			mean = meanInit + meanStep * multiplier;
-			stDev = stDevInit + stDevStep * multiplier;
-			count++;
-			return new GaussianDistribution(mean, stDev, outlierRate);
-		} else if (count < numberOfEvents) {
-			count++;
-			return new GaussianDistribution(mean, stDev, outlierRate);
-		} else {
-			return null;
-		}
+	public void cancel() {
 
 	}
-
-
 }
