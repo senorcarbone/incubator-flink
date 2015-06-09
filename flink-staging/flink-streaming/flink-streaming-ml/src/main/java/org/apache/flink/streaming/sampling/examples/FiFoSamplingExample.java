@@ -33,6 +33,7 @@ import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 public class FiFoSamplingExample {
 
 	public static String outputPath;
+	public static int sample_size;
 
 	// *************************************************************************
 	// PROGRAM
@@ -69,16 +70,16 @@ public class FiFoSamplingExample {
 
 
 		/*create samplerS*/
-		FiFoSampler<Double> fifoSampler1000 = new FiFoSampler<Double>(Configuration.SAMPLE_SIZE_1000, 100);
-		FiFoSampler<Double> fifoSampler5000 = new FiFoSampler<Double>(Configuration.SAMPLE_SIZE_5000, 100);
-		FiFoSampler<Double> fifoSampler10000 = new FiFoSampler<Double>(Configuration.SAMPLE_SIZE_10000, 100);
-		FiFoSampler<Double> fifoSampler50000 = new FiFoSampler<Double>(Configuration.SAMPLE_SIZE_50000, 100);
+		FiFoSampler<Double> fifoSampler1000 = new FiFoSampler<Double>(sample_size, 100);
+		//FiFoSampler<Double> fifoSampler5000 = new FiFoSampler<Double>(Configuration.SAMPLE_SIZE_5000, 100);
+		//FiFoSampler<Double> fifoSampler10000 = new FiFoSampler<Double>(Configuration.SAMPLE_SIZE_10000, 100);
+		//FiFoSampler<Double> fifoSampler50000 = new FiFoSampler<Double>(Configuration.SAMPLE_SIZE_50000, 100);
 
 		/*sample*/
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(fifoSampler1000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(fifoSampler5000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(fifoSampler10000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(fifoSampler50000));
+		doubleStream.transform("fiFoSample", doubleStream.getType(), new StreamSampler<Double>(fifoSampler1000));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(fifoSampler5000));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(fifoSampler10000));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(fifoSampler50000));
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
@@ -100,13 +101,15 @@ public class FiFoSamplingExample {
 
 	private static boolean parseParameters(String[] args) {
 		if (args.length == 1) {
-			outputPath = args[0];
-			return true;
-		} else if (args.length == 0) {
+			sample_size = Integer.parseInt(args[0]);
 			outputPath = "";
 			return true;
+		} else if (args.length == 2) {
+			sample_size = Integer.parseInt(args[0]);
+			outputPath = args[1];
+			return true;
 		} else {
-			System.err.println("Usage: FiFoSamplingExample <path>");
+			System.err.println("Usage: FiFoSamplingExample <size> <path>");
 			return false;
 		}
 	}

@@ -33,6 +33,7 @@ import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 public class ReservoirSamplingExample {
 
 	public static String outputPath;
+	public static int sample_size;
 
 	// *************************************************************************
 	// PROGRAM
@@ -69,16 +70,16 @@ public class ReservoirSamplingExample {
 
 
 		/*create samplerS*/
-		UniformSampler<Double> uniformSampler1000 = new UniformSampler<Double>(Configuration.SAMPLE_SIZE_1000, 100);
-		UniformSampler<Double> uniformSampler5000 = new UniformSampler<Double>(Configuration.SAMPLE_SIZE_5000, 100);
-		UniformSampler<Double> uniformSampler10000 = new UniformSampler<Double>(Configuration.SAMPLE_SIZE_10000, 100);
-		UniformSampler<Double> uniformSampler50000 = new UniformSampler<Double>(Configuration.SAMPLE_SIZE_50000, 100);
+		UniformSampler<Double> uniformSampler1000 = new UniformSampler<Double>(sample_size, 100);
+		//UniformSampler<Double> uniformSampler5000 = new UniformSampler<Double>(Configuration.SAMPLE_SIZE_5000, 100);
+		//UniformSampler<Double> uniformSampler10000 = new UniformSampler<Double>(Configuration.SAMPLE_SIZE_10000, 100);
+		//UniformSampler<Double> uniformSampler50000 = new UniformSampler<Double>(Configuration.SAMPLE_SIZE_50000, 100);
 
 		/*sample*/
 		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(uniformSampler1000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(uniformSampler5000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(uniformSampler10000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(uniformSampler50000));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(uniformSampler5000));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(uniformSampler10000));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(uniformSampler50000));
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
@@ -106,7 +107,7 @@ public class ReservoirSamplingExample {
 			outputPath = "";
 			return true;
 		} else {
-			System.err.println("Usage: ReservoirSamplingExample <path>");
+			System.err.println("Usage: ReservoirSamplingExample <size> <path>");
 			return false;
 		}
 	}

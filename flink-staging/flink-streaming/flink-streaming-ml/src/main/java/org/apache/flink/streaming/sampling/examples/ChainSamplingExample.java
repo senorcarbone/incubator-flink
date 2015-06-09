@@ -33,6 +33,7 @@ import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 public class ChainSamplingExample {
 
 	public static String outputPath;
+	public static int sample_size;
 
 	// *************************************************************************
 	// PROGRAM
@@ -69,16 +70,16 @@ public class ChainSamplingExample {
 
 
 		/*create samplerS*/
-		ChainSampler<Double> chainSampler1000 = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_1000, Configuration.countWindowSize, 100);
-		ChainSampler<Double> chainSampler5000 = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_5000, Configuration.countWindowSize, 100);
-		ChainSampler<Double> chainSampler10000 = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_10000, Configuration.countWindowSize, 100);
-		ChainSampler<Double> chainSampler50000 = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_50000, Configuration.countWindowSize, 100);
+		ChainSampler<Double> chainSampler1000 = new ChainSampler<Double>(sample_size, Configuration.countWindowSize, 100);
+		//ChainSampler<Double> chainSampler5000 = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_5000, Configuration.countWindowSize, 100);
+		//ChainSampler<Double> chainSampler10000 = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_10000, Configuration.countWindowSize, 100);
+		//ChainSampler<Double> chainSampler50000 = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_50000, Configuration.countWindowSize, 100);
 
 		/*sample*/
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler1000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler5000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler10000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler50000));
+		doubleStream.transform("chainSampler", doubleStream.getType(), new StreamSampler<Double>(chainSampler1000));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler5000));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler10000));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler50000));
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
@@ -100,13 +101,15 @@ public class ChainSamplingExample {
 
 	private static boolean parseParameters(String[] args) {
 		if (args.length == 1) {
-			outputPath = args[0];
+			sample_size = Integer.parseInt(args[0]);
+			outputPath = "";
 			return true;
-		} else if (args.length == 0) {
-			outputPath = "/home/marthavk/workspace/flink/flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/distributionComparison/";
+		} else if (args.length == 2) {
+			sample_size = Integer.parseInt(args[0]);
+			outputPath = args[1];
 			return true;
 		} else {
-			System.err.println("Usage: ChainSamplingExample <path>");
+			System.err.println("Usage: ChainSamplingExample <size> <path>");
 			return false;
 		}
 	}

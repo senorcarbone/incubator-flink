@@ -152,7 +152,7 @@ public class SamplingExample {
 			outputPath = "";
 			return true;
 		} else {
-			System.err.println("Usage: ReservoirSamplingExample <path>");
+			System.err.println("Usage: SamplingExample <path>");
 			return false;
 		}
 	}

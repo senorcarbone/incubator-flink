@@ -33,6 +33,7 @@ import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 public class PrioritySamplingExample {
 
 	public static String outputPath;
+	public static int sample_size;
 
 	// *************************************************************************
 	// PROGRAM
@@ -69,16 +70,16 @@ public class PrioritySamplingExample {
 
 
 		/*create samplerS*/
-		PrioritySampler<Double> prioritySampler1000 = new PrioritySampler<Double>(Configuration.SAMPLE_SIZE_1000, Configuration.timeWindowSize, 100);
-		PrioritySampler<Double> prioritySampler5000 = new PrioritySampler<Double>(Configuration.SAMPLE_SIZE_5000, Configuration.timeWindowSize, 100);
-		PrioritySampler<Double> prioritySampler10000 = new PrioritySampler<Double>(Configuration.SAMPLE_SIZE_10000, Configuration.timeWindowSize, 100);
-		PrioritySampler<Double> prioritySampler50000 = new PrioritySampler<Double>(Configuration.SAMPLE_SIZE_50000, Configuration.timeWindowSize, 100);
+		PrioritySampler<Double> prioritySampler1000 = new PrioritySampler<Double>(sample_size, Configuration.timeWindowSize, 100);
+		//PrioritySampler<Double> prioritySampler5000 = new PrioritySampler<Double>(Configuration.SAMPLE_SIZE_5000, Configuration.timeWindowSize, 100);
+		//PrioritySampler<Double> prioritySampler10000 = new PrioritySampler<Double>(Configuration.SAMPLE_SIZE_10000, Configuration.timeWindowSize, 100);
+		//PrioritySampler<Double> prioritySampler50000 = new PrioritySampler<Double>(Configuration.SAMPLE_SIZE_50000, Configuration.timeWindowSize, 100);
 
 		/*sample*/
 		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(prioritySampler1000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(prioritySampler5000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(prioritySampler10000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(prioritySampler50000));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(prioritySampler5000));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(prioritySampler10000));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(prioritySampler50000));
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
@@ -100,13 +101,15 @@ public class PrioritySamplingExample {
 
 	private static boolean parseParameters(String[] args) {
 		if (args.length == 1) {
-			outputPath = args[0];
-			return true;
-		} else if (args.length == 0) {
+			sample_size = Integer.parseInt(args[0]);
 			outputPath = "";
 			return true;
+		} else if (args.length == 2) {
+			sample_size = Integer.parseInt(args[0]);
+			outputPath = args[1];
+			return true;
 		} else {
-			System.err.println("Usage: PrioritySamplingExample <path>");
+			System.err.println("Usage: PrioritySamplingExample <size> <path>");
 			return false;
 		}
 	}
