@@ -91,7 +91,7 @@ public class GaussianDistribution implements Serializable, NumberGenerator<Doubl
 	}
 
 	public double inverseCumulativeProbability(double p) {
-		if(p >= 0.0D && p <= 1.0D) {
+		if (p >= 0.0D && p <= 1.0D) {
 			return this.mean + this.sigma * Math.sqrt(2.0D) * erfInv(2.0D * p - 1.0D);
 		} else {
 			String error = "" + Double.valueOf(p) + ", " + Integer.valueOf(0) + ", " + Integer.valueOf(1);
@@ -103,7 +103,7 @@ public class GaussianDistribution implements Serializable, NumberGenerator<Doubl
 	public static double erfInv(double x) {
 		double w = -Math.log((1.0D - x) * (1.0D + x));
 		double p;
-		if(w < 6.25D) {
+		if (w < 6.25D) {
 			w -= 3.125D;
 			p = -3.64441206401782E-21D;
 			p = -1.6850591381820166E-19D + p * w;
@@ -128,7 +128,7 @@ public class GaussianDistribution implements Serializable, NumberGenerator<Doubl
 			p = -0.006033670871430149D + p * w;
 			p = 0.24015818242558962D + p * w;
 			p = 1.6536545626831027D + p * w;
-		} else if(w < 16.0D) {
+		} else if (w < 16.0D) {
 			w = Math.sqrt(w) - 3.25D;
 			p = 2.2137376921775787E-9D;
 			p = 9.075656193888539E-8D + p * w;
@@ -149,7 +149,7 @@ public class GaussianDistribution implements Serializable, NumberGenerator<Doubl
 			p = 0.005370914553590064D + p * w;
 			p = 1.0052589676941592D + p * w;
 			p = 3.0838856104922208D + p * w;
-		} else if(!Double.isInfinite(w)) {
+		} else if (!Double.isInfinite(w)) {
 			w = Math.sqrt(w) - 5.0D;
 			p = -2.7109920616438573E-11D;
 			p = -2.555641816996525E-10D + p * w;

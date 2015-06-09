@@ -17,6 +17,7 @@
  */
 
 package org.apache.flink.streaming.sampling.examples;
+
 import org.apache.flink.streaming.api.scala.DataStream;
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;

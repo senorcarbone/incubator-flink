@@ -36,7 +36,7 @@ public class DebugSource implements SourceFunction<Long> {
 	@Override
 	public void run(SourceContext<Long> ctx) throws Exception {
 		while (count < end) {
-			count ++;
+			count++;
 			ctx.collect(count);
 		}
 	}
