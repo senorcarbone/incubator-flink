@@ -18,7 +18,7 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
-import org.apache.flink.streaming.sampling.examples.BiasedReservoirSamplingExample;
+import org.apache.flink.streaming.sampling.helpers.Configuration;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.util.ArrayList;
@@ -77,6 +77,6 @@ public class BiasedReservoirSampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public String getFilename() {
-		return BiasedReservoirSamplingExample.outputPath + "biased" + reservoir.getMaxSize();
+		return Configuration.outputPath + "biased" + reservoir.getMaxSize();
 	}
 }

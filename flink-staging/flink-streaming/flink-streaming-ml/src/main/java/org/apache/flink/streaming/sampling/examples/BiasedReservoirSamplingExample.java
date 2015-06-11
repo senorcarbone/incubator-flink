@@ -69,17 +69,11 @@ public class BiasedReservoirSamplingExample {
 				source.map(new DoubleDataGenerator<GaussianDistribution>());
 
 
-		/*create samplerS*/
-		//BiasedReservoirSampler<Double> biasedReservoirSampler1000 = new BiasedReservoirSampler<Double>(Configuration.SAMPLE_SIZE_1000, 100);
-		BiasedReservoirSampler<Double> biasedReservoirSampler5000 = new BiasedReservoirSampler<Double>(sample_size, 100);
-		//BiasedReservoirSampler<Double> biasedReservoirSampler10000 = new BiasedReservoirSampler<Double>(Configuration.SAMPLE_SIZE_10000, 100);
-		//BiasedReservoirSampler<Double> biasedReservoirSampler50000 = new BiasedReservoirSampler<Double>(Configuration.SAMPLE_SIZE_50000, 100);
+		/*create sampler*/
+		BiasedReservoirSampler<Double> biasedReservoirSampler = new BiasedReservoirSampler<Double>(sample_size, 100);
 
 		/*sample*/
-		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(biasedReservoirSampler1000));
-		doubleStream.transform("biasedReservoirSample", doubleStream.getType(), new StreamSampler<Double>(biasedReservoirSampler5000));
-		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(biasedReservoirSampler10000));
-		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(biasedReservoirSampler50000));
+		doubleStream.transform("sampleBS" + sample_size/1000 + "K", doubleStream.getType(), new StreamSampler<Double>(biasedReservoirSampler));
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
@@ -96,17 +90,19 @@ public class BiasedReservoirSamplingExample {
 	 * @return the DataStreamSource
 	 */
 	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
+		System.out.println("--- sample size: " + sample_size);
+		System.out.println("--- output path: " + Configuration.outputPath);
 		return env.addSource(new NormalStreamSource());
 	}
 
 	private static boolean parseParameters(String[] args) {
 		if (args.length == 1) {
 			sample_size = Integer.parseInt(args[0]);
-			outputPath = "";
+			Configuration.outputPath = "";
 			return true;
 		} else if (args.length == 2) {
 			sample_size = Integer.parseInt(args[0]);
-			outputPath = args[1];
+			Configuration.outputPath = args[1];
 			return true;
 		} else {
 			System.err.println("Usage: BiasedReservoirSamplingExample <size> <path>");

@@ -32,7 +32,6 @@ import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
  */
 public class FiFoSamplingExample {
 
-	public static String outputPath;
 	public static int sample_size;
 
 	// *************************************************************************
@@ -69,17 +68,11 @@ public class FiFoSamplingExample {
 				source.map(new DoubleDataGenerator<GaussianDistribution>());
 
 
-		/*create samplerS*/
+		/*create sampler*/
 		FiFoSampler<Double> fifoSampler1000 = new FiFoSampler<Double>(sample_size, 100);
-		//FiFoSampler<Double> fifoSampler5000 = new FiFoSampler<Double>(Configuration.SAMPLE_SIZE_5000, 100);
-		//FiFoSampler<Double> fifoSampler10000 = new FiFoSampler<Double>(Configuration.SAMPLE_SIZE_10000, 100);
-		//FiFoSampler<Double> fifoSampler50000 = new FiFoSampler<Double>(Configuration.SAMPLE_SIZE_50000, 100);
 
 		/*sample*/
-		doubleStream.transform("fiFoSample", doubleStream.getType(), new StreamSampler<Double>(fifoSampler1000));
-		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(fifoSampler5000));
-		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(fifoSampler10000));
-		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(fifoSampler50000));
+		doubleStream.transform("sampleFS" + sample_size/1000 + "K", doubleStream.getType(), new StreamSampler<Double>(fifoSampler1000));
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
@@ -96,17 +89,19 @@ public class FiFoSamplingExample {
 	 * @return the DataStreamSource
 	 */
 	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
+		System.out.println("--- sample size: " + sample_size);
+		System.out.println("--- output path: " + Configuration.outputPath);
 		return env.addSource(new NormalStreamSource());
 	}
 
 	private static boolean parseParameters(String[] args) {
 		if (args.length == 1) {
 			sample_size = Integer.parseInt(args[0]);
-			outputPath = "";
+			Configuration.outputPath = "";
 			return true;
 		} else if (args.length == 2) {
 			sample_size = Integer.parseInt(args[0]);
-			outputPath = args[1];
+			Configuration.outputPath = args[1];
 			return true;
 		} else {
 			System.err.println("Usage: FiFoSamplingExample <size> <path>");

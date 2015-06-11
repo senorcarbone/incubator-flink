@@ -18,7 +18,7 @@
 package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.streaming.sampling.examples.ChainSamplingExample;
+import org.apache.flink.streaming.sampling.helpers.Configuration;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.util.ArrayList;
@@ -100,7 +100,7 @@ public class ChainSampler<T> implements SampleFunction<T> {
 
 	@Override
 	public String getFilename() {
-		return ChainSamplingExample.outputPath + "chain" + windowSize + "w" + chainSample.getMaxSize() + "bs";
+		return Configuration.outputPath + "chain" + windowSize + "w" + chainSample.getMaxSize() + "bs";
 	}
 
 

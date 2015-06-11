@@ -64,4 +64,9 @@ public class Configuration {
 	//Page Hinkley Test parameters
 	public static double lambda = 15.0;
 	public static double delta = 3.0;
+
+	/**
+	 * PATHS
+	 */
+	public static String outputPath;
 }

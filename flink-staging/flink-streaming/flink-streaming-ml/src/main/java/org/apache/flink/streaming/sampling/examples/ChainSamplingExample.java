@@ -32,7 +32,6 @@ import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
  */
 public class ChainSamplingExample {
 
-	public static String outputPath;
 	public static int sample_size;
 
 	// *************************************************************************
@@ -71,15 +70,9 @@ public class ChainSamplingExample {
 
 		/*create samplerS*/
 		ChainSampler<Double> chainSampler1000 = new ChainSampler<Double>(sample_size, Configuration.countWindowSize, 100);
-		//ChainSampler<Double> chainSampler5000 = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_5000, Configuration.countWindowSize, 100);
-		//ChainSampler<Double> chainSampler10000 = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_10000, Configuration.countWindowSize, 100);
-		//ChainSampler<Double> chainSampler50000 = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_50000, Configuration.countWindowSize, 100);
 
 		/*sample*/
-		doubleStream.transform("chainSampler", doubleStream.getType(), new StreamSampler<Double>(chainSampler1000));
-		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler5000));
-		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler10000));
-		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler50000));
+		doubleStream.transform("sampleCS" + sample_size/1000 + "K", doubleStream.getType(), new StreamSampler<Double>(chainSampler1000));
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
@@ -96,17 +89,19 @@ public class ChainSamplingExample {
 	 * @return the DataStreamSource
 	 */
 	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
+		System.out.println("--- sample size: " + sample_size);
+		System.out.println("--- output path: " + Configuration.outputPath);
 		return env.addSource(new NormalStreamSource());
 	}
 
 	private static boolean parseParameters(String[] args) {
 		if (args.length == 1) {
 			sample_size = Integer.parseInt(args[0]);
-			outputPath = "";
+			Configuration.outputPath = "";
 			return true;
 		} else if (args.length == 2) {
 			sample_size = Integer.parseInt(args[0]);
-			outputPath = args[1];
+			Configuration.outputPath = args[1];
 			return true;
 		} else {
 			System.err.println("Usage: ChainSamplingExample <size> <path>");
