@@ -43,6 +43,7 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 	long millis;
 	int nanos;
 	long counter = 0;
+	final boolean printToFile = false;
 
 	/**
 	 * write to file *
@@ -57,7 +58,9 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 		super(userFunction);
 		this.sampler = userFunction;
 		sampleRate = sampler.getSampleRate();
-		filename = sampler.getFilename();
+		if (printToFile) {
+			filename = sampler.getFilename();
+		}
 		setTimeIntervals();
 	}
 
@@ -66,13 +69,14 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 
 		/** write to file **/
 		super.open(parameters);
-		file = new File(filename);
-		if (!file.exists()) {
-			file.createNewFile();
+		if (printToFile) {
+			file = new File(filename);
+			if (!file.exists()) {
+				file.createNewFile();
+			}
+			fw = new FileWriter(file.getAbsolutePath(), true);
+			pw = new PrintWriter(fw);
 		}
-		fw = new FileWriter(file.getAbsolutePath(), true);
-		pw = new PrintWriter(fw);
-
 
 		running = true;
 		FunctionUtils.setFunctionRuntimeContext(sampler, runtimeContext);
@@ -108,7 +112,9 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 	public void close() throws Exception {
 		super.close();
 		running = false;
-		pw.close();
+		if (printToFile) {
+			pw.close();
+		}
 
 	}
 
@@ -119,7 +125,9 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 			System.out.println(userFunction.getClass() + " " + counter);
 		}
 		sampler.sample(element);
-		pw.println(getDistributionOfBuffer());
+		if (printToFile) {
+			pw.println(getDistributionOfBuffer());
+		}
 	}
 
 	private void setTimeIntervals() {
@@ -128,7 +136,7 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 		nanos = (int) Math.round((number - millis) * 1000000);
 	}
 
-	private synchronized String getDistributionOfBuffer() {
+	private	 synchronized String getDistributionOfBuffer() {
 		SummaryStatistics stats = SamplingUtils.getStats((ArrayList<Double>) sampler.getElements());
 		Tuple2<Double, Double> outTuple = new Tuple2<Double, Double>(stats.getMean(), stats.getStandardDeviation());
 		return outTuple.toString();

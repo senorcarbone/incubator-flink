@@ -46,10 +46,11 @@ public class ReservoirSamplingExample {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		if (!parseParameters(args)) {
+		/*if (!parseParameters(args)) {
 			return;
-		}
-
+		}*/
+		Configuration.outputPath = "/home/marthavk/workspace/flink/flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/5/";
+		sample_size = 1000;
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.setParallelism(1);

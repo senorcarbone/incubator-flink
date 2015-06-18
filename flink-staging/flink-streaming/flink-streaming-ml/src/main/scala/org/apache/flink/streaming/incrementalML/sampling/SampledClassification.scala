@@ -1,3 +1,13 @@
+package org.apache.flink.streaming.incrementalML.sampling
+
+import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
+import org.apache.flink.ml.math.DenseVector
+import org.apache.flink.streaming.api.scala._
+import org.apache.flink.streaming.incrementalML.classification.HoeffdingTree
+import org.apache.flink.streaming.incrementalML.evaluator.PrequentialEvaluator
+import org.apache.flink.streaming.sampling.helpers.{Configuration, SamplingUtils}
+import org.apache.flink.streaming.sampling.samplers._
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,30 +26,21 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.incrementalML.test.sampling
-
-import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
-import org.apache.flink.ml.math.DenseVector
-import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.classification.HoeffdingTree
-import org.apache.flink.streaming.incrementalML.evaluator.PrequentialEvaluator
-import org.apache.flink.streaming.sampling.helpers.{Configuration, SamplingUtils}
-import org.apache.flink.streaming.sampling.samplers.{UniformSampler, BiasedReservoirSampler, SampleFunction, StreamSampler}
-import org.apache.flink.test.util.FlinkTestBase
-import org.scalatest.{FlatSpec, Matchers}
-
-
 /**
- * Created by marthavk on 2015-06-01.
+ * Created by marthavk on 2015-06-17.
  */
-class SamplingTest
-  extends FlatSpec
-  with Matchers
-  with FlinkTestBase {
+object SampledClassification {
 
-  behavior of "Flink's Very Fast Decision Tree algorithm"
+  // *************************************************************************
+  // PROGRAM
+  // *************************************************************************
 
-  it should "Create the classification HT of the given data set" in {
+
+  def main(args: Array[String]) {
+
+/*    if (!parseParameters(args)) {
+      return
+    }*/
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment
 
@@ -47,7 +48,7 @@ class SamplingTest
     val initProps = SamplingUtils.readProperties(SamplingUtils.path
       + "distributionconfig.properties")
 
-    //val file = "/home/marthavk/Desktop/thesis-all-docs/resources/dataSets/randomRBF/randomRBF-10M.arff"
+    val file = "/home/marthavk/Desktop/thesis-all-docs/resources/dataSets/randomRBF/randomRBF-10M.arff"
     //val max_count = initProps.getProperty("maxCount").toInt
     val sample_size = initProps.getProperty("sampleSize").toInt
 
@@ -64,8 +65,11 @@ class SamplingTest
     /*val biasedReservoirSampler1000: SampleFunction[LabeledVector] =
       new BiasedReservoirSampler[LabeledVector](Configuration.SAMPLE_SIZE_1000, 100)*/
 
-    val uniformSampler1000: SampleFunction[LabeledVector] =
-      new UniformSampler[LabeledVector](Configuration.SAMPLE_SIZE_1000, 100)
+    /*val reservoirSampler1000: SampleFunction[LabeledVector] =
+    new UniformSampler[LabeledVector](Configuration.SAMPLE_SIZE_1000, 100)*/
+
+    val fifoSampler1000: SampleFunction[LabeledVector] =
+    new FiFoSampler[LabeledVector](Configuration.SAMPLE_SIZE_1000, 100)
 
     // read datapoints for randomRBF dataset
     val dataPoints = env.readTextFile("/home/marthavk/Desktop/thesis-all-docs/resources/dataSets/randomRBF/randomRBF-10M.arff").map {
@@ -75,13 +79,15 @@ class SamplingTest
         for (i <- 0 until features.size - 1) {
           featureList = featureList :+ features(i).trim.toDouble
         }
-
         LabeledVector(features(features.size - 1).trim.toDouble, DenseVector(featureList.toArray))
       }
     }
 
+
+
+
     val sampler: StreamSampler[LabeledVector] =
-      new StreamSampler[LabeledVector](uniformSampler1000)
+      new StreamSampler[LabeledVector](fifoSampler1000)
 
     dataPoints.getJavaStream.transform("sample", dataPoints.getType, sampler)
 
@@ -90,11 +96,40 @@ class SamplingTest
 
     val streamToEvaluate = vfdTree.fit(dataPoints, parameters)
 
-    evaluator.evaluate(streamToEvaluate).writeAsText("/home/marthavk/Desktop/thesis-all-docs/results/classification_results/" + "rbf_RS1K100")
+    evaluator.evaluate(streamToEvaluate).writeAsText("/home/marthavk/Desktop/thesis-all-docs/results/classification_results/" + "rbf_FS1K1000")
       .setParallelism(1)
 
     env.execute()
+  }
 
+
+  // *************************************************************************
+  // UTIL METHODS
+  // *************************************************************************
+
+  private var fileInput: Boolean = false
+  private var fileOutput: Boolean = false
+
+  private var inputPath: String = null
+  private var outputPath: String = null
+
+  private def parseParameters(args: Array[String]): Boolean = {
+    if(args.length == 1) {
+      fileInput = true
+      inputPath = args(0)
+    }
+    else if (args.length == 2) {
+      fileInput = true
+      fileOutput = true
+      inputPath = args(0)
+      outputPath = args(1)
+    }
+    else {
+      System.err.println("Usage: SampledClassification <input path> or SampledClassification <input path> " +
+        "<output path>")
+      return false
+    }
+    return true
   }
 
 }

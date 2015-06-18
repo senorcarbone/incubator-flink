@@ -23,7 +23,6 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.Configuration;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.GreedySampler;
 import org.apache.flink.streaming.sampling.samplers.StreamSampler;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
@@ -34,7 +33,6 @@ import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 public class GreedySamplingExample {
 
 	public static int sample_size;
-	public static String output_path;
 
 	// *************************************************************************
 	// PROGRAM
@@ -48,11 +46,9 @@ public class GreedySamplingExample {
 	 */
 	public static void main(String[] args) throws Exception {
 
-/*		if (!parseParameters(args)) {
+		if (!parseParameters(args)) {
 			return;
-		}*/
-		sample_size = 1000;
-		output_path = "/home/marthavk/workspace/flink/flink/flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/2";
+		}
 
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
