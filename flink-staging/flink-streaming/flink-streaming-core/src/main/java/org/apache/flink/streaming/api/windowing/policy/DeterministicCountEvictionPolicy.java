@@ -27,7 +27,7 @@ public class DeterministicCountEvictionPolicy<IN> extends CountEvictionPolicy<IN
     }
 
     @Override
-    public long getLowerBorder(long upperBorder) {
+    public double getLowerBorder(double upperBorder) {
         if (upperBorder-maxElements>0){
             return upperBorder-maxElements;
         } else {

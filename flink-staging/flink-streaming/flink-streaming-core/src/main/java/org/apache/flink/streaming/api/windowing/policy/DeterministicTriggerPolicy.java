@@ -30,6 +30,6 @@ public interface DeterministicTriggerPolicy<DATA> extends TriggerPolicy<DATA>{
      * @param previouseTriggerPosition the position of the previous window end
      * @return the position of the next window end after the position given as parameter
      */
-    public long getNextTriggerPosition(long previouseTriggerPosition);
+    public double getNextTriggerPosition(double previouseTriggerPosition);
 
 }

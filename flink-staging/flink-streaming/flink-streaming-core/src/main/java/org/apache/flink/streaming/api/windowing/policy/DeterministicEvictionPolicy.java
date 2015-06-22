@@ -30,6 +30,6 @@ public interface DeterministicEvictionPolicy<DATA> extends EvictionPolicy<DATA> 
      * @param upperBorder The upper border (window end)
      * @return The lower boder (window begin)
      */
-    public long getLowerBorder(long upperBorder);
+    public double getLowerBorder(double upperBorder);
 
 }

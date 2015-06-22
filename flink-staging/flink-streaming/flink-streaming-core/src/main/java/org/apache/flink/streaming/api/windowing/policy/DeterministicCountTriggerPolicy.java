@@ -35,7 +35,7 @@ public class DeterministicCountTriggerPolicy<IN> extends CountTriggerPolicy<IN> 
     }
 
     @Override
-    public long getNextTriggerPosition(long previousTriggerPosition) {
+    public double getNextTriggerPosition(double previousTriggerPosition) {
         if (previousTriggerPosition<0){
             return startValue+max;
         } else {

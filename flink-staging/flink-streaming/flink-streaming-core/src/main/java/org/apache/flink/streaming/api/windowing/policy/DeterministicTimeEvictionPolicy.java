@@ -29,7 +29,7 @@ public class DeterministicTimeEvictionPolicy<DATA> extends TimeEvictionPolicy<DA
     }
 
     @Override
-    public long getLowerBorder(long upperBorder) {
+    public double getLowerBorder(double upperBorder) {
         if (upperBorder-granularity<0){
             return 0;
         } else {

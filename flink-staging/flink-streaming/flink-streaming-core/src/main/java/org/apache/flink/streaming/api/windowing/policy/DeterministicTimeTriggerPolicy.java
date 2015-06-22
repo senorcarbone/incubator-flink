@@ -31,7 +31,7 @@ public class DeterministicTimeTriggerPolicy<DATA> extends TimeTriggerPolicy<DATA
     }
 
     @Override
-    public long getNextTriggerPosition(long previouseTriggerPosition) {
+    public double getNextTriggerPosition(double previouseTriggerPosition) {
         if (previouseTriggerPosition<0){
             return startTime+granularity;
         } else {
