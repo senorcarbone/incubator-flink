@@ -50,7 +50,7 @@ public class PrioritySamplingExample {
 			return;
 		}*/
 		Configuration.outputPath = "/home/marthavk/workspace/flink/flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/5/";
-		sample_size = 50000;
+		sample_size = 1000;
 
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();

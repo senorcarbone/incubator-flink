@@ -85,7 +85,7 @@ class HoeffdingTree(
 
     var prequentialEvaluation: DataStream[(Int, Metrics)] = null
 
-    val out = dataPointsStream.iterate[Metrics](10000)(dataPointsStream => {
+    val out = dataPointsStream.iterate[Metrics](100000)(dataPointsStream => {
       val (feedback, output, preqEvalStream) = iterationFunction(dataPointsStream,
         resultingParameters)
       prequentialEvaluation = preqEvalStream

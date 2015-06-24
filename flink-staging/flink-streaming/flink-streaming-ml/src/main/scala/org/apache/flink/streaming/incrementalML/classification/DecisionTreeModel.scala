@@ -233,17 +233,19 @@ case class DTNode(
 
     if (splitAttributeType.get == AttributeType.Numerical) {
       var temp = DTNode(false, true, size + 1, Some(nodeId))
+      //temp.excludingAttributes = Some(excludeAttributes)
       tempNodes.put(size + 1, temp)
       tempChildren.put(0.0, size + 1)
 
       temp = DTNode(false, true, size + 2, Some(nodeId))
+      //temp.excludingAttributes = Some(excludeAttributes)
       tempNodes.put(size + 2, temp)
       tempChildren.put(1.0, size + 2)
     }
     else {
       for (i <- 0 until attrSplitValues.size) {
         val temp = DTNode(false, true, size + i + 1, Some(nodeId))
-        temp.excludingAttributes = Some(excludeAttributes)
+        //temp.excludingAttributes = Some(excludeAttributes)
         tempNodes.put(size + i + 1, temp)
         tempChildren.put(attrSplitValues(i), size + i + 1)
       }

@@ -2,11 +2,13 @@ package org.apache.flink.streaming.incrementalML.sampling
 
 import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
 import org.apache.flink.ml.math.DenseVector
+import org.apache.flink.streaming.api.datastream.DataStreamSource
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.classification.HoeffdingTree
 import org.apache.flink.streaming.incrementalML.evaluator.PrequentialEvaluator
 import org.apache.flink.streaming.sampling.helpers.{Configuration, SamplingUtils}
 import org.apache.flink.streaming.sampling.samplers._
+import org.apache.flink.streaming.sampling.sources.RBFSource
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -43,21 +45,22 @@ object SampledClassification {
     }*/
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment
+    env.setParallelism(1);
 
     // read properties
-    val initProps = SamplingUtils.readProperties(SamplingUtils.path
-      + "distributionconfig.properties")
+    /*val initProps = SamplingUtils.readProperties(SamplingUtils.path
+      + "distributionconfig.properties")*/
 
     val file = "/home/marthavk/Desktop/thesis-all-docs/resources/dataSets/randomRBF/randomRBF-10M.arff"
     //val max_count = initProps.getProperty("maxCount").toInt
-    val sample_size = initProps.getProperty("sampleSize").toInt
+    val sample_size = Configuration.SAMPLE_SIZE_1000
 
     //set parameters of VFDT
     val parameters = ParameterMap()
     //    val nominalAttributes = Map(0 ->4, 2 ->4, 4 ->4, 6 ->4 8 ->4)
     parameters.add(HoeffdingTree.MinNumberOfInstances, 300)
     parameters.add(HoeffdingTree.NumberOfClasses, 4)
-    parameters.add(HoeffdingTree.Parallelism, 4)
+    parameters.add(HoeffdingTree.Parallelism, 1)
 
     //read datapoints for covertype_libSVM dataset and sample
 
@@ -65,14 +68,21 @@ object SampledClassification {
     /*val biasedReservoirSampler1000: SampleFunction[LabeledVector] =
       new BiasedReservoirSampler[LabeledVector](Configuration.SAMPLE_SIZE_1000, 100)*/
 
-    /*val reservoirSampler1000: SampleFunction[LabeledVector] =
-    new UniformSampler[LabeledVector](Configuration.SAMPLE_SIZE_1000, 100)*/
+   // val reservoirSampler1000: SampleFunction[LabeledVector] =
+   // new UniformSampler[LabeledVector](Configuration.SAMPLE_SIZE_10000, 100000)
 
-    val fifoSampler1000: SampleFunction[LabeledVector] =
-    new FiFoSampler[LabeledVector](Configuration.SAMPLE_SIZE_1000, 100)
+    val biasedSampler1000: SampleFunction[LabeledVector] =
+    new BiasedReservoirSampler[LabeledVector](Configuration.SAMPLE_SIZE_10000, 100)
+
+//    val chainSampler1000: SampleFunction[LabeledVector] =
+//    new ChainSampler[LabeledVector](sample_size, Configuration.countWindowSize, 100)
+//    val prioritySampler1000: SampleFunction[LabeledVector] =
+//    new PrioritySampler[LabeledVector](sample_size, Configuration.timeWindowSize, 100)
+
 
     // read datapoints for randomRBF dataset
-    val dataPoints = env.readTextFile("/home/marthavk/Desktop/thesis-all-docs/resources/dataSets/randomRBF/randomRBF-10M.arff").map {
+    val source: DataStream[String] = env.addSource(new RBFSource(file))
+    val dataPoints = source.map {
       line => {
         var featureList = Vector[Double]()
         val features = line.split(',')
@@ -84,19 +94,17 @@ object SampledClassification {
     }
 
 
+    val sampler: StreamSampler[LabeledVector] = new StreamSampler[LabeledVector](biasedSampler1000)
 
-
-    val sampler: StreamSampler[LabeledVector] =
-      new StreamSampler[LabeledVector](fifoSampler1000)
-
-    dataPoints.getJavaStream.transform("sample", dataPoints.getType, sampler)
+    val sampledPoints = dataPoints.getJavaStream.transform("sample", dataPoints.getType, sampler)
+   // sampledPoints.count.print()
 
     val vfdTree = HoeffdingTree(env)
     val evaluator = PrequentialEvaluator()
 
-    val streamToEvaluate = vfdTree.fit(dataPoints, parameters)
+    val streamToEvaluate = vfdTree.fit(sampledPoints, parameters)
 
-    evaluator.evaluate(streamToEvaluate).writeAsText("/home/marthavk/Desktop/thesis-all-docs/results/classification_results/" + "rbf_FS1K1000")
+    evaluator.evaluate(streamToEvaluate).writeAsText("/home/marthavk/workspace/flink/flink-staging/flink-streaming/flink-streaming-ml/src/test/resources/" + "rbf_BS10K100")
       .setParallelism(1)
 
     env.execute()

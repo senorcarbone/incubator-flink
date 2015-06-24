@@ -22,7 +22,7 @@ import org.apache.flink.streaming.incrementalML.classification.Metrics.{Instance
 
 
 class PrequentialEvaluator
-  extends Evaluator[(Int, Metrics), (Double, Double, Double, Double)]
+  extends Evaluator[(Int, Metrics), Double]
   with Serializable {
 
   val alpha = 0.995
@@ -37,8 +37,7 @@ class PrequentialEvaluator
     *
     * @return (#instances,fading_factors_errors,prequential,accuracy)
     */
-  override def evaluate(inputDataStream: DataStream[(Int, Metrics)]): DataStream[(Double, Double,
-    Double, Double)] = {
+  override def evaluate(inputDataStream: DataStream[(Int, Metrics)]): DataStream[Double] = {
     inputDataStream.map {
       input => {
         val temp = input._2.asInstanceOf[InstanceClassification]
@@ -52,10 +51,10 @@ class PrequentialEvaluator
         }
 
         Bdenominator = 1.0 + alpha * Bdenominator
-
-        (instancesClassified, sumLossFunction / Bdenominator,
+        sumLossFunctionWithoutLatent / instancesClassified
+/*        (instancesClassified, sumLossFunction / Bdenominator,
           sumLossFunctionWithoutLatent / instancesClassified,
-          ((instancesClassified - sumLossFunctionWithoutLatent) / instancesClassified) * 100)
+          ((instancesClassified - sumLossFunctionWithoutLatent) / instancesClassified) * 100)*/
       }
     }.setParallelism(1)
   }

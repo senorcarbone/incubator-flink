@@ -111,7 +111,7 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 	@Override
 	public void close() throws Exception {
 		super.close();
-		running = false;
+		//running = false;
 		if (printToFile) {
 			pw.close();
 		}
@@ -133,7 +133,12 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 	private void setTimeIntervals() {
 		double number = 1000.0 / sampleRate;
 		millis = (long) number;
-		nanos = (int) Math.round((number - millis) * 1000000);
+		long period = Math.round(1000000000.0 / sampleRate);
+		nanos =(int) (period - millis*1000000);
+		System.out.println("sample rate " + sampleRate);
+		System.out.println("period " + period);
+		System.out.println("millis " + millis);
+		System.out.println("nanos " + nanos);
 	}
 
 	private	 synchronized String getDistributionOfBuffer() {
