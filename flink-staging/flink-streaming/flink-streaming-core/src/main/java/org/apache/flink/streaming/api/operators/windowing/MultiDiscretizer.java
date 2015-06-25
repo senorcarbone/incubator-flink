@@ -17,8 +17,14 @@
 
 package org.apache.flink.streaming.api.operators.windowing;
 
+import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
+import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.windowing.policy.*;
+import org.apache.flink.streaming.api.windowing.windowbuffer.OptimizedWindowBuffer;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 
 /**
@@ -29,14 +35,18 @@ import java.util.LinkedList;
  * @param <IN> The type of input tuples handled by this operator
  */
 @SuppressWarnings("unused")
-public class MultiDiscretizer<IN> {
+public class MultiDiscretizer<IN>
+        extends AbstractStreamOperator<Tuple2<Integer,IN>>
+        implements OneInputStreamOperator<IN, Tuple2<Integer,IN>>{
 
     private LinkedList<DeterministicPolicyGroup<IN>> deterministicPolicyGroups;
-    LinkedList<TriggerPolicy<IN>> triggerPolicies;
-    LinkedList<EvictionPolicy<IN>> evictionPolicies;
-    int[] bufferSizes = new int[triggerPolicies.size()];
-    boolean[] isActiveTrigger = new boolean[triggerPolicies.size()];
-    boolean[] isActiveEviction = new boolean[evictionPolicies.size()];
+    private HashMap<Integer,LinkedList<Integer>> queryIdToWindowIds;
+    private LinkedList<TriggerPolicy<IN>> triggerPolicies;
+    private LinkedList<EvictionPolicy<IN>> evictionPolicies;
+    private int[] bufferSizes = new int[triggerPolicies.size()];
+    private boolean[] isActiveTrigger = new boolean[triggerPolicies.size()];
+    private boolean[] isActiveEviction = new boolean[evictionPolicies.size()];
+    private OptimizedWindowBuffer<IN> optimizedWindowBuffer;
 
     /**
      * This constructor takes the policies of multiple queries.
@@ -48,10 +58,23 @@ public class MultiDiscretizer<IN> {
      */
     public MultiDiscretizer(LinkedList<DeterministicPolicyGroup<IN>> deterministicPolicyGroups,
                             LinkedList<TriggerPolicy<IN>> notDeterministicTriggerPolicies,
-                            LinkedList<EvictionPolicy<IN>> notDeterministicEvictionPolicies){
+                            LinkedList<EvictionPolicy<IN>> notDeterministicEvictionPolicies,
+                            ReduceFunction<IN> reduceFunction){
         this.deterministicPolicyGroups=deterministicPolicyGroups;
         this.evictionPolicies = notDeterministicEvictionPolicies;
         this.triggerPolicies = notDeterministicTriggerPolicies;
+        this.optimizedWindowBuffer = new OptimizedWindowBuffer<IN>(reduceFunction,
+                !deterministicPolicyGroups.isEmpty(),!triggerPolicies.isEmpty());
+
+        for (int i=0;i<triggerPolicies.size();i++){
+            if (i!=optimizedWindowBuffer.registerQuery()){
+                //the id which is returned from the buffer should be the same as the one kept here.
+                //Otherwise we throw an exception. For production use this should be changed.
+                throw new RuntimeException("The returned registration id does not match the expected id");
+            }
+
+            queryIdToWindowIds.put(i,new LinkedList<Integer>());
+        }
 
         //Catch active policies
         for (int i=0; i<isActiveEviction.length; i++){
@@ -68,7 +91,8 @@ public class MultiDiscretizer<IN> {
     }
 
     @SuppressWarnings("unchecked")
-    private void processInputTuple(IN tuple){
+    @Override
+    public void processElement(IN tuple) throws Exception {
         //First handle the deterministic policies
         for (int i=0; i<deterministicPolicyGroups.size(); i++){
             int windowEvents=deterministicPolicyGroups.get(i).getWindowEvents(tuple);
@@ -110,21 +134,14 @@ public class MultiDiscretizer<IN> {
         store(tuple);
     }
 
-
-    /**********************************************************************************************
-
-    The following method can be used to send event to the aggregation operation (B2B Buffer class)
-    Alternatively, the aggregation could be done in here, having an instance of B2BBuffer.
-
-     ********************************************************************************************/
-
     /**
      * Send a window begin marker for a deterministic policy group
      * @param queryId the query this marker belongs to.
      *                Remark; deterministic and not deterministic policies are numbered separately!
      */
     private void beginWindow(int queryId){
-        //TODO
+        int windowId=optimizedWindowBuffer.startWindow();
+        queryIdToWindowIds.get(queryId).add(windowId);
     }
 
     /**
@@ -132,19 +149,23 @@ public class MultiDiscretizer<IN> {
      * @param queryId the query this marker belongs to
      *                Remark; deterministic and not deterministic policies are numbered separately!
      */
-    private void endWindow(int queryId){
-        //TODO
+    private void endWindow(int queryId) throws Exception {
+        output.collect(new Tuple2<Integer, IN>(
+                queryId,optimizedWindowBuffer.endWindow(
+                queryIdToWindowIds.get(queryId).getFirst())));
+
+        queryIdToWindowIds.get(queryId).removeFirst();
     }
 
     /**
      * Adds the given tuple to the buffer
      * @param tuple the input tuple
      */
-    private void store(IN tuple){
+    private void store(IN tuple) throws Exception{
         for (int i=0;i<bufferSizes.length;i++){
             bufferSizes[i]=bufferSizes[i]+1;
         }
-        //TODO
+        optimizedWindowBuffer.store(tuple);
     }
 
     /**
@@ -152,21 +173,21 @@ public class MultiDiscretizer<IN> {
      * @param queryId the query this marker belongs to
      *                Remark; deterministic and not deterministic policies are numbered separately!
      */
-    private void emitWindow(int queryId){
-        //TODO
+    private void emitWindow(int queryId) throws Exception{
+        output.collect(new Tuple2<Integer, IN>(queryId+deterministicPolicyGroups.size(),
+                optimizedWindowBuffer.emitWindow(queryId)));
     }
 
     /**
      * Sends a eviction request for a not deterministic query
-     * @param query the query this marker belongs to
+     * @param queryId the query this marker belongs to
      *              Remark; deterministic and not deterministic policies are numbered separately!
      * @param n the number of tuple to delete from the buffer
      */
-    private void evict(int query, int n){
+    private void evict(int queryId, int n){
         if (n>0){
-            bufferSizes[query]=bufferSizes[query]-n;
-            //TODO
+            bufferSizes[queryId]=bufferSizes[queryId]-n;
         }
+        optimizedWindowBuffer.evict(n,queryId);
     }
-
 }
