@@ -40,12 +40,12 @@ public class MultiDiscretizer<IN>
         implements OneInputStreamOperator<IN, Tuple2<Integer,IN>>{
 
     private LinkedList<DeterministicPolicyGroup<IN>> deterministicPolicyGroups;
-    private HashMap<Integer,LinkedList<Integer>> queryIdToWindowIds;
+    private HashMap<Integer,LinkedList<Integer>> queryIdToWindowIds = new HashMap<Integer, LinkedList<Integer>>();
     private LinkedList<TriggerPolicy<IN>> triggerPolicies;
     private LinkedList<EvictionPolicy<IN>> evictionPolicies;
-    private int[] bufferSizes = new int[triggerPolicies.size()];
-    private boolean[] isActiveTrigger = new boolean[triggerPolicies.size()];
-    private boolean[] isActiveEviction = new boolean[evictionPolicies.size()];
+    private int[] bufferSizes;
+    private boolean[] isActiveTrigger;
+    private boolean[] isActiveEviction;
     private OptimizedWindowBuffer<IN> optimizedWindowBuffer;
 
     /**
@@ -63,8 +63,15 @@ public class MultiDiscretizer<IN>
         this.deterministicPolicyGroups=deterministicPolicyGroups;
         this.evictionPolicies = notDeterministicEvictionPolicies;
         this.triggerPolicies = notDeterministicTriggerPolicies;
+        this.bufferSizes = new int[triggerPolicies.size()];
+        this.isActiveTrigger = new boolean[triggerPolicies.size()];
+        this.isActiveEviction = new boolean[evictionPolicies.size()];
         this.optimizedWindowBuffer = new OptimizedWindowBuffer<IN>(reduceFunction,
                 !deterministicPolicyGroups.isEmpty(),!triggerPolicies.isEmpty());
+
+        for (int i=0; i<this.deterministicPolicyGroups.size();i++){
+            queryIdToWindowIds.put(i,new LinkedList<Integer>());
+        }
 
         for (int i=0;i<triggerPolicies.size();i++){
             if (i!=optimizedWindowBuffer.registerQuery()){
@@ -72,8 +79,6 @@ public class MultiDiscretizer<IN>
                 //Otherwise we throw an exception. For production use this should be changed.
                 throw new RuntimeException("The returned registration id does not match the expected id");
             }
-
-            queryIdToWindowIds.put(i,new LinkedList<Integer>());
         }
 
         //Catch active policies
