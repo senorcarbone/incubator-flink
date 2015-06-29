@@ -17,8 +17,6 @@
 
 package org.apache.flink.streaming.api.operators.windowing;
 
-import static org.junit.Assert.assertEquals;
-
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.windowing.extractor.Extractor;
@@ -32,21 +30,43 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
+
 public class MultiDiscretizerTest {
+
+    /*********************************************
+     * Data                                      *
+     *********************************************/
+
+    List<Integer> inputs1 = new ArrayList<Integer>();
+    List<Tuple2<Integer, Integer>> inputs2 = new ArrayList<Tuple2<Integer, Integer>>();
+
+    {
+        inputs1.add(1);
+        inputs1.add(2);
+        inputs1.add(2);
+        inputs1.add(10);
+        inputs1.add(11);
+        inputs1.add(14);
+        inputs1.add(16);
+        inputs1.add(21);
+
+        inputs2.add(new Tuple2<Integer, Integer>(1, 0));
+        inputs2.add(new Tuple2<Integer, Integer>(2, 1));
+        inputs2.add(new Tuple2<Integer, Integer>(2, 2));
+        inputs2.add(new Tuple2<Integer, Integer>(10, 3));
+        inputs2.add(new Tuple2<Integer, Integer>(11, 4));
+        inputs2.add(new Tuple2<Integer, Integer>(14, 5));
+        inputs2.add(new Tuple2<Integer, Integer>(16, 6));
+        inputs2.add(new Tuple2<Integer, Integer>(21, 7));
+    }
+
+    /*********************************************
+     * Tests                                     *
+     *********************************************/
 
     @Test
     public void testMultiDiscretizerDeterministic() {
-
-        //prepare input data
-        List<Integer> inputs = new ArrayList<Integer>();
-        inputs.add(1);
-        inputs.add(2);
-        inputs.add(2);
-        inputs.add(10);
-        inputs.add(11);
-        inputs.add(14);
-        inputs.add(16);
-        inputs.add(21);
 
         //prepare expected result
         LinkedList<Tuple2<Integer, Integer>> expected = new LinkedList<Tuple2<Integer, Integer>>();
@@ -76,7 +96,7 @@ public class MultiDiscretizerTest {
         MultiDiscretizer<Integer> multiDiscretizer = new MultiDiscretizer<Integer>(policyGroups, triggerPolicies, evictionPolicies, new Sum());
 
         //Run the test
-        List<Tuple2<Integer, Integer>> result = MockContext.createAndExecute(multiDiscretizer, inputs);
+        List<Tuple2<Integer, Integer>> result = MockContext.createAndExecute(multiDiscretizer, this.inputs1);
 
         //check correctness
         assertEquals(expected, result);
@@ -84,26 +104,23 @@ public class MultiDiscretizerTest {
 
     @Test
     public void testMultiDiscretizerMultipleDeterministic() {
-        //prepare input data
-        List<Tuple2<Integer, Integer>> inputs = new ArrayList<Tuple2<Integer, Integer>>();
-        inputs.add(new Tuple2<Integer, Integer>(1, 0));
-        inputs.add(new Tuple2<Integer, Integer>(2, 1));
-        inputs.add(new Tuple2<Integer, Integer>(2, 2));
-        inputs.add(new Tuple2<Integer, Integer>(10, 3));
-        inputs.add(new Tuple2<Integer, Integer>(11, 4));
-        inputs.add(new Tuple2<Integer, Integer>(14, 5));
-        inputs.add(new Tuple2<Integer, Integer>(16, 6));
-        inputs.add(new Tuple2<Integer, Integer>(21, 7));
 
         //prepare expected result
         LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>> expected = new LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>>();
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1, new Tuple2<Integer, Integer>(3, 1)));    //Q1 seq 0,1
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(5, 3)));   //Q0 0..4
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(5, 3)));   //Q0 0..9
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1, new Tuple2<Integer, Integer>(15, 6)));   //Q1 seq 0,1,2,3
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(35, 12))); //Q0 5..14
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1, new Tuple2<Integer, Integer>(39, 15)));  //Q1 seq 1,2,3,4,5
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(51, 18))); //Q0 10..19
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1,
+                new Tuple2<Integer, Integer>(3, 1)));    //Q1 seq 0,1
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0,
+                new Tuple2<Integer, Integer>(5, 3)));   //Q0 0..4
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0,
+                new Tuple2<Integer, Integer>(5, 3)));   //Q0 0..9
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1,
+                new Tuple2<Integer, Integer>(15, 6)));   //Q1 seq 0,1,2,3
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0,
+                new Tuple2<Integer, Integer>(35, 12))); //Q0 5..14
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1,
+                new Tuple2<Integer, Integer>(39, 15)));  //Q1 seq 1,2,3,4,5
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0,
+                new Tuple2<Integer, Integer>(51, 18))); //Q0 10..19
 
         //prepare policies
         @SuppressWarnings("unchecked")
@@ -141,24 +158,14 @@ public class MultiDiscretizerTest {
                 new MultiDiscretizer<Tuple2<Integer, Integer>>(policyGroups, triggerPolicies, evictionPolicies, new TupleSum());
 
         //Run the test
-        List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(multiDiscretizer, inputs);
+        List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(multiDiscretizer, inputs2);
 
         //check correctness
         assertEquals(expected, result);
     }
 
     @Test
-    public void testMultiDiscretizerNotDeterministic(){
-        //prepare input data
-        List<Integer> inputs = new ArrayList<Integer>();
-        inputs.add(1);
-        inputs.add(2);
-        inputs.add(2);
-        inputs.add(10);
-        inputs.add(11);
-        inputs.add(14);
-        inputs.add(16);
-        inputs.add(21);
+    public void testMultiDiscretizerNotDeterministic() {
 
         //prepare expected result
         LinkedList<Tuple2<Integer, Integer>> expected = new LinkedList<Tuple2<Integer, Integer>>();
@@ -188,24 +195,14 @@ public class MultiDiscretizerTest {
         MultiDiscretizer<Integer> multiDiscretizer = new MultiDiscretizer<Integer>(policyGroups, triggerPolicies, evictionPolicies, new Sum());
 
         //Run the test
-        List<Tuple2<Integer, Integer>> result = MockContext.createAndExecute(multiDiscretizer, inputs);
+        List<Tuple2<Integer, Integer>> result = MockContext.createAndExecute(multiDiscretizer, inputs1);
 
         //check correctness
         assertEquals(expected, result);
     }
 
     @Test
-    public void testMultiDiscretizerMultipleNotDeterministic(){
-        //prepare input data
-        List<Tuple2<Integer, Integer>> inputs = new ArrayList<Tuple2<Integer, Integer>>();
-        inputs.add(new Tuple2<Integer, Integer>(1, 0));
-        inputs.add(new Tuple2<Integer, Integer>(2, 1));
-        inputs.add(new Tuple2<Integer, Integer>(2, 2));
-        inputs.add(new Tuple2<Integer, Integer>(10, 3));
-        inputs.add(new Tuple2<Integer, Integer>(11, 4));
-        inputs.add(new Tuple2<Integer, Integer>(14, 5));
-        inputs.add(new Tuple2<Integer, Integer>(16, 6));
-        inputs.add(new Tuple2<Integer, Integer>(21, 7));
+    public void testMultiDiscretizerMultipleNotDeterministic() {
 
         //prepare expected result
         LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>> expected = new LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>>();
@@ -251,24 +248,14 @@ public class MultiDiscretizerTest {
                 new MultiDiscretizer<Tuple2<Integer, Integer>>(policyGroups, triggerPolicies, evictionPolicies, new TupleSum());
 
         //Run the test
-        List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(multiDiscretizer, inputs);
+        List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(multiDiscretizer, inputs2);
 
         //check correctness
         assertEquals(expected, result);
     }
 
     @Test
-    public void testMultiDiscretizerMixedPolicies(){
-        //prepare input data
-        List<Tuple2<Integer, Integer>> inputs = new ArrayList<Tuple2<Integer, Integer>>();
-        inputs.add(new Tuple2<Integer, Integer>(1, 0));
-        inputs.add(new Tuple2<Integer, Integer>(2, 1));
-        inputs.add(new Tuple2<Integer, Integer>(2, 2));
-        inputs.add(new Tuple2<Integer, Integer>(10, 3));
-        inputs.add(new Tuple2<Integer, Integer>(11, 4));
-        inputs.add(new Tuple2<Integer, Integer>(14, 5));
-        inputs.add(new Tuple2<Integer, Integer>(16, 6));
-        inputs.add(new Tuple2<Integer, Integer>(21, 7));
+    public void testMultiDiscretizerMixedPolicies() {
 
         //prepare expected result
         LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>> expected = new LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>>();
@@ -338,7 +325,7 @@ public class MultiDiscretizerTest {
                 new MultiDiscretizer<Tuple2<Integer, Integer>>(policyGroups, triggerPolicies, evictionPolicies, new TupleSum());
 
         //Run the test
-        List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(multiDiscretizer, inputs);
+        List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(multiDiscretizer, inputs2);
 
         //check correctness
         assertEquals(expected, result);
