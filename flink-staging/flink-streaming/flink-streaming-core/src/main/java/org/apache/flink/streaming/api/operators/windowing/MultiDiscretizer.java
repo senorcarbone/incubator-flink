@@ -30,7 +30,9 @@ import java.util.LinkedList;
 /**
  * This class represents a merged discretization operator handling discretizations from several queries.
  *
- * NOTICE: This is a untested version of this class (Implementation still in progress)
+ * The ids for queries are determined as follows:
+ * For queries with deterministic policies: 0 to (NUM_DETERMINISTIC_QUERIES-1)
+ * For not deterministic queries: NUM_DETERMINISTIC_QUERIES to (TOTAL_NUM_OF_QUERIES-1)
  *
  * @param <IN> The type of input tuples handled by this operator
  */
@@ -151,6 +153,12 @@ public class MultiDiscretizer<IN>
 
     /**
      * Send a window end marker for a deterministic policy group
+     *
+     * The returned ids for queries are determined as follows:
+     * For queries with deterministic policies: 0 to (NUM_DETERMINISTIC_QUERIES-1)
+     * For not deterministic queries: NUM_DETERMINISTIC_QUERIES to (TOTAL_NUM_OF_QUERIES-1)
+     * Internally, this class has separated ids for deterministic and not deterministic queries.
+     *
      * @param queryId the query this marker belongs to
      *                Remark; deterministic and not deterministic policies are numbered separately!
      */
@@ -175,6 +183,12 @@ public class MultiDiscretizer<IN>
 
     /**
      * Sends a window end even for not deterministic policies.
+     *
+     * The returned ids for queries are determined as follows:
+     * For queries with deterministic policies: 0 to (NUM_DETERMINISTIC_QUERIES-1)
+     * For not deterministic queries: NUM_DETERMINISTIC_QUERIES to (TOTAL_NUM_OF_QUERIES-1)
+     * Internally, this class has separated ids for deterministic and not deterministic queries.
+     *
      * @param queryId the query this marker belongs to
      *                Remark; deterministic and not deterministic policies are numbered separately!
      */
