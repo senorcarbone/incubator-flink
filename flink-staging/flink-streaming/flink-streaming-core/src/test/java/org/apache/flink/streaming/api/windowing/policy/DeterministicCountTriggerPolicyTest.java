@@ -17,29 +17,30 @@
 
 package org.apache.flink.streaming.api.windowing.policy;
 
-import org.apache.flink.streaming.api.windowing.helper.Timestamp;
-import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class DeterministicTimeEvictionPolicyTest {
+public class DeterministicCountTriggerPolicyTest {
 
     @Test
-    public void test(){
+    public void testDefault(){
 
-        @SuppressWarnings("unchecked")
-        TimestampWrapper<Integer> timestampWrapper=new TimestampWrapper<Integer>(new Timestamp() {
-            @Override
-            public long getTimestamp(Object value) {
-                return ((Integer)value);
-            }
-        },0);
-
-        DeterministicEvictionPolicy<Integer> ep = new DeterministicTimeEvictionPolicy<Integer>(5,timestampWrapper);
+        DeterministicTriggerPolicy<Integer> tp = new DeterministicCountTriggerPolicy<Integer>(5);
 
         for (int i=5;i<=100;i+=5){
-            assertEquals("The returned eviction position is wrong.", i-5, ep.getLowerBorder(i), 0);
+            assertEquals("The returned trigger position is wrong.", i, tp.getNextTriggerPosition(i - 5), 0);
         }
     }
+
+    @Test
+    public void testWithStartValue(){
+
+        DeterministicTriggerPolicy<Integer> tp = new DeterministicCountTriggerPolicy<Integer>(5,-1);
+
+        for (int i=5;i<=100;i+=5){
+            assertEquals("The returned trigger position is wrong.", i-1, tp.getNextTriggerPosition(i - 5)-1, 0);
+        }
+    }
+
 }

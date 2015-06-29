@@ -17,29 +17,20 @@
 
 package org.apache.flink.streaming.api.windowing.policy;
 
-import org.apache.flink.streaming.api.windowing.helper.Timestamp;
-import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class DeterministicTimeEvictionPolicyTest {
+public class DeterministicCountEvictionPolicyTest {
 
     @Test
     public void test(){
 
-        @SuppressWarnings("unchecked")
-        TimestampWrapper<Integer> timestampWrapper=new TimestampWrapper<Integer>(new Timestamp() {
-            @Override
-            public long getTimestamp(Object value) {
-                return ((Integer)value);
-            }
-        },0);
-
-        DeterministicEvictionPolicy<Integer> ep = new DeterministicTimeEvictionPolicy<Integer>(5,timestampWrapper);
+        DeterministicEvictionPolicy<Integer> ep = new DeterministicCountEvictionPolicy<Integer>(5);
 
         for (int i=5;i<=100;i+=5){
             assertEquals("The returned eviction position is wrong.", i-5, ep.getLowerBorder(i), 0);
         }
     }
+
 }
