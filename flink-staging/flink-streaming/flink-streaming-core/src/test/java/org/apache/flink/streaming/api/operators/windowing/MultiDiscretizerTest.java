@@ -51,9 +51,9 @@ public class MultiDiscretizerTest {
         //prepare expected result
         LinkedList<Tuple2<Integer,Integer>> expected = new LinkedList<Tuple2<Integer,Integer>>();
         expected.add(new Tuple2<Integer, Integer>(0, 5));  //0..4
-        expected.add(new Tuple2<Integer, Integer>(0, 0));  //5..9
-        expected.add(new Tuple2<Integer, Integer>(0, 35)); //10..14
-        expected.add(new Tuple2<Integer, Integer>(0, 16)); //15..19
+        expected.add(new Tuple2<Integer, Integer>(0, 5));  //0..9
+        expected.add(new Tuple2<Integer, Integer>(0, 35)); //5..14
+        expected.add(new Tuple2<Integer, Integer>(0, 51)); //10..19
 
         //prepare policies
         @SuppressWarnings("unchecked")

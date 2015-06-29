@@ -33,7 +33,7 @@ public class DeterministicPolicyGroup<DATA> {
     private Extractor<DATA,Double> fieldExtractor;
     private LinkedList<Double> windowStartLookahead = new LinkedList<Double>();
     private LinkedList<Double> windowEndLookahead = new LinkedList<Double>();
-    private double latestTriggerPosition=Double.MIN_VALUE;
+    private double latestTriggerPosition=Long.MIN_VALUE;
 
     /**
      * This constructer sets up the policy group in case Tuple-types are used.

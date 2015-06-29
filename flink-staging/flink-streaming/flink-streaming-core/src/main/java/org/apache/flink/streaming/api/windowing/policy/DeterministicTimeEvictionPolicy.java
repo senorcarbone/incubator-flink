@@ -33,7 +33,7 @@ public class DeterministicTimeEvictionPolicy<DATA> extends TimeEvictionPolicy<DA
         if (upperBorder-granularity<0){
             return 0;
         } else {
-            return upperBorder-granularity;
+            return upperBorder-(double)granularity;
         }
     }
 }
