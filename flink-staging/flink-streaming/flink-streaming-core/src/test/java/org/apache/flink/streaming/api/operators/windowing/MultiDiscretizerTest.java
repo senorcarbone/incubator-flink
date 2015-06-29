@@ -257,6 +257,93 @@ public class MultiDiscretizerTest {
         assertEquals(expected, result);
     }
 
+    @Test
+    public void testMultiDiscretizerMixedPolicies(){
+        //prepare input data
+        List<Tuple2<Integer, Integer>> inputs = new ArrayList<Tuple2<Integer, Integer>>();
+        inputs.add(new Tuple2<Integer, Integer>(1, 0));
+        inputs.add(new Tuple2<Integer, Integer>(2, 1));
+        inputs.add(new Tuple2<Integer, Integer>(2, 2));
+        inputs.add(new Tuple2<Integer, Integer>(10, 3));
+        inputs.add(new Tuple2<Integer, Integer>(11, 4));
+        inputs.add(new Tuple2<Integer, Integer>(14, 5));
+        inputs.add(new Tuple2<Integer, Integer>(16, 6));
+        inputs.add(new Tuple2<Integer, Integer>(21, 7));
+
+        //prepare expected result
+        LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>> expected = new LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>>();
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1, new Tuple2<Integer, Integer>(3, 1)));    //Q1 seq 0,1
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(3, new Tuple2<Integer, Integer>(3, 1)));    //Q3 seq 0,1
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(5, 3)));   //Q0 0..4
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(5, 3)));   //Q0 0..9
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(2, new Tuple2<Integer, Integer>(5, 3)));   //Q2 0..4
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(2, new Tuple2<Integer, Integer>(5, 3)));   //Q2 0..9
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1, new Tuple2<Integer, Integer>(15, 6)));   //Q1 seq 0,1,2,3
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(3, new Tuple2<Integer, Integer>(15, 6)));   //Q3 seq 0,1,2,3
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(35, 12))); //Q0 5..14
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1, new Tuple2<Integer, Integer>(39, 15)));  //Q1 seq 1,2,3,4,5
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(2, new Tuple2<Integer, Integer>(35, 12))); //Q2 5..14
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(3, new Tuple2<Integer, Integer>(39, 15)));  //Q3 seq 1,2,3,4,5
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(51, 18))); //Q0 10..19
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(2, new Tuple2<Integer, Integer>(51, 18))); //Q2 10..19
+
+        //Prepare policies
+        @SuppressWarnings("unchecked")
+        TimestampWrapper<Tuple2<Integer, Integer>> timestampWrapper = new TimestampWrapper<Tuple2<Integer, Integer>>(new Timestamp() {
+            @Override
+            public long getTimestamp(Object value) {
+                return ((Tuple2<Integer, Integer>) value).f0;
+            }
+        }, 0);
+
+        DeterministicTriggerPolicy<Tuple2<Integer, Integer>> dtriggerPolicy =
+                new DeterministicTimeTriggerPolicy<Tuple2<Integer, Integer>>(5, timestampWrapper);
+        DeterministicEvictionPolicy<Tuple2<Integer, Integer>> devictionPolicy =
+                new DeterministicTimeEvictionPolicy<Tuple2<Integer, Integer>>(10, timestampWrapper);
+        DeterministicPolicyGroup<Tuple2<Integer, Integer>> policyGroup =
+                new DeterministicPolicyGroup<Tuple2<Integer, Integer>>(dtriggerPolicy, devictionPolicy, new Tuple2ToDuble(0));
+
+        DeterministicTriggerPolicy<Tuple2<Integer, Integer>> dtriggerPolicy2 =
+                new DeterministicCountTriggerPolicy<Tuple2<Integer, Integer>>(2);
+        DeterministicEvictionPolicy<Tuple2<Integer, Integer>> devictionPolicy2 =
+                new DeterministicCountEvictionPolicy<Tuple2<Integer, Integer>>(5);
+        DeterministicPolicyGroup<Tuple2<Integer, Integer>> policyGroup2 =
+                new DeterministicPolicyGroup<Tuple2<Integer, Integer>>(dtriggerPolicy2, devictionPolicy2, new Tuple2ToDuble(1));
+
+        TriggerPolicy<Tuple2<Integer, Integer>> triggerPolicy =
+                new TimeTriggerPolicy<Tuple2<Integer, Integer>>(5, timestampWrapper);
+        EvictionPolicy<Tuple2<Integer, Integer>> evictionPolicy =
+                new TimeEvictionPolicy<Tuple2<Integer, Integer>>(10, timestampWrapper);
+
+        TriggerPolicy<Tuple2<Integer, Integer>> triggerPolicy2 =
+                new CountTriggerPolicy<Tuple2<Integer, Integer>>(2);
+        EvictionPolicy<Tuple2<Integer, Integer>> evictionPolicy2 =
+                new CountEvictionPolicy<Tuple2<Integer, Integer>>(5);
+
+        LinkedList<DeterministicPolicyGroup<Tuple2<Integer, Integer>>> policyGroups =
+                new LinkedList<DeterministicPolicyGroup<Tuple2<Integer, Integer>>>();
+        policyGroups.add(policyGroup);
+        policyGroups.add(policyGroup2);
+        LinkedList<TriggerPolicy<Tuple2<Integer, Integer>>> triggerPolicies =
+                new LinkedList<TriggerPolicy<Tuple2<Integer, Integer>>>();
+        triggerPolicies.add(triggerPolicy);
+        triggerPolicies.add(triggerPolicy2);
+        LinkedList<EvictionPolicy<Tuple2<Integer, Integer>>> evictionPolicies =
+                new LinkedList<EvictionPolicy<Tuple2<Integer, Integer>>>();
+        evictionPolicies.add(evictionPolicy);
+        evictionPolicies.add(evictionPolicy2);
+
+        //Create operator instance
+        MultiDiscretizer<Tuple2<Integer, Integer>> multiDiscretizer =
+                new MultiDiscretizer<Tuple2<Integer, Integer>>(policyGroups, triggerPolicies, evictionPolicies, new TupleSum());
+
+        //Run the test
+        List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(multiDiscretizer, inputs);
+
+        //check correctness
+        assertEquals(expected, result);
+    }
+
     /*********************************************
      * Utilities                                 *
      *********************************************/
