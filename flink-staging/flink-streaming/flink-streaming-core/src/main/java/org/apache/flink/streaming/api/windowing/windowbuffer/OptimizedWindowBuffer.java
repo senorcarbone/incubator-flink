@@ -19,9 +19,10 @@ package org.apache.flink.streaming.api.windowing.windowbuffer;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class OptimizedWindowBuffer<T> {
+public class OptimizedWindowBuffer<T> implements Serializable {
 
     private Map<Integer,Integer> windowToStartId = new HashMap<Integer,Integer>();
     private Map<Integer,Integer> queryToStartId = new HashMap<Integer,Integer>();
@@ -72,7 +73,7 @@ public class OptimizedWindowBuffer<T> {
     }
 
     public void evict(int n, int queryId) {
-        queryToStartId.replace(queryId,queryToStartId.get(queryId)+n);
+        queryToStartId.put(queryId,queryToStartId.get(queryId)+n);
         deleteExpired();
     }
 

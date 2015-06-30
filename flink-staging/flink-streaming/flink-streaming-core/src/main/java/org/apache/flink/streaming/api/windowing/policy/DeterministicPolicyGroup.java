@@ -20,13 +20,14 @@ package org.apache.flink.streaming.api.windowing.policy;
 import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 import org.apache.flink.streaming.api.windowing.extractor.FieldFromTuple;
 
+import java.io.Serializable;
 import java.util.LinkedList;
 
 /**
  * A policy group wraps around several deterministig windowing policies which operate on the same field of the input tuples.
  * @param <DATA> the type of input tuples handled by this policy group
  */
-public class DeterministicPolicyGroup<DATA> {
+public class DeterministicPolicyGroup<DATA> implements Serializable{
 
     private DeterministicTriggerPolicy<DATA> trigger;
     private DeterministicEvictionPolicy<DATA> eviction;
