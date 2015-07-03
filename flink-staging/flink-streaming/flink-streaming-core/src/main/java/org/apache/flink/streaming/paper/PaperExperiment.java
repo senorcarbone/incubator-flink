@@ -3,6 +3,7 @@ package org.apache.flink.streaming.paper;
 import java.util.LinkedList;
 import java.util.Random;
 
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -13,11 +14,13 @@ import org.apache.flink.streaming.api.windowing.policy.DeterministicCountTrigger
 import org.apache.flink.streaming.api.windowing.policy.DeterministicEvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicTriggerPolicy;
+
 import static org.apache.flink.streaming.paper.AggregationUtils.*;
 
+@SuppressWarnings("serial")
 public class PaperExperiment {
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({"unchecked","rawtypes"})
 	public static void main(String[] args) throws Exception {
 
 		StreamExecutionEnvironment env = StreamExecutionEnvironment
@@ -34,10 +37,12 @@ public class PaperExperiment {
 		DeterministicPolicyGroup<Tuple2<Double, Double>> group = new DeterministicPolicyGroup<Tuple2<Double, Double>>(
 				trigger, evictor, extractor);
 
-		LinkedList<DeterministicPolicyGroup<Tuple2<Double, Double>>> deterministicGroups = new LinkedList<DeterministicPolicyGroup<Tuple2<Double, Double>>>();
+		LinkedList<DeterministicPolicyGroup> deterministicGroups = new LinkedList();
 		deterministicGroups.add(group);
 
-		SumAggregation.applyOn(source, deterministicGroups, emptyList, emptyList).print();
+		SumAggregation.applyOn(source, deterministicGroups, emptyList, emptyList).map(new Mark("SUM")).print();
+		StdAggregation.applyOn(source, deterministicGroups, emptyList, emptyList).map(new Mark("STD")).print();
+
 
 		env.execute();
 
@@ -46,13 +51,28 @@ public class PaperExperiment {
 	@SuppressWarnings("rawtypes")
 	static LinkedList emptyList = new LinkedList();
 
-	@SuppressWarnings("serial")
+	
 	static Extractor<Tuple2<Double, Double>, Double> extractor = new Extractor<Tuple2<Double, Double>, Double>() {
 		@Override
 		public Double extract(Tuple2<Double, Double> in) {
 			return in.f1;
 		}
 	};
+	
+	public static class Mark implements MapFunction<Double, String> {
+
+		private String s;
+
+		public Mark(String s) {
+			this.s = s;
+		}
+
+		@Override
+		public String map(Double value) throws Exception {
+			return s + " - " + value;
+		}
+
+	}
 
 	public static class DataGenerator implements
 			SourceFunction<Tuple2<Double, Double>> {

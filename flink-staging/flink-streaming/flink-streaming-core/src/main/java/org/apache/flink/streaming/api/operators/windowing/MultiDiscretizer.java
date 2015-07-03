@@ -20,6 +20,7 @@ package org.apache.flink.streaming.api.operators.windowing;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
+import org.apache.flink.streaming.api.operators.StreamOperator.ChainingStrategy;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.windowing.policy.*;
 import org.apache.flink.streaming.api.windowing.windowbuffer.OptimizedWindowBuffer;
@@ -94,6 +95,8 @@ public class MultiDiscretizer<IN>
 
             bufferSizes[i]=0;
         }
+        
+        chainingStrategy = ChainingStrategy.ALWAYS;
 
     }
 

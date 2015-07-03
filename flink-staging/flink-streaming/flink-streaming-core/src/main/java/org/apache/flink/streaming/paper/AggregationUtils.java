@@ -7,6 +7,7 @@ import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -31,18 +32,19 @@ public class AggregationUtils {
 			this.lower = lower;
 		}
 
+		@SuppressWarnings({ "unchecked", "rawtypes" })
 		public DataStream<Double> applyOn(
 				DataStream<Tuple2<Double, Double>> input,
-				LinkedList<DeterministicPolicyGroup<Tuple2<A, Double>>> deterministicPolicyGroups,
-				LinkedList<TriggerPolicy<Tuple2<A, Double>>> notDeterministicTriggerPolicies,
-				LinkedList<EvictionPolicy<Tuple2<A, Double>>> notDeterministicEvictionPolicies) {
+				LinkedList<DeterministicPolicyGroup> deterministicPolicyGroups,
+				LinkedList<TriggerPolicy> notDeterministicTriggerPolicies,
+				LinkedList<EvictionPolicy> notDeterministicEvictionPolicies) {
 
 			TypeInformation<Tuple2<A, Double>> liftReturnType = new TupleTypeInfo<Tuple2<A, Double>>(
 					TypeExtractor.getMapReturnTypes(lift,
 							BasicTypeInfo.DOUBLE_TYPE_INFO),
 					BasicTypeInfo.DOUBLE_TYPE_INFO);
 
-			DataStream<Tuple2<A, Double>> lifted = input.map(new Lift<A>(lift))
+			DataStream<Tuple2<A, Double>> lifted = input.map(new Lift<A>(lift)).startNewChain()
 					.returns(liftReturnType);
 
 			TypeInformation<Tuple2<Integer, Tuple2<A, Double>>> combinedType = new TupleTypeInfo<Tuple2<Integer, Tuple2<A, Double>>>(
@@ -50,7 +52,7 @@ public class AggregationUtils {
 
 			DataStream<Tuple2<Integer, Tuple2<A, Double>>> combinedWithID = lifted
 					.transform("WindowAggregation", combinedType,
-							new MultiDiscretizer<Tuple2<A, Double>>(
+							new MultiDiscretizer(
 									deterministicPolicyGroups,
 									notDeterministicTriggerPolicies,
 									notDeterministicEvictionPolicies,
@@ -71,6 +73,39 @@ public class AggregationUtils {
 			return combinedWithoutID.map(lower);
 		}
 	}
+	
+	public static WindowAggregation<Tuple3<Integer, Double, Double>> StdAggregation = new WindowAggregation<Tuple3<Integer, Double, Double>>(
+			new MapFunction<Double, Tuple3<Integer, Double, Double>>() {
+
+				@Override
+				public Tuple3<Integer, Double, Double> map(Double value)
+						throws Exception {
+					return new Tuple3<Integer, Double, Double>(1, value, value
+							* value);
+				}
+			}, new ReduceFunction<Tuple3<Integer, Double, Double>>() {
+
+				@Override
+				public Tuple3<Integer, Double, Double> reduce(
+						Tuple3<Integer, Double, Double> v1,
+						Tuple3<Integer, Double, Double> v2) throws Exception {
+					v1.f0 = v1.f0 + v2.f0;
+					v1.f1 = v1.f1 + v2.f1;
+					v1.f2 = v1.f2 + v2.f2;
+					return v1;
+				}
+
+			}, new MapFunction<Tuple3<Integer, Double, Double>, Double>() {
+
+				@Override
+				public Double map(Tuple3<Integer, Double, Double> value)
+						throws Exception {
+					return Math
+							.sqrt((value.f2 - (value.f1 * value.f1 / value.f0))
+									/ value.f0);
+				}
+
+			});
 	
 	public static WindowAggregation<Double> SumAggregation = new WindowAggregation<Double>(
 			new IdMap(), new ReduceFunction<Double>() {
