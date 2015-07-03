@@ -17,23 +17,30 @@
 
 package org.apache.flink.streaming.api.windowing.policy;
 
+import org.apache.flink.streaming.api.windowing.helper.SystemTimestamp;
 import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
 
-public class DeterministicTimeEvictionPolicy<DATA> extends TimeEvictionPolicy<DATA> implements DeterministicEvictionPolicy<DATA> {
+public class DeterministicTimeEvictionPolicy<DATA> extends
+		TimeEvictionPolicy<DATA> implements DeterministicEvictionPolicy<DATA> {
 
-    long granularity;
+	long granularity;
 
-    public DeterministicTimeEvictionPolicy(long granularity, TimestampWrapper<DATA> timestampWrapper){
-        super(granularity,timestampWrapper);
-        this.granularity=granularity;
-    }
+	public DeterministicTimeEvictionPolicy(long granularity,
+			TimestampWrapper<DATA> timestampWrapper) {
+		super(granularity, timestampWrapper);
+		this.granularity = granularity;
+	}
 
-    @Override
-    public double getLowerBorder(double upperBorder) {
-        if (upperBorder-granularity<0){
-            return 0;
-        } else {
-            return upperBorder-(double)granularity;
-        }
-    }
+	public DeterministicTimeEvictionPolicy(long granularity) {
+		this(granularity, (TimestampWrapper<DATA>) SystemTimestamp.getWrapper());
+	}
+
+	@Override
+	public double getLowerBorder(double upperBorder) {
+		if (upperBorder - granularity < 0) {
+			return 0;
+		} else {
+			return upperBorder - (double) granularity;
+		}
+	}
 }

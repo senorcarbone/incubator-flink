@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.flink.streaming.paper;
 
 import java.util.LinkedList;
@@ -33,11 +50,9 @@ public class AggregationUtils {
 		}
 
 		@SuppressWarnings({ "unchecked", "rawtypes" })
-		public DataStream<Double> applyOn(
+		public DataStream<Tuple2<Integer,Double>> applyOn(
 				DataStream<Tuple2<Double, Double>> input,
-				LinkedList<DeterministicPolicyGroup> deterministicPolicyGroups,
-				LinkedList<TriggerPolicy> notDeterministicTriggerPolicies,
-				LinkedList<EvictionPolicy> notDeterministicEvictionPolicies) {
+				Tuple3<LinkedList<DeterministicPolicyGroup>, LinkedList<TriggerPolicy>, LinkedList<EvictionPolicy>> policies) {
 
 			TypeInformation<Tuple2<A, Double>> liftReturnType = new TupleTypeInfo<Tuple2<A, Double>>(
 					TypeExtractor.getMapReturnTypes(lift,
@@ -53,24 +68,12 @@ public class AggregationUtils {
 			DataStream<Tuple2<Integer, Tuple2<A, Double>>> combinedWithID = lifted
 					.transform("WindowAggregation", combinedType,
 							new MultiDiscretizer(
-									deterministicPolicyGroups,
-									notDeterministicTriggerPolicies,
-									notDeterministicEvictionPolicies,
+									policies.f0,
+									policies.f1,
+									policies.f2,
 									new Combine<A>(combine)));
 
-			DataStream<A> combinedWithoutID = combinedWithID
-					.map(new MapFunction<Tuple2<Integer, Tuple2<A, Double>>, A>() {
-						private static final long serialVersionUID = 1L;
-
-						@Override
-						public A map(Tuple2<Integer, Tuple2<A, Double>> value)
-								throws Exception {
-							return value.f1.f0;
-						}
-
-					});
-
-			return combinedWithoutID.map(lower);
+			return combinedWithID.map(new Lower(lower));
 		}
 	}
 	
@@ -144,6 +147,22 @@ public class AggregationUtils {
 			return value1;
 
 		}
+	}
+	
+	public static class Lower<A> implements MapFunction<Tuple2<Integer,Tuple2<A, Double>>,Tuple2<Integer,Double>>{
+
+		MapFunction<A, Double> lower;
+		
+		private Lower(MapFunction<A, Double> lower){
+			this.lower = lower;
+		}
+		
+		@Override
+		public Tuple2<Integer, Double> map(
+				Tuple2<Integer, Tuple2<A, Double>> value) throws Exception {
+			return new Tuple2<Integer, Double>(value.f0, lower.map(value.f1.f0));
+		}
+		
 	}
 
 	public static class Lift<A> implements

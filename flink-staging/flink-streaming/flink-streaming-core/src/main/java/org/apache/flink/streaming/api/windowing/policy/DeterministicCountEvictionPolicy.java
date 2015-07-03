@@ -17,21 +17,22 @@
 
 package org.apache.flink.streaming.api.windowing.policy;
 
-public class DeterministicCountEvictionPolicy<IN> extends CountEvictionPolicy<IN> implements DeterministicEvictionPolicy<IN> {
+public class DeterministicCountEvictionPolicy<IN> extends
+		CountEvictionPolicy<IN> implements DeterministicEvictionPolicy<IN> {
 
-    private int maxElements;
+	private int maxElements;
 
-    public DeterministicCountEvictionPolicy(int maxElements){
-        super(maxElements);
-        this.maxElements=maxElements;
-    }
+	public DeterministicCountEvictionPolicy(int maxElements) {
+		super(maxElements);
+		this.maxElements = maxElements;
+	}
 
-    @Override
-    public double getLowerBorder(double upperBorder) {
-        if (upperBorder-maxElements>0){
-            return upperBorder-maxElements;
-        } else {
-            return 0;
-        }
-    }
+	@Override
+	public double getLowerBorder(double upperBorder) {
+		if (upperBorder - maxElements > 0) {
+			return upperBorder - maxElements;
+		} else {
+			return 0;
+		}
+	}
 }

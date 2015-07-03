@@ -17,26 +17,33 @@
 
 package org.apache.flink.streaming.api.windowing.policy;
 
+import org.apache.flink.streaming.api.windowing.helper.SystemTimestamp;
 import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
 
-public class DeterministicTimeTriggerPolicy<DATA> extends TimeTriggerPolicy<DATA> implements DeterministicTriggerPolicy<DATA>{
+public class DeterministicTimeTriggerPolicy<DATA> extends
+		TimeTriggerPolicy<DATA> implements DeterministicTriggerPolicy<DATA> {
 
-    long startTime;
-    long granularity;
+	long startTime;
+	long granularity;
 
-    public DeterministicTimeTriggerPolicy(long granularity, TimestampWrapper<DATA> timestampWrapper){
-        super(granularity,timestampWrapper);
-        this.startTime = timestampWrapper.getStartTime();
-        this.granularity = granularity;
-    }
+	public DeterministicTimeTriggerPolicy(long granularity,
+			TimestampWrapper<DATA> timestampWrapper) {
+		super(granularity, timestampWrapper);
+		this.startTime = timestampWrapper.getStartTime();
+		this.granularity = granularity;
+	}
 
-    @Override
-    public double getNextTriggerPosition(double previouseTriggerPosition) {
+	public DeterministicTimeTriggerPolicy(long granularity) {
+		this(granularity, (TimestampWrapper<DATA>) SystemTimestamp.getWrapper());
+	}
 
-        if (previouseTriggerPosition<(double)startTime){
-            return startTime+(double)granularity;
-        } else {
-            return previouseTriggerPosition+(double)granularity;
-        }
-    }
+	@Override
+	public double getNextTriggerPosition(double previouseTriggerPosition) {
+
+		if (previouseTriggerPosition < (double) startTime) {
+			return startTime + (double) granularity;
+		} else {
+			return previouseTriggerPosition + (double) granularity;
+		}
+	}
 }

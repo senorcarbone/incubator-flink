@@ -17,23 +17,25 @@
 
 package org.apache.flink.streaming.api.windowing.policy;
 
-public class DeterministicTumblingEvictionPolicy<DATA> extends TumblingEvictionPolicy<DATA> implements DeterministicEvictionPolicy<DATA>{
+public class DeterministicTumblingEvictionPolicy<DATA> extends
+		TumblingEvictionPolicy<DATA> implements
+		DeterministicEvictionPolicy<DATA> {
 
-    private double previouseUpperBorder;
+	private double previouseUpperBorder;
 
-    public DeterministicTumblingEvictionPolicy(){
-        this(0);
-    }
+	public DeterministicTumblingEvictionPolicy() {
+		this(0);
+	}
 
-    public DeterministicTumblingEvictionPolicy(int firstWindowBegin){
-        this.previouseUpperBorder=firstWindowBegin;
-    }
+	public DeterministicTumblingEvictionPolicy(int firstWindowBegin) {
+		this.previouseUpperBorder = firstWindowBegin;
+	}
 
-    @Override
-    public double getLowerBorder(double upperBorder) {
-        double tmp = this.previouseUpperBorder;
-        this.previouseUpperBorder = upperBorder;
-        return tmp;
-    }
+	@Override
+	public double getLowerBorder(double upperBorder) {
+		double tmp = this.previouseUpperBorder;
+		this.previouseUpperBorder = upperBorder;
+		return tmp;
+	}
 
 }

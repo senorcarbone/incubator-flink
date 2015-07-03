@@ -17,29 +17,30 @@
 
 package org.apache.flink.streaming.api.windowing.policy;
 
-public class DeterministicCountTriggerPolicy<IN> extends CountTriggerPolicy<IN> implements DeterministicTriggerPolicy<IN> {
+public class DeterministicCountTriggerPolicy<IN> extends CountTriggerPolicy<IN>
+		implements DeterministicTriggerPolicy<IN> {
 
-    private int max;
-    private int startValue;
+	private int max;
+	private int startValue;
 
-    public DeterministicCountTriggerPolicy(int max, int startValue){
-        super(max,startValue);
-        this.max=max;
-        this.startValue=startValue;
-    }
+	public DeterministicCountTriggerPolicy(int max, int startValue) {
+		super(max, startValue);
+		this.max = max;
+		this.startValue = startValue;
+	}
 
-    public DeterministicCountTriggerPolicy(int max){
-        super(max);
-        this.max=max;
-        this.startValue=0;
-    }
+	public DeterministicCountTriggerPolicy(int max) {
+		super(max);
+		this.max = max;
+		this.startValue = 0;
+	}
 
-    @Override
-    public double getNextTriggerPosition(double previousTriggerPosition) {
-        if (previousTriggerPosition<0){
-            return startValue+max;
-        } else {
-            return previousTriggerPosition+max;
-        }
-    }
+	@Override
+	public double getNextTriggerPosition(double previousTriggerPosition) {
+		if (previousTriggerPosition < 0) {
+			return startValue + max;
+		} else {
+			return previousTriggerPosition + max;
+		}
+	}
 }

@@ -18,18 +18,22 @@
 package org.apache.flink.streaming.api.windowing.policy;
 
 /**
- * A deterministic eviction policy allows to apply border to border pre-aggregation means.
- * Eviction policies are deterministic if they can calculate the begin (lower border) of a window,
- * for any given window end (upper Border)
+ * A deterministic eviction policy allows to apply border to border
+ * pre-aggregation means. Eviction policies are deterministic if they can
+ * calculate the begin (lower border) of a window, for any given window end
+ * (upper Border)
  */
 public interface DeterministicEvictionPolicy<DATA> extends EvictionPolicy<DATA> {
 
-    /**
-     * This method receives the upper border (window end) as parameter.
-     * It returns the lower border (window begin) belonging to the given upper border.
-     * @param upperBorder The upper border (window end)
-     * @return The lower boder (window begin)
-     */
-    public double getLowerBorder(double upperBorder);
+	/**
+	 * This method receives the upper border (window end) as parameter. It
+	 * returns the lower border (window begin) belonging to the given upper
+	 * border.
+	 * 
+	 * @param upperBorder
+	 *            The upper border (window end)
+	 * @return The lower boder (window begin)
+	 */
+	public double getLowerBorder(double upperBorder);
 
 }

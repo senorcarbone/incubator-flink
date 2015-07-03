@@ -18,18 +18,22 @@
 package org.apache.flink.streaming.api.windowing.policy;
 
 /**
- * A deterministic trigger policy allows to apply border to border pre-aggregation means.
- * Trigger policies are deterministic if they can calculate the end (upper border) of the next window,
- * given the end position of the previous window.
+ * A deterministic trigger policy allows to apply border to border
+ * pre-aggregation means. Trigger policies are deterministic if they can
+ * calculate the end (upper border) of the next window, given the end position
+ * of the previous window.
  */
-public interface DeterministicTriggerPolicy<DATA> extends TriggerPolicy<DATA>{
+public interface DeterministicTriggerPolicy<DATA> extends TriggerPolicy<DATA> {
 
-    /**
-     * This methods calculated the next upper border, thus, it calculates the position
-     * where the next window will end beyond the given position.
-     * @param previouseTriggerPosition the position of the previous window end
-     * @return the position of the next window end after the position given as parameter
-     */
-    public double getNextTriggerPosition(double previouseTriggerPosition);
+	/**
+	 * This methods calculated the next upper border, thus, it calculates the
+	 * position where the next window will end beyond the given position.
+	 * 
+	 * @param previouseTriggerPosition
+	 *            the position of the previous window end
+	 * @return the position of the next window end after the position given as
+	 *         parameter
+	 */
+	public double getNextTriggerPosition(double previouseTriggerPosition);
 
 }
