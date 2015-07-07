@@ -1,4 +1,4 @@
-/*
+package org.apache.flink.streaming.sampling.helpers;/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,23 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.sampling.helpers;
 
-import org.apache.flink.api.common.functions.RichMapFunction;
-import org.apache.flink.api.java.tuple.Tuple3;
-import org.apache.flink.streaming.sampling.samplers.Buffer;
+import java.util.Comparator;
+import java.util.Map;
 
 /**
- * Created by marthavk on 2015-04-27.
+ * Created by marthavk on 2015-05-29.
  */
-public class SimpleUnwrapper<T> extends RichMapFunction<Buffer<Tuple3<T, StreamTimestamp, Long>>, Buffer<T>> {
-	@Override
-	public Buffer<T> map(Buffer<Tuple3<T, StreamTimestamp, Long>> value) throws Exception {
-		//ArrayList<Long> utilList = new ArrayList<Long>();
-		Buffer<T> sample = new Buffer<T>();
-		/*for (int i = 0; i < value.getSample().size(); i++) {
-			sample.addSample(value.getSample().get(i).f0);
-		}*/
-		return sample;
+public class SimpleComparator implements Comparator<String> {
+
+	Map<String, Integer> hashmap;
+
+	public SimpleComparator(Map<String, Integer> m) {
+		this.hashmap = m;
+	}
+
+	public int compare(String a, String b) {
+		if (hashmap.get(a) >= hashmap.get(b)) {
+			return -1;
+		} else {
+			return 1;
+		}
 	}
 }

@@ -33,7 +33,7 @@ import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 /**
  * Created by marthavk on 2015-05-11.
  */
-public class DriftDetectionExample<T> {
+public class DriftDetectionExperiment<T> {
 
 
 	// *************************************************************************

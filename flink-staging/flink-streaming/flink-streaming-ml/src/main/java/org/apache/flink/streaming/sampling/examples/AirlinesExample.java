@@ -15,19 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.sampling.airlines;
+package org.apache.flink.streaming.sampling.examples;
 
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.tuple.Tuple6;
 import org.apache.flink.api.java.tuple.Tuple8;
+import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
+
+import org.apache.flink.streaming.sampling.airlines.SimpleComparator;
 import org.apache.flink.streaming.sampling.helpers.Configuration;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+import org.apache.flink.streaming.sampling.samplers.StreamSampler;
+import org.apache.flink.streaming.sampling.samplers.UniformSampler;
 import org.apache.flink.util.Collector;
 
 import java.io.Serializable;
@@ -51,16 +56,19 @@ import java.util.TreeMap;
 
 public class AirlinesExample implements Serializable {
 
-	public static void main(String[] args) throws Exception {
-		/*read properties*/
-		String path = SamplingUtils.path;
+	/*properties*/
+	static String path = Configuration.path;
 
-		/*query properties*/
-		final int size_of_stream = 10000;
-		final String source_file = path + "sampling_results/reservoir_sample_10000";
+	/*query properties*/
+	static final String source_file = path + "january_dataset";
+	final static int size_of_stream = 10000;
+
+	public static void main(String[] args) throws Exception {
+
 
 		/*set sample and window sizes*/
 		final int sample_size = Configuration.SAMPLE_SIZE_1000;
+		final int sampling_rate = 100;
 		long time_window_size = Configuration.timeWindowSize;
 		final int count_window_size = Configuration.countWindowSize;
 
@@ -90,15 +98,15 @@ public class AirlinesExample implements Serializable {
 					public Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer> map(String record) throws Exception {
 						Tuple8 out = new Tuple8();
 						String[] values = record.split(",");
-						int[] integerFields = new int[]{0, 1, 2};
+/*						int[] integerFields = new int[]{0, 1, 2};
 						int[] stringFields = new int[]{3, 4, 5};
-						int[] integerFields2 = new int[]{6, 7};
+						int[] integerFields2 = new int[]{6, 7};*/
 
-/*
+
 						int[] integerFields = new int[]{1,2,3};
 						int[] stringFields = new int[]{4, 5, 6};
 						int[] integerFields2 = new int[]{7, 8};
-*/
+
 						int counter = 0;
 						for (int i : integerFields) {
 
@@ -125,9 +133,33 @@ public class AirlinesExample implements Serializable {
 					}
 				}).setParallelism(1);
 
+		//SAMPLE
+		UniformSampler uniformSampler = new UniformSampler(sample_size, sampling_rate);
+		SingleOutputStreamOperator sample = dataStream.transform("sampleRS", dataStream.getType(), new StreamSampler<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>(uniformSampler));
+		sample.print();
 
 		//AGGREGATES
-		dataStream.groupBy(3).sum(7).flatMap(new FlatMapFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>, HashMap<String, Integer>>() {
+	//	calculateAggregates(sample);
+
+		//HEAVY HITTERS
+	//	heavyHitters(sample);
+
+		//RANGE QUERIES for the first and last week of january
+	//	rangeQueries(sample);
+
+
+		/*get js for execution plan*/
+		System.err.println(env.getExecutionPlan());
+
+		/*execute program*/
+		env.execute();
+
+	}
+
+	/** METHODS **/
+
+	public static void calculateAggregates(DataStream<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>> ds) {
+		ds.groupBy(3).sum(7).flatMap(new FlatMapFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>, HashMap<String, Integer>>() {
 			int counter = 0;
 			HashMap<String, Integer> carriers = new HashMap<String, Integer>();
 
@@ -161,9 +193,11 @@ public class AirlinesExample implements Serializable {
 						System.err.println(value.toString());
 					}
 				});
-		
-		//HEAVY HITTERS
-		dataStream.groupBy(5).sum(7).flatMap(new FlatMapFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>, HashMap<String, Integer>>() {
+
+	}
+
+	public static void heavyHitters(DataStream<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>> ds) {
+		ds.groupBy(5).sum(7).flatMap(new FlatMapFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>, HashMap<String, Integer>>() {
 			int counter = 0;
 			HashMap<String, Integer> destinations = new HashMap<String, Integer>();
 
@@ -192,9 +226,9 @@ public class AirlinesExample implements Serializable {
 
 			}
 		});
+	}
 
-
-		//RANGE QUERIES
+	public static void rangeQueries(DataStream<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>> ds) {
 		/*
 		* q1 : all flights for the first/last week of January
 		* q2 : all flights by HA carrier
@@ -204,7 +238,7 @@ public class AirlinesExample implements Serializable {
 		* q6 : all flights on a weekend
 		 */
 
-		dataStream.flatMap(new FlatMapFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>, Tuple6<Integer, Integer, Integer, Integer, Integer, Integer>>() {
+		ds.flatMap(new FlatMapFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>, Tuple6<Integer, Integer, Integer, Integer, Integer, Integer>>() {
 			int q1 = 0;
 			int q2 = 0;
 			int q3 = 0;
@@ -248,7 +282,7 @@ public class AirlinesExample implements Serializable {
 			}
 		});
 
-		dataStream.flatMap(new FlatMapFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>, Tuple6<Integer, Integer, Integer, Integer, Integer, Integer>>() {
+		ds.flatMap(new FlatMapFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>, Tuple6<Integer, Integer, Integer, Integer, Integer, Integer>>() {
 			int q1 = 0;
 			int q2 = 0;
 			int q3 = 0;
@@ -291,55 +325,6 @@ public class AirlinesExample implements Serializable {
 				System.err.println(value.toString());
 			}
 		});
-
-		//SAMPLE
-
-/*		SingleOutputStreamOperator<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>, ?>
-				sample = dataStream.map(new FifoSampler<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>(sample_size));*/
-		/*SingleOutputStreamOperator<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>, ?>
-				sample = dataStream.map(new BiasedReservoirSampler<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>(sample_size));*/
-
-		//dataStream.print();
-
-
-
-		/*SingleOutputStreamOperator<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>, ?> sample =  dataStream
-				.map(new AirdataMetaAppender<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>())
-				.map(new ChainSampler<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>(sample_size, count_window_size))
-				.map(new SampleExtractor<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>());
-
-		sample.filter(new RichFilterFunction<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>>() {
-			long counter = 0;
-			@Override
-			public boolean filter(Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>> value) throws Exception {
-				StreamingRuntimeContext context = (StreamingRuntimeContext) getRuntimeContext();
-				System.out.println(context.getIndexOfThisSubtask()+1 + "> " + counter);
-				counter ++;
-				return counter>146000;
-			}
-		}).map(new MapFunction<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>, String>() {
-			@Override
-			public String map(Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>> value) throws Exception {
-				String str = new String();
-				ArrayList<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>> allSamples = value.getSample();
-				for (Tuple8 sample : allSamples) {
-					String cTupleStr = sample.toString();
-					cTupleStr = cTupleStr.substring(1, cTupleStr.indexOf(")"));
-					str += cTupleStr + "\n";
-				}
-				str += "\n";
-				return str;
-			}
-		}).writeAsText(SamplingUtils.path + "chain_50000");
-*/
-
-		/*get js for execution plan*/
-		System.err.println(env.getExecutionPlan());
-
-		/*execute program*/
-		env.execute();
-
 	}
-
 
 }

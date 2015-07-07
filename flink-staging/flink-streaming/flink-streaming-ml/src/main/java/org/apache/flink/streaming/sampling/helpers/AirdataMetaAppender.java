@@ -15,20 +15,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.flink.streaming.sampling.helpers;
 
-package org.apache.flink.streaming.sampling.examples;
-
-import org.apache.flink.streaming.api.scala.DataStream;
-import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.tuple.Tuple8;
+import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
 
 /**
- * Created by marthavk on 2015-05-31.
+ * Created by marthavk on 2015-05-27.
  */
-public class ClassificationTest {
+public class AirdataMetaAppender<T extends Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>> extends RichMapFunction<T, Tuple3<T, StreamTimestamp, Long>> {
 
-	public static void main(String[] args) {
-		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-		DataStream<String> rawData = env.readTextFile(SamplingUtils.path + "small_dataset");
+	long index = 0;
+
+	@Override
+	public Tuple3<T, StreamTimestamp, Long> map(T value) throws Exception {
+
+		/*//value
+		Double rand = value.generate();*/
+
+		//timestamp
+		final StreamTimestamp t = new StreamTimestamp(value.f0);
+
+		//order
+		index++;
+
+		return new Tuple3<T, StreamTimestamp, Long>(value, t, index);
 	}
+
+
 }
