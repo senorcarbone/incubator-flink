@@ -37,11 +37,7 @@ public final class SamplingUtils {
 	public static final int REAL_DISTRIBUTION = 1;
 	public static final int EMPIRICAL_DISTRIBUTION = 2;
 
-	public static String path = "/home/marthavk/workspace/flink/flink-staging/flink-streaming" +
-			"/flink-streaming-ml/src/main/resources/";
-	public static String covertypePath = "/home/marthavk/Desktop/thesis-all-docs/resources/dataSets/forestCovertype/covtype.libsvm.binary";
-	public static String randomRBFPath = "/home/marthavk/Desktop/thesis-all-docs/resources/dataSets/randomRBF/randomRBF-10M.arff";
-	public static String externalPath = "/home/marthavk/Desktop/thesis-all-docs/resources/";
+
 	static Random rand = new Random();
 
 	public static boolean flip(int sides) {

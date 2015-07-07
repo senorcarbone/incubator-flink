@@ -76,10 +76,6 @@ public class Reservoir<T> extends Buffer<T> implements Serializable, Iterable {
 		return sample.toString();
 	}
 
-	void print() {
-		System.out.println(sample.toString());
-	}
-
 	public void mergeWith(Reservoir<T> r1) {
 		this.setMaxSize(r1.getMaxSize() + this.getMaxSize());
 		ArrayList<T> newReservoir = new ArrayList<T>();

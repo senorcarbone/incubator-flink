@@ -46,7 +46,7 @@ public class GreedySampler<IN> implements SampleFunction<IN> {
 
 	public GreedySampler(int size, int lSampleRate) {
 		sample = new Buffer<IN>(size);
-		Properties props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
+		Properties props = SamplingUtils.readProperties(Configuration.path + "distributionconfig.properties");
 		lambda = Double.parseDouble(props.getProperty("lambda"));
 		delta = Double.parseDouble(props.getProperty("delta"));
 		detector = new PageHinkleyTest(lambda, delta, 30);

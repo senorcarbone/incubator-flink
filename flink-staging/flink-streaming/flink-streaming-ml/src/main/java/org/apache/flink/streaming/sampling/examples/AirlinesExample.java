@@ -28,9 +28,8 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 
-import org.apache.flink.streaming.sampling.airlines.SimpleComparator;
+import org.apache.flink.streaming.sampling.helpers.SimpleComparator;
 import org.apache.flink.streaming.sampling.helpers.Configuration;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.StreamSampler;
 import org.apache.flink.streaming.sampling.samplers.UniformSampler;
 import org.apache.flink.util.Collector;

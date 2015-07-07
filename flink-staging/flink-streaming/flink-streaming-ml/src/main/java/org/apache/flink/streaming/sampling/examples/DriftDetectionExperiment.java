@@ -44,8 +44,8 @@ public class DriftDetectionExperiment<T> {
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
-		/*evaluate sampling method, run main algorithm*/
-		evaluateSampling(env);
+		/*run main algorithm*/
+		changeDetection(env);
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
@@ -61,7 +61,7 @@ public class DriftDetectionExperiment<T> {
 	 *
 	 * @param env
 	 */
-	public static void evaluateSampling(StreamExecutionEnvironment env) {
+	public static void changeDetection(StreamExecutionEnvironment env) {
 
 		int sampleSize = Configuration.SAMPLE_SIZE_1000;
 

@@ -44,7 +44,7 @@ class SamplingTest
     val env = StreamExecutionEnvironment.getExecutionEnvironment
 
     // read properties
-    val initProps = SamplingUtils.readProperties(SamplingUtils.path
+    val initProps = SamplingUtils.readProperties(Configuration.path
       + "distributionconfig.properties")
 
     //val file = "/home/marthavk/Desktop/thesis-all-docs/resources/dataSets/randomRBF/randomRBF-10M.arff"
@@ -80,16 +80,21 @@ class SamplingTest
       }
     }
 
+    //create sampler
     val sampler: StreamSampler[LabeledVector] =
       new StreamSampler[LabeledVector](uniformSampler1000)
 
+    //sample datapoints
     dataPoints.getJavaStream.transform("sample", dataPoints.getType, sampler)
 
+    //create vfdTree
     val vfdTree = HoeffdingTree(env)
-    val evaluator = PrequentialEvaluator()
 
+    //create evaluator
+    val evaluator = PrequentialEvaluator()
     val streamToEvaluate = vfdTree.fit(dataPoints, parameters)
 
+    //evaluate sampled datapoints
     evaluator.evaluate(streamToEvaluate).writeAsText("/home/marthavk/Desktop/thesis-all-docs/results/classification_results/" + "rbf_RS1K100")
       .setParallelism(1)
 

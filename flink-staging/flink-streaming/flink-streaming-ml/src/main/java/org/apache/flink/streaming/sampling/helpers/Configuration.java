@@ -59,7 +59,7 @@ public class Configuration {
 	public static double outlierRate = 0.1;
 
 	/**
-	 * OTHER PROPERTIES *
+	 * OTHER PROPERTIES
 	 */
 	//Page Hinkley Test parameters
 	public static double lambda = 15.0;
@@ -69,7 +69,15 @@ public class Configuration {
 	 * PATHS
 	 */
 	public static String outputPath;
+	public static String path = "/home/marthavk/workspace/flink/flink-staging/flink-streaming" +
+			"/flink-streaming-ml/src/main/resources/";
+	public static String covertypePath = "/home/marthavk/Desktop/thesis-all-docs/resources/dataSets/forestCovertype/covtype.libsvm.binary";
+	public static String randomRBFPath = "/home/marthavk/Desktop/thesis-all-docs/resources/dataSets/randomRBF/randomRBF-10M.arff";
 
+
+	/**
+	 * OTHER
+	 */
 	public static long millis=0;
 	public static int nanos=300000;
 }

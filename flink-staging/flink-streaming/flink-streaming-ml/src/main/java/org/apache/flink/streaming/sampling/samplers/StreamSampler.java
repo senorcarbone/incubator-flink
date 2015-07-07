@@ -83,7 +83,7 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 		FunctionUtils.openFunction(sampler, parameters);
 
 		//logic for the thread
-		Thread thread = new Thread(new Runnable() {
+		final Thread thread = new Thread(new Runnable() {
 
 			@Override
 			public void run() {
@@ -95,6 +95,7 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 					}
 					try {
 						if (running) {
+							//TODO: job finishes before thread -> NullPointerException
 							output.collect(sampler.getRandomEvent());
 						}
 					} catch (IndexOutOfBoundsException ignored) {

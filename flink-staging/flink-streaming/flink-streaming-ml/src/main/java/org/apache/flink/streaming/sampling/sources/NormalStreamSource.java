@@ -68,7 +68,7 @@ public class NormalStreamSource implements SourceFunction<GaussianDistribution> 
 	@Override
 	public void run(SourceContext<GaussianDistribution> ctx) throws Exception {
 		while (count < numberOfEvents) {
-			Thread.sleep(0,30000);
+			//Thread.sleep(0,30000);
 			count++;
 			if (count < stablePoints) {
 				ctx.collect(new GaussianDistribution(mean, stDev, outlierRate));
