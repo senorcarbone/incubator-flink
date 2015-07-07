@@ -1,4 +1,4 @@
-package org.apache.flink.streaming.sampling.sources;/*
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,9 +15,10 @@ package org.apache.flink.streaming.sampling.sources;/*
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+package org.apache.flink.streaming.sampling.sources;
 import com.google.common.base.Preconditions;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
+import org.apache.flink.streaming.sampling.helpers.Configuration;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -33,8 +34,8 @@ public class RBFSource implements SourceFunction<String> {
 
 	boolean running=true;
 	String filePath;
-	long timeInSeconds = 300;
-	long linesOfFile = 10000000;
+	//long timeInSeconds = 300;
+
 	public RBFSource(String fp) {
 		filePath = fp;
 	}
@@ -47,18 +48,12 @@ public class RBFSource implements SourceFunction<String> {
 		//TypeInformation<String> typeInfo = BasicTypeInfo.STRING_TYPE_INFO;
 		//logic for the thread
 
-		long totalTimeInNanos = (long) (timeInSeconds*10*Math.pow(10,9));
-		System.out.println(totalTimeInNanos);
+		//long totalTimeInNanos = (long) (timeInSeconds*10*Math.pow(10,9));
+		//System.out.println(totalTimeInNanos);
 		//long sleepTimeInNanos = timeInSeconds/linesOfFile;
-		final int nanos = 30000;
-/*		String text = null;
-		File file = new File(filePath);
-		BufferedReader reader = null;
-		reader = new BufferedReader(new FileReader(file));
-		while ((text = reader.readLine()) != null) {
-			ctx.collect(text);
-		}*/
+		long rate = (long) (1000/(Configuration.millis+Math.pow(10,-9)*Configuration.nanos));
 
+		System.out.println("source rate: " + rate + " p.s.");
 		File file = new File(filePath);
 		BufferedReader reader = null;
 		try {
@@ -70,7 +65,7 @@ public class RBFSource implements SourceFunction<String> {
 		while (running) {
 
 			try {
-				Thread.sleep(0, 30000);
+				Thread.sleep(Configuration.millis, Configuration.nanos);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

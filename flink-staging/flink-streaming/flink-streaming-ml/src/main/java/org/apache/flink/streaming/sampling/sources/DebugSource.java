@@ -36,6 +36,11 @@ public class DebugSource implements SourceFunction<Long> {
 	@Override
 	public void run(SourceContext<Long> ctx) throws Exception {
 		while (count < end) {
+			try {
+				Thread.sleep(0, 30000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 			count++;
 			ctx.collect(count);
 		}

@@ -9,6 +9,7 @@ import org.apache.flink.streaming.incrementalML.evaluator.PrequentialEvaluator
 import org.apache.flink.streaming.sampling.helpers.{Configuration, SamplingUtils}
 import org.apache.flink.streaming.sampling.samplers._
 import org.apache.flink.streaming.sampling.sources.RBFSource
+import spire.std.long
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -45,7 +46,7 @@ object SampledClassification {
     }*/
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment
-    env.setParallelism(1);
+    env.setParallelism(2);
 
     // read properties
     /*val initProps = SamplingUtils.readProperties(SamplingUtils.path
@@ -53,35 +54,34 @@ object SampledClassification {
 
     val file = "/home/marthavk/Desktop/thesis-all-docs/resources/dataSets/randomRBF/randomRBF-10M.arff"
     //val max_count = initProps.getProperty("maxCount").toInt
-    val sample_size = Configuration.SAMPLE_SIZE_1000
+    val sample_size = 1000000
 
     //set parameters of VFDT
     val parameters = ParameterMap()
     //    val nominalAttributes = Map(0 ->4, 2 ->4, 4 ->4, 6 ->4 8 ->4)
     parameters.add(HoeffdingTree.MinNumberOfInstances, 300)
     parameters.add(HoeffdingTree.NumberOfClasses, 4)
-    parameters.add(HoeffdingTree.Parallelism, 1)
+    parameters.add(HoeffdingTree.Parallelism, 2)
 
     //read datapoints for covertype_libSVM dataset and sample
 
     //val sample = StreamingMLUtils.readLibSVM(env, SamplingUtils.covertypePath, 54)
-    /*val biasedReservoirSampler1000: SampleFunction[LabeledVector] =
-      new BiasedReservoirSampler[LabeledVector](Configuration.SAMPLE_SIZE_1000, 100)*/
+    val biasedReservoirSampler1000: SampleFunction[LabeledVector] =
+      new BiasedReservoirSampler[LabeledVector](sample_size, 100)
 
    // val reservoirSampler1000: SampleFunction[LabeledVector] =
    // new UniformSampler[LabeledVector](Configuration.SAMPLE_SIZE_10000, 100000)
+    val timeWindow = 3600000;
+    val indWindow = 500000
 
-    val biasedSampler1000: SampleFunction[LabeledVector] =
-    new BiasedReservoirSampler[LabeledVector](Configuration.SAMPLE_SIZE_10000, 100)
 
-//    val chainSampler1000: SampleFunction[LabeledVector] =
-//    new ChainSampler[LabeledVector](sample_size, Configuration.countWindowSize, 100)
-//    val prioritySampler1000: SampleFunction[LabeledVector] =
-//    new PrioritySampler[LabeledVector](sample_size, Configuration.timeWindowSize, 100)
-
+  //  val chainSampler1000: SampleFunction[LabeledVector] =
+ //   new ChainSampler[LabeledVector](sample_size, indWindow, 100)
+ //   val prioritySampler1000: SampleFunction[LabeledVector] =
+ //   new PrioritySampler[LabeledVector](sample_size, timeWindow, 100)
 
     // read datapoints for randomRBF dataset
-    val source: DataStream[String] = env.addSource(new RBFSource(file))
+    val source: DataStream[String] = env.addSource(new RBFSource(file)).setParallelism(1)
     val dataPoints = source.map {
       line => {
         var featureList = Vector[Double]()
@@ -94,9 +94,10 @@ object SampledClassification {
     }
 
 
-    val sampler: StreamSampler[LabeledVector] = new StreamSampler[LabeledVector](biasedSampler1000)
+    val sampler: StreamSampler[LabeledVector] = new StreamSampler[LabeledVector](biasedReservoirSampler1000)
 
-    val sampledPoints = dataPoints.getJavaStream.transform("sample", dataPoints.getType, sampler)
+    val sampledPoints = dataPoints.shuffle.getJavaStream.transform("sample", dataPoints.getType, sampler)
+    //sampledPoints.print()
    // sampledPoints.count.print()
 
     val vfdTree = HoeffdingTree(env)
@@ -104,8 +105,11 @@ object SampledClassification {
 
     val streamToEvaluate = vfdTree.fit(sampledPoints, parameters)
 
-    evaluator.evaluate(streamToEvaluate).writeAsText("/home/marthavk/workspace/flink/flink-staging/flink-streaming/flink-streaming-ml/src/test/resources/" + "rbf_BS10K100")
+    evaluator.evaluate(streamToEvaluate).writeAsText("/home/marthavk/workspace/flink/flink-staging/flink-streaming/flink-streaming-ml/src/test/resources/" + "rbf_BRS1M100")
       .setParallelism(1)
+
+    /*get js for execution plan*/
+    System.err.println(env.getExecutionPlan)
 
     env.execute()
   }

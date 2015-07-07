@@ -69,4 +69,7 @@ public class Configuration {
 	 * PATHS
 	 */
 	public static String outputPath;
+
+	public static long millis=0;
+	public static int nanos=300000;
 }
