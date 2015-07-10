@@ -38,6 +38,7 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 	private LinkedList<Double> windowStartLookahead = new LinkedList<Double>();
 	private LinkedList<Double> windowEndLookahead = new LinkedList<Double>();
 	private double latestTriggerPosition = Long.MIN_VALUE;
+	private int currentBufferSize=0;
 
 	/**
 	 * This constructer sets up the policy group in case Tuple-types are used.
@@ -109,6 +110,18 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 	public int getWindowEvents(DATA tuple) {
 
 		double position;
+
+		// Call the regular notification methods of the policies
+		// This is required to allow them to react on date characteristics.
+		boolean triggered = this.trigger.notifyTrigger(tuple);
+		int numToEvict = this.eviction.notifyEviction(tuple,triggered,currentBufferSize);
+		//remember/update current buffer size
+		if (currentBufferSize-numToEvict<0){
+			currentBufferSize=0;
+		} else {
+			currentBufferSize-=numToEvict;
+		}
+		currentBufferSize++;
 
 		// Extract the required field from the tuple
 		if (fieldExtractor == null) {

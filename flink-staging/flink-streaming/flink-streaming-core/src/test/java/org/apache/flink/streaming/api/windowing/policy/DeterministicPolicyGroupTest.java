@@ -46,19 +46,25 @@ public class DeterministicPolicyGroupTest {
 
         LinkedList<Integer> results=new LinkedList<Integer>();
 
-        DeterministicTriggerPolicy<Double> trigger=new DeterministicSequenceTrigger<Double>();
-        DeterministicEvictionPolicy<Double> evictor=new DeterministicSequenceEvictor<Double>();
+        DeterministicSequenceTrigger<Double> trigger=new DeterministicSequenceTrigger<Double>();
+        DeterministicSequenceEvictor<Double> evictor=new DeterministicSequenceEvictor<Double>();
         DeterministicPolicyGroup<Double> group = new DeterministicPolicyGroup<Double>(trigger,evictor);
 
         for (double i=0;i<=15; i++){
             results.add(group.getWindowEvents(i));
         }
 
+        //Check results for window begins and ends
         for (int i=0;i<=15; i++){
             assertEquals("The window begin counter at position "+i+" was wrong.",windowBeginCounters[i],results.get(i)>>16);
             assertEquals("The window end counter at position "+i+" was wrong.",windowEndCounters[i],results.get(i)&0xFFFF);
         }
 
+        //check that regular notification was done
+        for (double i=0;i<=15; i++){
+            assertTrue("Missing notification of the trigger (position "+i+")",trigger.getDataItems().contains(i));
+            assertTrue("Missing notification of the evictor (position "+i+")",evictor.getDataItems().contains(i));
+        }
     }
 
     /**
@@ -68,6 +74,7 @@ public class DeterministicPolicyGroupTest {
     private class DeterministicSequenceTrigger<DATA> implements DeterministicTriggerPolicy<DATA>{
 
         int counter=0;
+        LinkedList<DATA> dataItems=new LinkedList<DATA>();
 
         @Override
         public double getNextTriggerPosition(double previouseTriggerPosition) {
@@ -79,7 +86,13 @@ public class DeterministicPolicyGroupTest {
 
         @Override
         public boolean notifyTrigger(DATA datapoint) {
-            throw new UnsupportedOperationException("This policy was implemented for testing purposes only. This method should never be called!");
+            this.dataItems.add(datapoint);
+            //Return value is not evaluated.
+            return false;
+        }
+
+        public LinkedList<DATA> getDataItems(){
+            return dataItems;
         }
     }
 
@@ -90,6 +103,7 @@ public class DeterministicPolicyGroupTest {
     private class DeterministicSequenceEvictor<DATA> implements DeterministicEvictionPolicy<DATA>{
 
         int counter=0;
+        LinkedList<DATA> dataItems=new LinkedList<DATA>();
 
         @Override
         public double getLowerBorder(double upperBorder) {
@@ -102,7 +116,13 @@ public class DeterministicPolicyGroupTest {
 
         @Override
         public int notifyEviction(DATA datapoint, boolean triggered, int bufferSize) {
-            throw new UnsupportedOperationException("This policy was implemented for testing purposes only. This method should never be called!");
+            this.dataItems.add(datapoint);
+            //Return value is not evaluated.
+            return 0;
+        }
+
+        public LinkedList<DATA> getDataItems(){
+            return dataItems;
         }
     }
 
