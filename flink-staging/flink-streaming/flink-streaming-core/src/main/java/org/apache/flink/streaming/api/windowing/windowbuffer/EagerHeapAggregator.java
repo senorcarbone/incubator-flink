@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
 package org.apache.flink.streaming.api.windowing.windowbuffer;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
@@ -16,7 +34,7 @@ import java.util.*;
  * 
  * @param <T>
  */
-public class FatAggregator<T> implements WindowAggregator<T> {
+public class EagerHeapAggregator<T> implements WindowAggregator<T> {
 
     private final ReduceFunction<T> reduceFunction;
     private final T defValue;
@@ -38,7 +56,7 @@ public class FatAggregator<T> implements WindowAggregator<T> {
      * @param identityValue        as the identity value (i.e. where reduce(defVal, val) == reduce(val, defVal) == val)
      * @param capacity
      */
-    public FatAggregator(ReduceFunction<T> reduceFunction, T identityValue, int capacity) {
+    public EagerHeapAggregator(ReduceFunction<T> reduceFunction, T identityValue, int capacity) {
         this.reduceFunction = reduceFunction;
         this.defValue = identityValue;
         this.numLeaves = capacity;
@@ -52,7 +70,7 @@ public class FatAggregator<T> implements WindowAggregator<T> {
 
     @Override
     public void add(int partialId, T partialVal) throws Exception {
-        incrFront();
+        incrBack();
         leafIndex.put(partialId, back);
         circularHeap.set(back, partialVal);
         update(back);
@@ -65,7 +83,8 @@ public class FatAggregator<T> implements WindowAggregator<T> {
         leafIndex.remove(partialId);
         circularHeap.set(front, defValue);
         update(front);
-        incrBack();
+        //TODO optimise for batching updates
+        incrFront();
     }
 
     @Override
@@ -151,11 +170,11 @@ public class FatAggregator<T> implements WindowAggregator<T> {
         return 2 * nodeId + 2;
     }
 
-    private void incrFront() {
+    private void incrBack() {
         back = ((back - numLeaves + 2) % numLeaves) + numLeaves-1;
     }
 
-    private void incrBack() {
+    private void incrFront() {
         front = ((front - numLeaves + 2) % numLeaves) + numLeaves-1;
     }
 
