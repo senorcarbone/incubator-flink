@@ -18,6 +18,7 @@
 
 package org.apache.flink.streaming.api.windowing.windowbuffer;
 
+import com.google.common.collect.Sets;
 import org.apache.flink.api.common.functions.ReduceFunction;
 
 import java.util.*;
@@ -83,7 +84,6 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
         leafIndex.remove(partialId);
         circularHeap.set(front, defValue);
         update(front);
-        //TODO optimise for batching updates
         incrFront();
     }
 
@@ -98,14 +98,22 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
     }
 
     /**
-     * Applies eager pre-aggregation
+     * Applies eager bulk pre-aggregation for all given mutated node Ids
      */
-    private void update(int leafId) throws Exception {
-        int next = leafId;
+    private void update(Integer... leafIds) throws Exception {
+        Set<Integer> next = Sets.newHashSet(leafIds);
         do {
-            next = parent(next);
-            circularHeap.set(next, combine(left(next), right(next)));
-        } while (next != ROOT);
+            Set<Integer> tmp = new HashSet<Integer>();
+            for(Integer nodeId : next) {
+                if(nodeId != ROOT){
+                    tmp.add(parent(nodeId));
+                }
+            }
+            for(Integer parent : tmp){
+                circularHeap.set(parent, combine(left(parent), right(parent)));
+            }
+            next = tmp;
+        } while (!next.isEmpty());
     }
 
     /**
