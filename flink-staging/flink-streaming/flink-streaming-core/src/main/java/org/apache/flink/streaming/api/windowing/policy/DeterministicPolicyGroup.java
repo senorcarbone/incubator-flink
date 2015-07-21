@@ -122,7 +122,7 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 			currentBufferSize-=numToEvict;
 		}
 		currentBufferSize++;
-
+	
 		// Extract the required field from the tuple
 		if (fieldExtractor == null) {
 			// If an exception is thrown here, neither DATA is instance of

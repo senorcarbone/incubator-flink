@@ -93,7 +93,7 @@ public class DeterministicMultiDiscretizerTest extends TestCase {
 
         //Create operator instance
         DeterministicMultiDiscretizer<Integer> multiDiscretizer = new DeterministicMultiDiscretizer<Integer>
-                (policyGroups, new Sum(), 0, 10);
+                (policyGroups, new Sum(), 0, 4);
 
         //Run the test
         List<Tuple2<Integer, Integer>> result = MockContext.createAndExecute(multiDiscretizer, this.inputs1);
@@ -152,10 +152,10 @@ public class DeterministicMultiDiscretizerTest extends TestCase {
                 new LinkedList<TriggerPolicy<Tuple2<Integer, Integer>>>();
         LinkedList<EvictionPolicy<Tuple2<Integer, Integer>>> evictionPolicies =
                 new LinkedList<EvictionPolicy<Tuple2<Integer, Integer>>>();
-
-        //Create operator instance
-        MultiDiscretizer<Tuple2<Integer, Integer>> multiDiscretizer =
-                new MultiDiscretizer<Tuple2<Integer, Integer>>(policyGroups, triggerPolicies, evictionPolicies, new TupleSum());
+        
+        DeterministicMultiDiscretizer<Tuple2<Integer,Integer>> multiDiscretizer = 
+                new DeterministicMultiDiscretizer<Tuple2<Integer, Integer>>(policyGroups, new TupleSum(), 
+                        new Tuple2<Integer, Integer>(0,0), 8);
 
         //Run the test
         List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(multiDiscretizer, inputs2);
