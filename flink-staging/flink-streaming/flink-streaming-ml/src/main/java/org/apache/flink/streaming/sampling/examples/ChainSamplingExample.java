@@ -72,7 +72,7 @@ public class ChainSamplingExample {
 		ChainSampler<Double> chainSampler1000 = new ChainSampler<Double>(sample_size, Configuration.countWindowSize, 100);
 
 		/*sample*/
-		doubleStream.transform("sampleCS" + sample_size/1000 + "K", doubleStream.getType(), new StreamSampler<Double>(chainSampler1000));
+		doubleStream.transform("sampleCS" + sample_size / 1000 + "K", doubleStream.getType(), new StreamSampler<Double>(chainSampler1000));
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());

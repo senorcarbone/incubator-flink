@@ -49,7 +49,7 @@ public class Configuration {
 	public static double stDevTarget = 1;
 
 	//Defines smoothness of distribution
-	public static boolean isSmooth = false;
+	public static boolean isSmooth = true;
 
 	//Maximum number of generated numbers
 	public static int numberOfSteps = 2;
@@ -62,7 +62,7 @@ public class Configuration {
 	 * OTHER PROPERTIES *
 	 */
 	//Page Hinkley Test parameters
-	public static double lambda = 15.0;
+	public static double lambda = 7.0;
 	public static double delta = 3.0;
 
 	/**

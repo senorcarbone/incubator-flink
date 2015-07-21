@@ -54,7 +54,13 @@ object SampledClassification {
 
     val file = "/home/marthavk/Desktop/thesis-all-docs/resources/dataSets/randomRBF/randomRBF-10M.arff"
     //val max_count = initProps.getProperty("maxCount").toInt
-    val sample_size = 1000000
+    val sample_size = 10000
+    val size_in_Ks = sample_size/1000
+    val rate = 300
+    val filename = "CS" + size_in_Ks + "K" + rate
+    val path = "/home/marthavk/Desktop/results/classification_results/190715/"
+
+
 
     //set parameters of VFDT
     val parameters = ParameterMap()
@@ -66,19 +72,22 @@ object SampledClassification {
     //read datapoints for covertype_libSVM dataset and sample
 
     //val sample = StreamingMLUtils.readLibSVM(env, SamplingUtils.covertypePath, 54)
-    val biasedReservoirSampler1000: SampleFunction[LabeledVector] =
-      new BiasedReservoirSampler[LabeledVector](sample_size, 100)
+  //  val biasedReservoirSampler: SampleFunction[LabeledVector] =
+  //    new BiasedReservoirSampler[LabeledVector](sample_size, rate)
 
-   // val reservoirSampler1000: SampleFunction[LabeledVector] =
-   // new UniformSampler[LabeledVector](Configuration.SAMPLE_SIZE_10000, 100000)
-    val timeWindow = 3600000;
+    //val fifoSampler: SampleFunction[LabeledVector] =
+    //new FiFoSampler[LabeledVector](sample_size, rate)
+
+    //val reservoirSampler: SampleFunction[LabeledVector] =
+    //new UniformSampler[LabeledVector](sample_size, 100000)
+    val timeWindow = 10000
     val indWindow = 500000
 
 
-  //  val chainSampler1000: SampleFunction[LabeledVector] =
- //   new ChainSampler[LabeledVector](sample_size, indWindow, 100)
- //   val prioritySampler1000: SampleFunction[LabeledVector] =
- //   new PrioritySampler[LabeledVector](sample_size, timeWindow, 100)
+    val chainSampler: SampleFunction[LabeledVector] =
+    new ChainSampler[LabeledVector](sample_size, indWindow, rate)
+//    val prioritySampler: SampleFunction[LabeledVector] =
+ //    new PrioritySampler[LabeledVector](sample_size, timeWindow, rate)
 
     // read datapoints for randomRBF dataset
     val source: DataStream[String] = env.addSource(new RBFSource(file)).setParallelism(1)
@@ -94,7 +103,7 @@ object SampledClassification {
     }
 
 
-    val sampler: StreamSampler[LabeledVector] = new StreamSampler[LabeledVector](biasedReservoirSampler1000)
+    val sampler: StreamSampler[LabeledVector] = new StreamSampler[LabeledVector](chainSampler)
 
     val sampledPoints = dataPoints.shuffle.getJavaStream.transform("sample", dataPoints.getType, sampler)
     //sampledPoints.print()
@@ -105,7 +114,7 @@ object SampledClassification {
 
     val streamToEvaluate = vfdTree.fit(sampledPoints, parameters)
 
-    evaluator.evaluate(streamToEvaluate).writeAsText("/home/marthavk/workspace/flink/flink-staging/flink-streaming/flink-streaming-ml/src/test/resources/" + "rbf_BRS1M100")
+    evaluator.evaluate(streamToEvaluate).writeAsText(path + filename)
       .setParallelism(1)
 
     /*get js for execution plan*/

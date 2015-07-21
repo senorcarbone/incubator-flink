@@ -21,15 +21,9 @@ package org.apache.flink.streaming.sampling.examples;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.scala.DataStream;
 import org.apache.flink.streaming.sampling.evaluators.NormalAggregator;
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.helpers.Configuration;
-import org.apache.flink.streaming.sampling.samplers.BiasedReservoirSampler;
-import org.apache.flink.streaming.sampling.samplers.ChainSampler;
-import org.apache.flink.streaming.sampling.samplers.FiFoSampler;
-import org.apache.flink.streaming.sampling.samplers.PrioritySampler;
 import org.apache.flink.streaming.sampling.samplers.StreamSampler;
 import org.apache.flink.streaming.sampling.samplers.UniformSampler;
 import org.apache.flink.streaming.sampling.sources.DebugSource;
@@ -61,7 +55,7 @@ public class StreamApproximationExample {
 				source.map(new DoubleDataGenerator<GaussianDistribution>());*/
 		int sample_size = 1000;
 		int output_rate = 2560000;
-		int sizeInKs = sample_size/1000;
+		int sizeInKs = sample_size / 1000;
 
 
 		/** UNIFORM SAMPLER **/

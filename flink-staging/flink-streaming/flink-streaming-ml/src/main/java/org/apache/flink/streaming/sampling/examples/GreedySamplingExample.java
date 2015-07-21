@@ -46,9 +46,14 @@ public class GreedySamplingExample {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		if (!parseParameters(args)) {
-			return;
-		}
+//		if (!parseParameters(args)) {
+//			return;
+//		}
+
+		sample_size = 10000;
+		Configuration.outputPath = "/home/marthavk/Desktop/results/drift_results/new_greedy_sampler/";
+
+		int sizeInKs = sample_size / 1000;
 
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -61,17 +66,17 @@ public class GreedySamplingExample {
 
 		/*create stream of distributions as source (also number generators) and shuffle*/
 		DataStreamSource<GaussianDistribution> source = createSource(env);
-		//SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
+		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
 
 		/*generate random number from distribution*/
 		SingleOutputStreamOperator<Double, ?> doubleStream =
-				source.map(new DoubleDataGenerator<GaussianDistribution>());
+				shuffledSrc.map(new DoubleDataGenerator<GaussianDistribution>());
 
 		/*create samplerS*/
 		GreedySampler<Double> greedySampler1000 = new GreedySampler<Double>(sample_size, 100);
 
 		/*sample*/
-		doubleStream.transform("sampleGS" + sample_size + "K", doubleStream.getType(), new StreamSampler<Double>(greedySampler1000));
+		doubleStream.transform("sampleGS" + sizeInKs + "K", doubleStream.getType(), new StreamSampler<Double>(greedySampler1000));
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());

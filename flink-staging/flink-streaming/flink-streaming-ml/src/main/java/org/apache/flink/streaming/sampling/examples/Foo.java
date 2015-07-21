@@ -17,19 +17,14 @@ package org.apache.flink.streaming.sampling.examples;/*
  */
 
 import breeze.stats.distributions.Gaussian;
-import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import org.apache.flink.streaming.api.scala.DataStream;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.samplers.StreamSampler;
 import org.apache.flink.streaming.sampling.samplers.UniformSampler;
 import org.apache.flink.streaming.sampling.sources.DebugSource;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
-import org.apache.flink.streaming.sampling.sources.RBFSource;
 
 /**
  * Created by marthavk on 2015-06-20.
@@ -39,14 +34,17 @@ public class Foo {
 	public static void main(String[] args) throws Exception {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.setParallelism(1);
-		String file = "/home/marthavk/Desktop/thesis-all-docs/resources/dataSets/randomRBF/randomRBF-10M.arff";
-		long end = 1000000000;
-		DataStreamSource<Long> source = env.addSource(new DebugSource(end));
+		//String file = "/home/marthavk/Desktop/thesis-all-docs/resources/dataSets/randomRBF/randomRBF-10M.arff";
+		//long end = 1000000000;
+		//DataStreamSource<Long> source = env.addSource(new DebugSource(end));
 		//DataStreamSource<GaussianDistribution> source = env.addSource(new NormalStreamSource());
-		UniformSampler<Long> reservoir = new UniformSampler<Long>(1000000,100);
+		DataStreamSource<GaussianDistribution> src = env.addSource(new NormalStreamSource());
+		/*
+
+		UniformSampler<Long> reservoir = new UniformSampler<Long>(1000000, 100);
 		SingleOutputStreamOperator<Long, ?> datapoints = source.transform("sample", source.getType(), new StreamSampler<Long>(reservoir));
 		datapoints.print();
-		//source.count().print();
+		//source.count().print();*/
 		env.execute();
 /*
 		//DataStreamSource<String> source = env.readTextFile("/media/marthavk/PerseusFiles/results/classification_results/rbf_RS1K100");
@@ -62,6 +60,6 @@ public class Foo {
 		env.execute();
 */
 
-				//.readFile("/media/marthavk/PerseusFiles/results/classification_results/rbf_BR1K100");
+		//.readFile("/media/marthavk/PerseusFiles/results/classification_results/rbf_BR1K100");
 	}
 }

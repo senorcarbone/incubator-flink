@@ -74,7 +74,7 @@ public class PrioritySamplingExample {
 		PrioritySampler<Double> prioritySampler1000 = new PrioritySampler<Double>(sample_size, Configuration.timeWindowSize, 100);
 
 		/*sample*/
-		doubleStream.transform("samplePS" + sample_size/1000 + "K", doubleStream.getType(), new StreamSampler<Double>(prioritySampler1000));
+		doubleStream.transform("samplePS" + sample_size / 1000 + "K", doubleStream.getType(), new StreamSampler<Double>(prioritySampler1000));
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());

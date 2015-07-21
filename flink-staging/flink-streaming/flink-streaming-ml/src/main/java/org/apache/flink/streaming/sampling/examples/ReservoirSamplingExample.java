@@ -73,7 +73,7 @@ public class ReservoirSamplingExample {
 		UniformSampler<Double> uniformSampler1000 = new UniformSampler<Double>(sample_size, 100);
 
 		/*sample*/
-		doubleStream.transform("sampleRS" + sample_size/1000 + "K", doubleStream.getType(), new StreamSampler<Double>(uniformSampler1000));
+		doubleStream.transform("sampleRS" + sample_size / 1000 + "K", doubleStream.getType(), new StreamSampler<Double>(uniformSampler1000));
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());

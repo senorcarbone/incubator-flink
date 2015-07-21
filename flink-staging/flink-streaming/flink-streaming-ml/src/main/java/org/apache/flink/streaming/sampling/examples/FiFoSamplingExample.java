@@ -72,7 +72,7 @@ public class FiFoSamplingExample {
 		FiFoSampler<Double> fifoSampler1000 = new FiFoSampler<Double>(sample_size, 100);
 
 		/*sample*/
-		doubleStream.transform("sampleFS" + sample_size/1000 + "K", doubleStream.getType(), new StreamSampler<Double>(fifoSampler1000));
+		doubleStream.transform("sampleFS" + sample_size / 1000 + "K", doubleStream.getType(), new StreamSampler<Double>(fifoSampler1000));
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());

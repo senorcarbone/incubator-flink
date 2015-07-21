@@ -59,11 +59,11 @@ public class SamplingExample {
 		SingleOutputStreamOperator<Double, ?> doubleStream =
 				source.map(new DoubleDataGenerator<GaussianDistribution>());
 
-		int sizeInKs = sample_size/1000;
+		int sizeInKs = sample_size / 1000;
 
 		/** BIASED **/
 		BiasedReservoirSampler<Double> biasedReservoirSampler1000 = new BiasedReservoirSampler<Double>(sample_size, 100);
-		doubleStream.transform("sampleBRS"+sizeInKs+"K", doubleStream.getType(), new StreamSampler<Double>(biasedReservoirSampler1000));
+		doubleStream.transform("sampleBRS" + sizeInKs + "K", doubleStream.getType(), new StreamSampler<Double>(biasedReservoirSampler1000));
 
 		/** CHAIN **/
 		ChainSampler<Double> chainSampler1000 = new ChainSampler<Double>(sample_size, Configuration.countWindowSize, 100);
@@ -71,7 +71,7 @@ public class SamplingExample {
 
 		/** FIFO **/
 		FiFoSampler<Double> fifoSampler1000 = new FiFoSampler<Double>(sample_size, 100);
-		doubleStream.transform("sampleFS" + sizeInKs + "K" , doubleStream.getType(), new StreamSampler<Double>(fifoSampler1000));
+		doubleStream.transform("sampleFS" + sizeInKs + "K", doubleStream.getType(), new StreamSampler<Double>(fifoSampler1000));
 
 		/** PRIORITY **/
 		PrioritySampler<Double> prioritySampler1000 = new PrioritySampler<Double>(sample_size, Configuration.timeWindowSize, 100);

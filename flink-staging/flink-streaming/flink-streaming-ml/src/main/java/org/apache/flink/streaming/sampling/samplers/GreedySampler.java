@@ -47,8 +47,8 @@ public class GreedySampler<IN> implements SampleFunction<IN> {
 	public GreedySampler(int size, int lSampleRate) {
 		sample = new Buffer<IN>(size);
 		Properties props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
-		lambda = Double.parseDouble(props.getProperty("lambda"));
-		delta = Double.parseDouble(props.getProperty("delta"));
+		lambda = Configuration.lambda;
+		delta = Configuration.delta;
 		detector = new PageHinkleyTest(lambda, delta, 30);
 		sampleRate = lSampleRate;
 	}
@@ -71,6 +71,7 @@ public class GreedySampler<IN> implements SampleFunction<IN> {
 		detector.input(((Double) element));
 		hasDrift = detector.isChangedDetected();
 		if (hasDrift) {
+			System.out.println("drift detected");
 			hasDrift = false;
 			detector.reset();
 			sample.discard(evictionRate);
@@ -98,7 +99,7 @@ public class GreedySampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public String getFilename() {
-		return Configuration.outputPath + "greedy" + sample.getMaxSize();
+		return Configuration.outputPath + "greedy" + sample.getMaxSize()/1000 + "K";
 	}
 
 

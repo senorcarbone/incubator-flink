@@ -184,11 +184,11 @@ under the License.
             </plugin>
 
 
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>2.4</version><!--$NO-MVN-MAN-VER$-->
+                <version>2.4</version>
+                <!--$NO-MVN-MAN-VER$-->
                 <executions>
                     <!-- Default Execution -->
                     <execution>
@@ -201,19 +201,20 @@ under the License.
 
                     <!-- *********************    Added by Martha ************************* -->
 
-                    <!-- BiasedReservoirSamplingExample -->
+                    <!-- GreedySamplingExample -->
                     <execution>
-                        <id>BiasedReservoirSamplingExample</id>
+                        <id>GreedySamplingExample</id>
                         <phase>package</phase>
                         <goals>
                             <goal>jar</goal>
                         </goals>
                         <configuration>
-                            <classifier>BiasedReservoirSamplingExample</classifier>
+                            <classifier>GreedySamplingExample</classifier>
 
                             <archive>
                                 <manifestEntries>
-                                    <program-class>org.apache.flink.streaming.sampling.examples.BiasedReservoirSamplingExample</program-class>
+                                    <program-class>org.apache.flink.streaming.sampling.examples.GreedySamplingExample
+                                    </program-class>
                                 </manifestEntries>
                             </archive>
 
@@ -227,135 +228,162 @@ under the License.
                         </configuration>
                     </execution>
 
-                    <!-- ChainSamplingExample -->
-                    <execution>
-                        <id>ChainSamplingExample</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <configuration>
-                            <classifier>ChainSamplingExample</classifier>
 
-                            <archive>
-                                <manifestEntries>
-                                    <program-class>org.apache.flink.streaming.sampling.examples.ChainSamplingExample</program-class>
-                                </manifestEntries>
-                            </archive>
+                    <!-- &lt;!&ndash; BiasedReservoirSamplingExample &ndash;&gt;
+                     <execution>
+                         <id>BiasedReservoirSamplingExample</id>
+                         <phase>package</phase>
+                         <goals>
+                             <goal>jar</goal>
+                         </goals>
+                         <configuration>
+                             <classifier>BiasedReservoirSamplingExample</classifier>
 
-                            <includes>
-                                <include>org/apache/flink/streaming/sampling/examples/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/generators/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/sources/*.class</include>
-                            </includes>
-                        </configuration>
-                    </execution>
+                             <archive>
+                                 <manifestEntries>
+                                     <program-class>org.apache.flink.streaming.sampling.examples.BiasedReservoirSamplingExample</program-class>
+                                 </manifestEntries>
+                             </archive>
 
-                    <!-- FiFoSamplingExample -->
-                    <execution>
-                        <id>FiFoSamplingExample</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <configuration>
-                            <classifier>FiFoSamplingExample</classifier>
+                             <includes>
+                                 <include>org/apache/flink/streaming/sampling/examples/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/generators/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/sources/*.class</include>
+                             </includes>
+                         </configuration>
+                     </execution>
 
-                            <archive>
-                                <manifestEntries>
-                                    <program-class>org.apache.flink.streaming.sampling.examples.FiFoSamplingExample</program-class>
-                                </manifestEntries>
-                            </archive>
+                     &lt;!&ndash; ChainSamplingExample &ndash;&gt;
+                     <execution>
+                         <id>ChainSamplingExample</id>
+                         <phase>package</phase>
+                         <goals>
+                             <goal>jar</goal>
+                         </goals>
+                         <configuration>
+                             <classifier>ChainSamplingExample</classifier>
 
-                            <includes>
-                                <include>org/apache/flink/streaming/sampling/examples/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/generators/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/sources/*.class</include>
-                            </includes>
-                        </configuration>
-                    </execution>
+                             <archive>
+                                 <manifestEntries>
+                                     <program-class>org.apache.flink.streaming.sampling.examples.ChainSamplingExample</program-class>
+                                 </manifestEntries>
+                             </archive>
 
-                    <!-- PrioritySamplingExample -->
-                    <execution>
-                        <id>PrioritySamplingExample</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <configuration>
-                            <classifier>PrioritySamplingExample</classifier>
+                             <includes>
+                                 <include>org/apache/flink/streaming/sampling/examples/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/generators/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/sources/*.class</include>
+                             </includes>
+                         </configuration>
+                     </execution>
 
-                            <archive>
-                                <manifestEntries>
-                                    <program-class>org.apache.flink.streaming.sampling.examples.PrioritySamplingExample</program-class>
-                                </manifestEntries>
-                            </archive>
+                     &lt;!&ndash; FiFoSamplingExample &ndash;&gt;
+                     <execution>
+                         <id>FiFoSamplingExample</id>
+                         <phase>package</phase>
+                         <goals>
+                             <goal>jar</goal>
+                         </goals>
+                         <configuration>
+                             <classifier>FiFoSamplingExample</classifier>
 
-                            <includes>
-                                <include>org/apache/flink/streaming/sampling/examples/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/generators/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/sources/*.class</include>
-                            </includes>
-                        </configuration>
-                    </execution>
+                             <archive>
+                                 <manifestEntries>
+                                     <program-class>org.apache.flink.streaming.sampling.examples.FiFoSamplingExample</program-class>
+                                 </manifestEntries>
+                             </archive>
 
-                    <!-- ReservoirSamplingExample -->
-                    <execution>
-                        <id>ReservoirSamplingExample</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <configuration>
-                            <classifier>ReservoirSamplingExample</classifier>
+                             <includes>
+                                 <include>org/apache/flink/streaming/sampling/examples/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/generators/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/sources/*.class</include>
+                             </includes>
+                         </configuration>
+                     </execution>
 
-                            <archive>
-                                <manifestEntries>
-                                    <program-class>org.apache.flink.streaming.sampling.examples.ReservoirSamplingExample</program-class>
-                                </manifestEntries>
-                            </archive>
+                     &lt;!&ndash; PrioritySamplingExample &ndash;&gt;
+                     <execution>
+                         <id>PrioritySamplingExample</id>
+                         <phase>package</phase>
+                         <goals>
+                             <goal>jar</goal>
+                         </goals>
+                         <configuration>
+                             <classifier>PrioritySamplingExample</classifier>
 
-                            <includes>
-                                <include>org/apache/flink/streaming/sampling/examples/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/generators/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/sources/*.class</include>
-                            </includes>
-                        </configuration>
-                    </execution>
+                             <archive>
+                                 <manifestEntries>
+                                     <program-class>org.apache.flink.streaming.sampling.examples.PrioritySamplingExample</program-class>
+                                 </manifestEntries>
+                             </archive>
 
-                    <!-- SamplingExample -->
-                    <execution>
-                        <id>SamplingExample</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <configuration>
-                            <classifier>SamplingExample</classifier>
+                             <includes>
+                                 <include>org/apache/flink/streaming/sampling/examples/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/generators/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/sources/*.class</include>
+                             </includes>
+                         </configuration>
+                     </execution>
 
-                            <archive>
-                                <manifestEntries>
-                                    <program-class>org.apache.flink.streaming.sampling.examples.SamplingExample</program-class>
-                                </manifestEntries>
-                            </archive>
+                     &lt;!&ndash; ReservoirSamplingExample &ndash;&gt;
+                     <execution>
+                         <id>ReservoirSamplingExample</id>
+                         <phase>package</phase>
+                         <goals>
+                             <goal>jar</goal>
+                         </goals>
+                         <configuration>
+                             <classifier>ReservoirSamplingExample</classifier>
 
-                            <includes>
-                                <include>org/apache/flink/streaming/sampling/examples/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/generators/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
-                                <include>org/apache/flink/streaming/sampling/sources/*.class</include>
-                            </includes>
-                        </configuration>
-                    </execution>
+                             <archive>
+                                 <manifestEntries>
+                                     <program-class>org.apache.flink.streaming.sampling.examples.ReservoirSamplingExample</program-class>
+                                 </manifestEntries>
+                             </archive>
+
+                             <includes>
+                                 <include>org/apache/flink/streaming/sampling/examples/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/generators/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/sources/*.class</include>
+                             </includes>
+                         </configuration>
+                     </execution>
+
+                     &lt;!&ndash; SamplingExample &ndash;&gt;
+                     <execution>
+                         <id>SamplingExample</id>
+                         <phase>package</phase>
+                         <goals>
+                             <goal>jar</goal>
+                         </goals>
+                         <configuration>
+                             <classifier>SamplingExample</classifier>
+
+                             <archive>
+                                 <manifestEntries>
+                                     <program-class>org.apache.flink.streaming.sampling.examples.SamplingExample</program-class>
+                                 </manifestEntries>
+                             </archive>
+
+                             <includes>
+                                 <include>org/apache/flink/streaming/sampling/examples/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/generators/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
+                                 <include>org/apache/flink/streaming/sampling/sources/*.class</include>
+                             </includes>
+                         </configuration>
+                     </execution>-->
 
                     <!-- *********************    End of addition  ************************* -->
 

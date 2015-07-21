@@ -183,6 +183,7 @@ public class PrioritySampler<T> implements SampleFunction<T> {
 	public synchronized void update(StreamTimestamp timestamp) {
 
 
+
 		for (int i = 0; i < chainSample.getMaxSize(); i++) {
 
 			LinkedList<Tuple2<T, StreamTimestamp>> listInPos = chainSample.get(i);
@@ -196,6 +197,7 @@ public class PrioritySampler<T> implements SampleFunction<T> {
 					Tuple2<T, StreamTimestamp> nextItem = iter.next();
 					if (timestamp.getTimestamp() - nextItem.f1.getTimestamp() > windowSize) {
 						counter++;
+
 					}
 				}
 

@@ -73,7 +73,7 @@ public class BiasedReservoirSamplingExample {
 		BiasedReservoirSampler<Double> biasedReservoirSampler = new BiasedReservoirSampler<Double>(sample_size, 100);
 
 		/*sample*/
-		doubleStream.transform("sampleBS" + sample_size/1000 + "K", doubleStream.getType(), new StreamSampler<Double>(biasedReservoirSampler));
+		doubleStream.transform("sampleBS" + sample_size / 1000 + "K", doubleStream.getType(), new StreamSampler<Double>(biasedReservoirSampler));
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
