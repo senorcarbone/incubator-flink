@@ -41,7 +41,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
 
     private final ReduceFunction<T> reduceFunction;
     private final TypeSerializer<T> serializer;
-    private final T defValue;
+    private final T identityValue;
 
 
     private Map<Integer, Integer> leafIndex;
@@ -64,7 +64,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
     public EagerHeapAggregator(ReduceFunction<T> reduceFunction, TypeSerializer<T> serializer, T identityValue, int capacity) {
         this.reduceFunction = reduceFunction;
         this.serializer = serializer;
-        this.defValue = identityValue;
+        this.identityValue = identityValue;
         this.numLeaves = capacity;
         this.back = capacity-2;
         this.front = capacity-1;
@@ -78,7 +78,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
     public void add(int partialId, T partialVal) throws Exception {
         incrBack();
         leafIndex.put(partialId, back);
-        circularHeap.set(back, partialVal);
+        circularHeap.set(back, serializer.copy(partialVal));
         update(back);
     }
 
@@ -87,14 +87,19 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
         int leafID = leafIndex.get(partialId);
         if (leafID != front) throw new IllegalArgumentException("Cannot evict out of order");
         leafIndex.remove(partialId);
-        circularHeap.set(front, defValue);
+        circularHeap.set(front, identityValue);
         update(front);
         incrFront();
     }
 
     @Override
     public T aggregate(int partialId) throws Exception {
-        return aggregateFrom(leafIndex.get(partialId));
+        if(leafIndex.containsKey(partialId))
+        {
+            return aggregateFrom(leafIndex.get(partialId));
+        }
+        // in case no partials are registered (can be true if we trigger in the very beginning) return the identity
+        return identityValue; 
     }
 
     @Override

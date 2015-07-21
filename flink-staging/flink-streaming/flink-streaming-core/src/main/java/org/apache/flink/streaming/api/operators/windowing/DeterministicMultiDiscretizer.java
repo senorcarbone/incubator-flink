@@ -44,7 +44,7 @@ public class DeterministicMultiDiscretizer<IN> extends
     private HashMap<Integer, Integer> partialRefs;
     private WindowAggregator<IN> aggregator;
     private final TypeSerializer<IN> serializer;
-    
+
     private int partialCnt = 0;
     private final IN identityValue;
     /**
@@ -83,19 +83,18 @@ public class DeterministicMultiDiscretizer<IN> extends
         chainingStrategy = ChainingStrategy.ALWAYS;
     }
 
-    
 
     @SuppressWarnings("unchecked")
     @Override
     public void processElement(IN tuple) throws Exception {
         // First handle the deterministic policies
-        LOG.info("Processing element "+tuple);
+        LOG.info("Processing element " + tuple);
         for (int i = 0; i < policyGroups.size(); i++) {
             int windowEvents = policyGroups.get(i).getWindowEvents(tuple);
 
             if (windowEvents != 0) {
                 //we have a border so include the partial in the aggregator and reset the partial
-                aggregator.add(partialCnt++, serializer.copy(currentPartial));
+                aggregator.add(partialCnt++, currentPartial);
                 currentPartial = identityValue;
 
                 for (int j = 0; j < (windowEvents >> 16); j++) {
