@@ -19,6 +19,7 @@ package org.apache.flink.streaming.api.operators.windowing;
 
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -52,10 +53,10 @@ public class MultiDiscretizer<IN> extends
 	private static final Logger LOG = LoggerFactory
 			.getLogger(MultiDiscretizer.class);
 
-	private LinkedList<DeterministicPolicyGroup<IN>> deterministicPolicyGroups;
+	private List<DeterministicPolicyGroup<IN>> deterministicPolicyGroups;
 	private HashMap<Integer, LinkedList<Integer>> queryIdToWindowIds = new HashMap<Integer, LinkedList<Integer>>();
-	private LinkedList<TriggerPolicy<IN>> triggerPolicies;
-	private LinkedList<EvictionPolicy<IN>> evictionPolicies;
+	private List<TriggerPolicy<IN>> triggerPolicies;
+	private List<EvictionPolicy<IN>> evictionPolicies;
 	private int[] bufferSizes;
 	private boolean[] isActiveTrigger;
 	private boolean[] isActiveEviction;
@@ -74,9 +75,9 @@ public class MultiDiscretizer<IN> extends
 	 *            must have the same size as the trigger policy list!
 	 */
 	public MultiDiscretizer(
-			LinkedList<DeterministicPolicyGroup<IN>> deterministicPolicyGroups,
-			LinkedList<TriggerPolicy<IN>> notDeterministicTriggerPolicies,
-			LinkedList<EvictionPolicy<IN>> notDeterministicEvictionPolicies,
+			List<DeterministicPolicyGroup<IN>> deterministicPolicyGroups,
+			List<TriggerPolicy<IN>> notDeterministicTriggerPolicies,
+			List<EvictionPolicy<IN>> notDeterministicEvictionPolicies,
 			ReduceFunction<IN> reduceFunction) {
 		this.deterministicPolicyGroups = deterministicPolicyGroups;
 		this.evictionPolicies = notDeterministicEvictionPolicies;

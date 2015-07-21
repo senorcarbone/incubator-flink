@@ -19,6 +19,7 @@
 package org.apache.flink.streaming.api.windowing.windowbuffer;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.api.common.typeutils.base.IntSerializer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,7 +37,7 @@ public class EagerHeapAggregatorTest {
             public Integer reduce(Integer value1, Integer value2) throws Exception {
                 return value1 + value2;
             }
-        }, 0, 8);
+        }, IntSerializer.INSTANCE, 0, 8);
     }
 
 

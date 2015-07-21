@@ -18,6 +18,7 @@
 package org.apache.flink.streaming.api.operators.windowing;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
@@ -29,19 +30,21 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 
-
+@SuppressWarnings("unused")
 public class DeterministicMultiDiscretizer<IN> extends
         AbstractStreamOperator<Tuple2<Integer, IN>> implements
         OneInputStreamOperator<IN, Tuple2<Integer, IN>> {
 
     private static final Logger LOG = LoggerFactory.getLogger(DeterministicMultiDiscretizer.class);
     private final ReduceFunction<IN> reducer;
-    private LinkedList<DeterministicPolicyGroup<IN>> policyGroups;
+    private List<DeterministicPolicyGroup<IN>> policyGroups;
     private HashMap<Integer, LinkedList<Integer>> queryBorders;
     private HashMap<Integer, Integer> partialRefs;
     private WindowAggregator<IN> aggregator;
-
+    private final TypeSerializer<IN> serializer;
+    
     private int partialCnt = 0;
     private final IN identityValue;
     /**
@@ -51,10 +54,11 @@ public class DeterministicMultiDiscretizer<IN> extends
 
 
     public DeterministicMultiDiscretizer(
-            LinkedList<DeterministicPolicyGroup<IN>> policyGroups,
-            ReduceFunction<IN> reduceFunction, IN identityValue, int capacity) {
+            List<DeterministicPolicyGroup<IN>> policyGroups,
+            ReduceFunction<IN> reduceFunction, IN identityValue, int capacity, TypeSerializer<IN> serializer) {
 
         this.policyGroups = policyGroups;
+        this.serializer = serializer;
         /**
          * A mapping of border IDs per query where border ID is the partial aggregate ID to start an aggregation 
          */
@@ -66,7 +70,7 @@ public class DeterministicMultiDiscretizer<IN> extends
         /**
          * An aggregator for pre-computing all shared preaggregates per partial result addition
          */
-        this.aggregator = new EagerHeapAggregator<IN>(reduceFunction, identityValue, capacity);
+        this.aggregator = new EagerHeapAggregator<IN>(reduceFunction, serializer, identityValue, capacity);
         this.reducer = reduceFunction;
 
         for (int i = 0; i < this.policyGroups.size(); i++) {
@@ -79,16 +83,19 @@ public class DeterministicMultiDiscretizer<IN> extends
         chainingStrategy = ChainingStrategy.ALWAYS;
     }
 
+    
+
     @SuppressWarnings("unchecked")
     @Override
     public void processElement(IN tuple) throws Exception {
         // First handle the deterministic policies
+        LOG.info("Processing element "+tuple);
         for (int i = 0; i < policyGroups.size(); i++) {
             int windowEvents = policyGroups.get(i).getWindowEvents(tuple);
 
             if (windowEvents != 0) {
                 //we have a border so include the partial in the aggregator and reset the partial
-                aggregator.add(partialCnt++, currentPartial);
+                aggregator.add(partialCnt++, serializer.copy(currentPartial));
                 currentPartial = identityValue;
 
                 for (int j = 0; j < (windowEvents >> 16); j++) {
@@ -100,7 +107,7 @@ public class DeterministicMultiDiscretizer<IN> extends
                 }
             }
         }
-        currentPartial = reducer.reduce(currentPartial, tuple);
+        currentPartial = reducer.reduce(serializer.copy(currentPartial), tuple);
     }
 
     private void registerPartial() {
@@ -122,8 +129,8 @@ public class DeterministicMultiDiscretizer<IN> extends
     }
 
     private void collectAggregate(int queryId) throws Exception {
-        LOG.info("EndWindow id: {}", queryId);
         Integer partial = queryBorders.get(queryId).getFirst();
+        LOG.info("Q{} Emitting window from partial id: {}", queryId, partial);
         output.collect(new Tuple2<Integer, IN>(queryId, aggregator.aggregate(partial)));
         queryBorders.get(queryId).removeFirst();
         //unregisterPartial(partial); TODO support range removals

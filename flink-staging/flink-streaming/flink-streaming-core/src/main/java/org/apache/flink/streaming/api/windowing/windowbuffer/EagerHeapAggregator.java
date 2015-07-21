@@ -20,7 +20,9 @@ package org.apache.flink.streaming.api.windowing.windowbuffer;
 
 import com.google.common.collect.Sets;
 import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.api.common.typeutils.TypeSerializer;
 
+import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -35,9 +37,10 @@ import java.util.*;
  * 
  * @param <T>
  */
-public class EagerHeapAggregator<T> implements WindowAggregator<T> {
+public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable {
 
     private final ReduceFunction<T> reduceFunction;
+    private final TypeSerializer<T> serializer;
     private final T defValue;
 
 
@@ -54,11 +57,13 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
 
     /**
      * @param reduceFunction
+     * @param serializer
      * @param identityValue        as the identity value (i.e. where reduce(defVal, val) == reduce(val, defVal) == val)
      * @param capacity
      */
-    public EagerHeapAggregator(ReduceFunction<T> reduceFunction, T identityValue, int capacity) {
+    public EagerHeapAggregator(ReduceFunction<T> reduceFunction, TypeSerializer<T> serializer, T identityValue, int capacity) {
         this.reduceFunction = reduceFunction;
+        this.serializer = serializer;
         this.defValue = identityValue;
         this.numLeaves = capacity;
         this.back = capacity-2;
@@ -110,27 +115,19 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
                 }
             }
             for(Integer parent : tmp){
-                circularHeap.set(parent, combine(left(parent), right(parent)));
+                circularHeap.set(parent, combine(circularHeap.get(left(parent)), circularHeap.get(right(parent))));
             }
             next = tmp;
         } while (!next.isEmpty());
     }
 
-    /**
-     * Helper function for combining the values of the two given nodes
-     *
-     * @param nodeId1
-     * @param nodeId2
-     * @return
-     * @throws Exception
-     */
-    private T combine(int nodeId1, int nodeId2) throws Exception {
-        return reduceFunction.reduce(circularHeap.get(nodeId1), circularHeap.get(nodeId2));
+    private T combine(T val1, T val2) throws Exception {
+      return reduceFunction.reduce(serializer.copy(val1), serializer.copy(val2));
     }
 
     private T aggregateFrom(int nodeId) throws Exception {
         if (back < nodeId) {
-            return reduceFunction.reduce(prefix(back), suffix(nodeId));
+            return combine(prefix(back), suffix(nodeId));
         }
 
         return (nodeId == front) ? circularHeap.get(ROOT) : suffix(nodeId);
@@ -142,7 +139,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
         while(next != ROOT) {
             int p = parent(next);
             if(next == left(p)){
-                agg = reduceFunction.reduce(agg, circularHeap.get(right(p)));
+                agg = combine(agg,circularHeap.get(right(p)));
             }
 
             next = p;
@@ -157,7 +154,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
         while(next != ROOT) {
             int p = parent(next);
             if(next == right(p)){
-                agg = reduceFunction.reduce(circularHeap.get(left(p)), agg);
+                agg = combine(circularHeap.get(left(p)), agg);
             }
             
             next = p;

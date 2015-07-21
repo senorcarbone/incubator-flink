@@ -17,42 +17,45 @@
 
 package org.apache.flink.streaming.paper;
 
-import java.util.LinkedList;
-
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.operators.windowing.MultiDiscretizer;
+import org.apache.flink.streaming.api.operators.windowing.DeterministicMultiDiscretizer;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
 import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
+
+import java.util.List;
 
 @SuppressWarnings("serial")
 public class AggregationUtils {
 
 	public static class WindowAggregation<A> {
 
-		MapFunction<Double, A> lift;
-		ReduceFunction<A> combine;
-		MapFunction<A, Double> lower;
+		private final MapFunction<Double, A> lift;
+		private final ReduceFunction<A> combine;
+		private final MapFunction<A, Double> lower;
+		private final A identityValue;
 
 		WindowAggregation(MapFunction<Double, A> lift,
-				ReduceFunction<A> combine, MapFunction<A, Double> lower) {
+				ReduceFunction<A> combine, MapFunction<A, Double> lower, A identityValue) {
 			this.lift = lift;
 			this.combine = combine;
 			this.lower = lower;
+			this.identityValue = identityValue;
 		}
 
 		@SuppressWarnings({ "unchecked", "rawtypes" })
 		public DataStream<Tuple2<Integer,Double>> applyOn(
 				DataStream<Tuple2<Double, Double>> input,
-				Tuple3<LinkedList<DeterministicPolicyGroup>, LinkedList<TriggerPolicy>, LinkedList<EvictionPolicy>> policies) {
+				Tuple3<List<DeterministicPolicyGroup<Tuple2<A, Double>>>, List<TriggerPolicy>, List<EvictionPolicy>> policies) {
 
 			TypeInformation<Tuple2<A, Double>> liftReturnType = new TupleTypeInfo<Tuple2<A, Double>>(
 					TypeExtractor.getMapReturnTypes(lift,
@@ -67,11 +70,16 @@ public class AggregationUtils {
 
 			DataStream<Tuple2<Integer, Tuple2<A, Double>>> combinedWithID = lifted
 					.transform("WindowAggregation", combinedType,
-							new MultiDiscretizer(
-									policies.f0,
-									policies.f1,
-									policies.f2,
-									new Combine<A>(combine)));
+//							new MultiDiscretizer<Tuple2<A, Double>>(
+//									policies.f0,
+//									policies.f1,
+//									policies.f2,
+//									new Combine<A>(combine)));
+					new DeterministicMultiDiscretizer<Tuple2<A, Double>>(
+							policies.f0,
+							new Combine<A>(combine),
+							new Tuple2<A, Double>(identityValue, 0d),
+							20, liftReturnType.createSerializer(null)));
 
 			return combinedWithID.map(new Lower(lower));
 		}
@@ -108,7 +116,7 @@ public class AggregationUtils {
 									/ value.f0);
 				}
 
-			});
+			}, new Tuple3<Integer, Double, Double>(0,0d,0d));
 	
 	public static WindowAggregation<Double> SumAggregation = new WindowAggregation<Double>(
 			new IdMap(), new ReduceFunction<Double>() {
@@ -120,7 +128,7 @@ public class AggregationUtils {
 						throws Exception {
 					return value1 + value2;
 				}
-			}, new IdMap());
+			}, new IdMap(), 0d);
 
 	public static class IdMap implements MapFunction<Double, Double> {
 

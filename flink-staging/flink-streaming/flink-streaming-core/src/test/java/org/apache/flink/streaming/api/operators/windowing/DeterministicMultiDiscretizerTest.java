@@ -19,7 +19,11 @@ package org.apache.flink.streaming.api.operators.windowing;
 
 import junit.framework.TestCase;
 import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.common.typeutils.base.IntSerializer;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.typeutils.TupleTypeInfo;
+import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 import org.apache.flink.streaming.api.windowing.helper.Timestamp;
 import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
@@ -93,7 +97,7 @@ public class DeterministicMultiDiscretizerTest extends TestCase {
 
         //Create operator instance
         DeterministicMultiDiscretizer<Integer> multiDiscretizer = new DeterministicMultiDiscretizer<Integer>
-                (policyGroups, new Sum(), 0, 4);
+                (policyGroups, new Sum(), 0, 4, IntSerializer.INSTANCE);
 
         //Run the test
         List<Tuple2<Integer, Integer>> result = MockContext.createAndExecute(multiDiscretizer, this.inputs1);
@@ -155,7 +159,8 @@ public class DeterministicMultiDiscretizerTest extends TestCase {
         
         DeterministicMultiDiscretizer<Tuple2<Integer,Integer>> multiDiscretizer = 
                 new DeterministicMultiDiscretizer<Tuple2<Integer, Integer>>(policyGroups, new TupleSum(), 
-                        new Tuple2<Integer, Integer>(0,0), 8);
+                        new Tuple2<Integer, Integer>(0,0), 8, new TupleTypeInfo<Tuple2<Integer, Integer>>
+                        (BasicTypeInfo.INT_TYPE_INFO, BasicTypeInfo.INT_TYPE_INFO).createSerializer(null));
 
         //Run the test
         List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(multiDiscretizer, inputs2);

@@ -17,13 +17,7 @@
 
 package org.apache.flink.streaming.paper;
 
-import static org.apache.flink.streaming.paper.AggregationUtils.SumAggregation;
-
-import java.util.LinkedList;
-import java.util.Random;
-
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -32,16 +26,17 @@ import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 import org.apache.flink.streaming.api.windowing.helper.Timestamp;
 import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
-import org.apache.flink.streaming.api.windowing.policy.DeterministicCountEvictionPolicy;
-import org.apache.flink.streaming.api.windowing.policy.DeterministicCountTriggerPolicy;
-import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
-import org.apache.flink.streaming.api.windowing.policy.DeterministicTimeEvictionPolicy;
-import org.apache.flink.streaming.api.windowing.policy.DeterministicTimeTriggerPolicy;
-import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
-import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.*;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Random;
+
+import static org.apache.flink.streaming.paper.AggregationUtils.SumAggregation;
 
 @SuppressWarnings({ "serial", "rawtypes", "unchecked" })
 public class PaperExperiment {
+
 
 	private static Random rnd = new Random();
 
@@ -61,15 +56,15 @@ public class PaperExperiment {
 		env.execute();
 	}
 
-	public static Tuple3<LinkedList<DeterministicPolicyGroup>, LinkedList<TriggerPolicy>, LinkedList<EvictionPolicy>> getTestPolicies(
+	public static Tuple3<List<DeterministicPolicyGroup<Tuple2<Double, Double>>>, List<TriggerPolicy>, List<EvictionPolicy>> getTestPolicies(
 			int nrOfDeterministicPolicies) {
 
-		LinkedList<DeterministicPolicyGroup> deterministicGroups = new LinkedList();
+		LinkedList<DeterministicPolicyGroup<Tuple2<Double,Double>>> deterministicGroups = new LinkedList();
 		for (int i = 0; i < nrOfDeterministicPolicies; i++) {
 			deterministicGroups.add(generateDeterministicPolicyGroup());
 		}
 
-		return new Tuple3<LinkedList<DeterministicPolicyGroup>, LinkedList<TriggerPolicy>, LinkedList<EvictionPolicy>>(
+		return new Tuple3<List<DeterministicPolicyGroup<Tuple2<Double,Double>>>, List<TriggerPolicy>, List<EvictionPolicy>>(
 				deterministicGroups, emptyList, emptyList);
 	}
 
@@ -88,11 +83,11 @@ public class PaperExperiment {
 		boolean isTime = rnd.nextBoolean();
 		if (isTime) {
 
-			TimestampWrapper tsw = new TimestampWrapper(new Timestamp<Tuple>() {
+			TimestampWrapper tsw = new TimestampWrapper(new Timestamp<Tuple2<Double,Double>>() {
 
 				@Override
-				public long getTimestamp(Tuple value) {
-					return value.getField(1);
+				public long getTimestamp(Tuple2<Double,Double> value) {
+					return value.f1.longValue();
 				}
 			}, 0);
 			group = new DeterministicPolicyGroup<Tuple2<Double, Double>>(
