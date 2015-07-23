@@ -12,7 +12,8 @@ public interface WindowAggregator<T> {
     public void add(int id, T val) throws Exception;
 
     /**
-     * It evicts the element with the given id. Currently only FIFO evictions are possible 
+     * It evicts the element with the given id. Currently only FIFO evictions are possible so a discretizer
+     * should always invoke remove for id==HEAD. Another option to add could be to do range removals
      * 
      * @param id
      * @throws Exception

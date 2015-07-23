@@ -31,6 +31,15 @@ import java.util.*;
  * described by Kanat et al. in "General Incremental Sliding-Window Aggregation" published in VLDB 15. It encodes window
  * pre-aggregates in a binary tree using a fixed-size circular heap with implicit node relations.
  * 
+ * Node relations follow a typical heap structure. The heap is structured as such for example: 
+ * 
+ * | root | left(root) | right(root) | left(left(root)) ... | P1 | P2 | P3 | ... | Pn |
+ *                                                           Back      Head
+ * 
+ * The leaf space allocated for partials Pi lies within n-1 and 2n-1 indexes. 
+ * Furthermore we maintain a front and back pointer that circulate within the leaf space to mark the current
+ * partial buffer. We always add new elements on the back and remove from the front in FIFO order.
+ *                                               
  *
  * The space complexity of this implementation is, for n partial aggregates 2n-1. Furthermore, it also keeps an index of
  * n partial aggregate ids.
@@ -109,7 +118,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
     }
 
     /**
-     * Applies eager bulk pre-aggregation for all given mutated node Ids
+     * Applies eager bulk pre-aggregation for all given mutated leadIDs. This works exactly as described in the RA paper
      */
     private void update(Integer... leafIds) throws Exception {
         Set<Integer> next = Sets.newHashSet(leafIds);
@@ -127,20 +136,40 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
         } while (!next.isEmpty());
     }
 
+    /**
+     * It invokes a reduce operation on copies of the given values
+     * @param val1
+     * @param val2
+     * @return
+     * @throws Exception
+     */
     private T combine(T val1, T val2) throws Exception {
       return reduceFunction.reduce(serializer.copy(val1), serializer.copy(val2));
     }
 
-    private T aggregateFrom(int nodeId) throws Exception {
-        if (back < nodeId) {
-            return combine(prefix(back), suffix(nodeId));
+    /**
+     * It collects an aggregated result starting from the leafID given until the back index of the circular heap
+     * 
+     * @param leafID
+     * @return
+     * @throws Exception
+     */
+    private T aggregateFrom(int leafID) throws Exception {
+        if (back < leafID) {
+            return combine(prefix(back), suffix(leafID));
         }
 
-        return (nodeId == front) ? circularHeap.get(ROOT) : suffix(nodeId);
+        return (leafID == front) ? circularHeap.get(ROOT) : suffix(leafID);
     }
 
-    private T suffix(int nodeId) throws Exception {
-        int next = nodeId;
+    /**
+     * it collects an aggregated result starting from the leadID given until the end of the leaf space
+     * @param leadID
+     * @return
+     * @throws Exception
+     */
+    private T suffix(int leadID) throws Exception {
+        int next = leadID;
         T agg = circularHeap.get(next);
         while(next != ROOT) {
             int p = parent(next);
@@ -154,8 +183,15 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
         return agg; 
     }
 
-    private T prefix(int nodeId) throws Exception {
-        int next = nodeId;
+    /**
+     * it collects an aggregated result from the beginning of the leaf space to the leadID given
+     * 
+     * @param leafId
+     * @return
+     * @throws Exception
+     */
+    private T prefix(int leafId) throws Exception {
+        int next = leafId;
         T agg = circularHeap.get(next);
         while(next != ROOT) {
             int p = parent(next);
@@ -169,22 +205,43 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
         return agg;
     }
 
+    /**
+     * It returns the parent of nodeID from the heap space
+     * @param nodeId
+     * @return
+     */
     private int parent(int nodeId) {
         return (nodeId-1) / 2;
     }
 
+    /**
+     * It returns the left child of the nodeID given
+     * @param nodeId
+     * @return
+     */
     private int left(int nodeId) {
         return 2 * nodeId + 1;
     }
 
+    /**
+     * It returns the right child of the nodeID given
+     * @param nodeId
+     * @return
+     */
     private int right(int nodeId) {
         return 2 * nodeId + 2;
     }
 
+    /**
+     * It moves the back pointer of the leaf space forward in the circular buffer 
+     */
     private void incrBack() {
         back = ((back - numLeaves + 2) % numLeaves) + numLeaves-1;
     }
 
+    /**
+     * It moves the front pointer of the leaf space forward in the circular buffer
+     */
     private void incrFront() {
         front = ((front - numLeaves + 2) % numLeaves) + numLeaves-1;
     }

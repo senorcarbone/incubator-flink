@@ -28,10 +28,7 @@ import org.apache.flink.streaming.api.windowing.windowbuffer.WindowAggregator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 @SuppressWarnings("unused")
 public class DeterministicMultiDiscretizer<IN> extends
@@ -39,16 +36,27 @@ public class DeterministicMultiDiscretizer<IN> extends
         OneInputStreamOperator<IN, Tuple2<Integer, IN>> {
 
     private static final Logger LOG = LoggerFactory.getLogger(DeterministicMultiDiscretizer.class);
+
+    /**
+     * A user given reduce function used for continuously combining pre-aggregates
+     */
     private final ReduceFunction<IN> reducer;
+    /**
+     * The identity value for the given combine function where reduce(val, identity) == reduce(identity, val) == val 
+     */
+    private final IN identityValue;
+    /**
+     * All the policy groups that are co-located in one multi-discretizer
+     */
     private List<DeterministicPolicyGroup<IN>> policyGroups;
     /**
      * A mapping of border IDs per query where border ID is the partial aggregate ID to start an aggregation
      */
-    private HashMap<Integer, Deque<Integer>> queryBorders;
+    private Map<Integer, Deque<Integer>> queryBorders;
     /**
      * Partial aggregate reference counter for garbage collection
      */
-    private HashMap<Integer, Integer> partialDependencies;
+    private Map<Integer, Integer> partialDependencies;
     /**
      * The next partial id in the queue for garbage collection
      */
@@ -57,10 +65,15 @@ public class DeterministicMultiDiscretizer<IN> extends
      * An aggregator for pre-computing all shared preaggregates per partial result addition
      */
     private WindowAggregator<IN> aggregator;
+    /**
+     * A serializer used for copying values for immutability
+     */
     private final TypeSerializer<IN> serializer;
 
+    /**
+     * The partial ID index counter
+     */
     private int partialIdx = 0;
-    private final IN identityValue;
     /**
      * The current inter-border aggregate
      */
@@ -89,6 +102,18 @@ public class DeterministicMultiDiscretizer<IN> extends
     }
 
 
+    /**
+     * For each tuple it does the following:
+     * 
+     * 1) registers the current partial to the WindowAggregator if any window begin event is invoked by the policy groups
+     * with the exception of the first partial which is never used
+     * 
+     * 2) for each trigger event invoked by the policy groups it emits the full window aggregation via the collector 
+     * by combining the pre-aggregated parts from the WindowAggregator with the current partial
+     * 
+     * @param tuple
+     * @throws Exception
+     */
     @SuppressWarnings("unchecked")
     @Override
     public void processElement(IN tuple) throws Exception {
@@ -126,6 +151,13 @@ public class DeterministicMultiDiscretizer<IN> extends
     }
 
 
+    /**
+     * It removes a reference for the given partial ID and garbage collects unused partials in FIFO order
+     * when they are no longer needed
+     * 
+     * @param partialId
+     * @throws Exception
+     */
     private void unregisterPartial(int partialId) throws Exception {
         int next = updatePartial(partialId, false);
         if (partialId == partialGC) {
@@ -138,6 +170,12 @@ public class DeterministicMultiDiscretizer<IN> extends
         }
     }
 
+    /**
+     * It adds or removes a reference for the given partial ID
+     * @param partialId
+     * @param addition
+     * @return
+     */
     private int updatePartial(int partialId, boolean addition) {
         int dependencies = 1;
         if (!addition || partialDependencies.containsKey(partialId)) {
@@ -148,7 +186,13 @@ public class DeterministicMultiDiscretizer<IN> extends
         return dependencies;
     }
 
-
+    /**
+     * It collects at the output the result of a full window computation by fetching the aggregate needed
+     * from the WindowAggregator and combining with the currently running partial
+     * 
+     * @param queryId
+     * @throws Exception
+     */
     private void collectAggregate(int queryId) throws Exception {
         Integer partial = queryBorders.get(queryId).getFirst();
         LOG.info("Q{} Emitting window from partial id: {}", queryId, partial);
