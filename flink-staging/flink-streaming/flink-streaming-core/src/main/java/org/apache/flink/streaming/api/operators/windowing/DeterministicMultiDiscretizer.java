@@ -28,6 +28,7 @@ import org.apache.flink.streaming.api.windowing.windowbuffer.WindowAggregator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,7 +44,7 @@ public class DeterministicMultiDiscretizer<IN> extends
     /**
      * A mapping of border IDs per query where border ID is the partial aggregate ID to start an aggregation
      */
-    private HashMap<Integer, LinkedList<Integer>> queryBorders;
+    private HashMap<Integer, Deque<Integer>> queryBorders;
     /**
      * Partial aggregate reference counter for garbage collection
      */
@@ -58,7 +59,7 @@ public class DeterministicMultiDiscretizer<IN> extends
     private WindowAggregator<IN> aggregator;
     private final TypeSerializer<IN> serializer;
 
-    private int partialCnt = 0;
+    private int partialIdx = 0;
     private final IN identityValue;
     /**
      * The current inter-border aggregate
@@ -72,7 +73,7 @@ public class DeterministicMultiDiscretizer<IN> extends
 
         this.policyGroups = policyGroups;
         this.serializer = serializer;
-        this.queryBorders = new HashMap<Integer, LinkedList<Integer>>();
+        this.queryBorders = new HashMap<Integer, Deque<Integer>>();
         this.partialDependencies = new HashMap<Integer, Integer>();
         this.aggregator = new EagerHeapAggregator<IN>(reduceFunction, serializer, identityValue, capacity);
         this.reducer = reduceFunction;
@@ -104,16 +105,17 @@ public class DeterministicMultiDiscretizer<IN> extends
                 //    can reuse the current partial on-the-fly (no need to pre-aggregate that)!
 
                 if ((windowEvents >> 16) > 0) {
-                    if (partialCnt != 0) {
-                        aggregator.add(partialCnt, currentPartial);
+                    if (partialIdx != 0) {
+                        LOG.info("ADDING PARTIAL {} with value {} ", partialIdx, currentPartial);
+                        aggregator.add(partialIdx, currentPartial);
                     }
-                    partialCnt++;
+                    partialIdx++;
                     currentPartial = identityValue;
                 }
 
                 for (int j = 0; j < (windowEvents >> 16); j++) {
-                    queryBorders.get(i).add(partialCnt);
-                    registerPartial();
+                    queryBorders.get(i).addLast(partialIdx);
+                    updatePartial(partialIdx, true);
                 }
                 for (int j = 0; j < (windowEvents & 0xFFFF); j++) {
                     collectAggregate(i);
@@ -123,29 +125,29 @@ public class DeterministicMultiDiscretizer<IN> extends
         currentPartial = reducer.reduce(serializer.copy(currentPartial), tuple);
     }
 
-    private void registerPartial() {
-        if (!partialDependencies.containsKey(partialCnt)) {
-            partialDependencies.put(partialCnt, 1);
-        } else {
-            partialDependencies.put(partialCnt, partialDependencies.get(partialCnt) + 1);
+
+    private void unregisterPartial(int partialId) throws Exception {
+        int next = updatePartial(partialId, false);
+        if (partialId == partialGC) {
+            while (next == 0 && partialGC < partialIdx) {
+                LOG.info("REMOVING PARTIAL {}", partialGC);
+                partialDependencies.remove(partialGC);
+                aggregator.remove(partialGC++);
+                next = partialDependencies.get(partialGC);
+            }
         }
     }
 
-    private void unregisterPartial(int partialId) throws Exception {
-        int next = partialDependencies.get(partialId) - 1;
-        if(partialId == partialGC)
-        {
-            while (next == 0) {
-                LOG.info("REMOVING PARTIAL {}", partialId);
-                partialDependencies.remove(partialId);
-                aggregator.remove(partialId);
-                partialId++;
-                partialGC++;
-                next = partialDependencies.get(partialId);
-            }
+    private int updatePartial(int partialId, boolean addition) {
+        int dependencies = 1;
+        if (!addition || partialDependencies.containsKey(partialId)) {
+            dependencies = partialDependencies.get(partialId) + (addition ? 1 : -1);
         }
-        partialDependencies.put(partialId, next);
+        partialDependencies.put(partialId, dependencies);
+
+        return dependencies;
     }
+
 
     private void collectAggregate(int queryId) throws Exception {
         Integer partial = queryBorders.get(queryId).getFirst();
