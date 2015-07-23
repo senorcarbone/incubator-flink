@@ -12,13 +12,13 @@ public interface WindowAggregator<T> {
     public void add(int id, T val) throws Exception;
 
     /**
-     * It evicts the element with the given id. Currently only FIFO evictions are possible so a discretizer
-     * should always invoke remove for id==HEAD. Another option to add could be to do range removals
+     * It evicts the elements with the given ids. Currently only FIFO evictions are possible so a discretizer
+     * should always invoke removals consecutively from id==HEAD.
      * 
-     * @param id
+     * @param ids
      * @throws Exception
      */
-    public void remove(int id) throws Exception;
+    public void remove(Integer... ids) throws Exception;
 
     /**
      * Returns the aggregate of the window buffer from startid to the front of the buffer

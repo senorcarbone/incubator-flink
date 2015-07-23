@@ -161,12 +161,15 @@ public class DeterministicMultiDiscretizer<IN> extends
     private void unregisterPartial(int partialId) throws Exception {
         int next = updatePartial(partialId, false);
         if (partialId == partialGC) {
-            while (next == 0 && partialGC < partialIdx) {
-                LOG.info("REMOVING PARTIAL {}", partialGC);
-                partialDependencies.remove(partialGC);
-                aggregator.remove(partialGC++);
-                next = partialDependencies.get(partialGC);
+            List<Integer> gcBag = new ArrayList<Integer>();
+            int gcIndx = partialGC;
+            while (next == 0 && gcIndx < partialIdx) {
+                LOG.info("REMOVING PARTIAL {}", gcIndx);
+                partialDependencies.remove(gcIndx++);
+                next = partialDependencies.get(gcIndx);
             }
+            aggregator.remove(gcBag.toArray(new Integer[gcBag.size()]));
+            partialGC = gcIndx;
         }
     }
 

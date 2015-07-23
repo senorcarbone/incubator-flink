@@ -36,7 +36,7 @@ import java.util.*;
  * | root | left(root) | right(root) | left(left(root)) ... | P1 | P2 | P3 | ... | Pn |
  *                                                           Back      Head
  * 
- * The leaf space allocated for partials Pi lies within n-1 and 2n-1 indexes. 
+ * The leaf space allocated for partials Pi lies within n-1 and 2n-2 indexes. 
  * Furthermore we maintain a front and back pointer that circulate within the leaf space to mark the current
  * partial buffer. We always add new elements on the back and remove from the front in FIFO order.
  *                                               
@@ -92,14 +92,19 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
     }
 
     @Override
-    public void remove(int partialId) throws Exception {
-        if(!leafIndex.containsKey(partialId)) return;
-        int leafID = leafIndex.get(partialId);
-        if (leafID != front) throw new IllegalArgumentException("Cannot evict out of order");
-        leafIndex.remove(partialId);
-        circularHeap.set(front, identityValue);
-        update(front);
-        incrFront();
+    public void remove(Integer... partialList) throws Exception {
+        List<Integer> leafBag = new ArrayList<Integer>(partialList.length);
+        for(int partialId : partialList)
+        {
+            if(!leafIndex.containsKey(partialId)) continue;
+            int leafID = leafIndex.get(partialId);
+            if (leafID != front) throw new IllegalArgumentException("Cannot evict out of order");
+            leafIndex.remove(leafID);
+            circularHeap.set(front, identityValue);
+            incrFront();
+            leafBag.add(leafID);
+        }
+        update(leafBag.toArray(new Integer[leafBag.size()]));
     }
 
     @Override
@@ -118,7 +123,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
     }
 
     /**
-     * Applies eager bulk pre-aggregation for all given mutated leadIDs. This works exactly as described in the RA paper
+     * Applies eager bulk pre-aggregation for all given mutated leafIDs. This works exactly as described in the RA paper
      */
     private void update(Integer... leafIds) throws Exception {
         Set<Integer> next = Sets.newHashSet(leafIds);
@@ -163,13 +168,13 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
     }
 
     /**
-     * it collects an aggregated result starting from the leadID given until the end of the leaf space
-     * @param leadID
+     * it collects an aggregated result starting from the leafID given until the end of the leaf space
+     * @param leafID
      * @return
      * @throws Exception
      */
-    private T suffix(int leadID) throws Exception {
-        int next = leadID;
+    private T suffix(int leafID) throws Exception {
+        int next = leafID;
         T agg = circularHeap.get(next);
         while(next != ROOT) {
             int p = parent(next);
@@ -184,7 +189,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
     }
 
     /**
-     * it collects an aggregated result from the beginning of the leaf space to the leadID given
+     * it collects an aggregated result from the beginning of the leaf space to the leafID given
      * 
      * @param leafId
      * @return
