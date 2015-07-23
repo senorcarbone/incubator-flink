@@ -40,8 +40,21 @@ public class DeterministicMultiDiscretizer<IN> extends
     private static final Logger LOG = LoggerFactory.getLogger(DeterministicMultiDiscretizer.class);
     private final ReduceFunction<IN> reducer;
     private List<DeterministicPolicyGroup<IN>> policyGroups;
+    /**
+     * A mapping of border IDs per query where border ID is the partial aggregate ID to start an aggregation
+     */
     private HashMap<Integer, LinkedList<Integer>> queryBorders;
-    private HashMap<Integer, Integer> partialRefs;
+    /**
+     * Partial aggregate reference counter for garbage collection
+     */
+    private HashMap<Integer, Integer> partialDependencies;
+    /**
+     * The next partial id in the queue for garbage collection
+     */
+    private int partialGC = 1;
+    /**
+     * An aggregator for pre-computing all shared preaggregates per partial result addition
+     */
     private WindowAggregator<IN> aggregator;
     private final TypeSerializer<IN> serializer;
 
@@ -59,17 +72,8 @@ public class DeterministicMultiDiscretizer<IN> extends
 
         this.policyGroups = policyGroups;
         this.serializer = serializer;
-        /**
-         * A mapping of border IDs per query where border ID is the partial aggregate ID to start an aggregation 
-         */
         this.queryBorders = new HashMap<Integer, LinkedList<Integer>>();
-        /**
-         * Partial aggregate reference counter for garbage collection
-         */
-        this.partialRefs = new HashMap<Integer, Integer>();
-        /**
-         * An aggregator for pre-computing all shared preaggregates per partial result addition
-         */
+        this.partialDependencies = new HashMap<Integer, Integer>();
         this.aggregator = new EagerHeapAggregator<IN>(reduceFunction, serializer, identityValue, capacity);
         this.reducer = reduceFunction;
 
@@ -93,14 +97,14 @@ public class DeterministicMultiDiscretizer<IN> extends
             int windowEvents = policyGroups.get(i).getWindowEvents(tuple);
 
             if (windowEvents != 0) {
-                
+
                 // **STRATEGY FOR REGISTERING PARTIALS**
                 // 1) first partial does not need to be added in the pre-aggregation buffer
                 // 2) we only need to add eviction borders in the pre-aggregation buffer - consecutive triggers
                 //    can reuse the current partial on-the-fly (no need to pre-aggregate that)!
-                
-                if((windowEvents >> 16) > 0) {
-                    if (partialCnt != 0){
+
+                if ((windowEvents >> 16) > 0) {
+                    if (partialCnt != 0) {
                         aggregator.add(partialCnt, currentPartial);
                     }
                     partialCnt++;
@@ -120,28 +124,33 @@ public class DeterministicMultiDiscretizer<IN> extends
     }
 
     private void registerPartial() {
-        if (!partialRefs.containsKey(partialCnt)) {
-            partialRefs.put(partialCnt, 1);
+        if (!partialDependencies.containsKey(partialCnt)) {
+            partialDependencies.put(partialCnt, 1);
         } else {
-            partialRefs.put(partialCnt, partialRefs.get(partialCnt) + 1);
+            partialDependencies.put(partialCnt, partialDependencies.get(partialCnt) + 1);
         }
     }
 
     private void unregisterPartial(int partialId) throws Exception {
-        int next = partialRefs.get(partialId) - 1;
-        if (next == 0) {
-            LOG.info("REMOVING PARTIAL {}",partialId);
-            partialRefs.remove(partialId);
-            aggregator.remove(partialId);
-        } else {
-            partialRefs.put(partialId, next);
+        int next = partialDependencies.get(partialId) - 1;
+        if(partialId == partialGC)
+        {
+            while (next == 0) {
+                LOG.info("REMOVING PARTIAL {}", partialId);
+                partialDependencies.remove(partialId);
+                aggregator.remove(partialId);
+                partialId++;
+                partialGC++;
+                next = partialDependencies.get(partialId);
+            }
         }
+        partialDependencies.put(partialId, next);
     }
 
     private void collectAggregate(int queryId) throws Exception {
         Integer partial = queryBorders.get(queryId).getFirst();
         LOG.info("Q{} Emitting window from partial id: {}", queryId, partial);
-        output.collect(new Tuple2<Integer, IN>(queryId, reducer.reduce(serializer.copy(aggregator.aggregate(partial)), 
+        output.collect(new Tuple2<Integer, IN>(queryId, reducer.reduce(serializer.copy(aggregator.aggregate(partial)),
                 serializer.copy(currentPartial))));
         queryBorders.get(queryId).removeFirst();
         unregisterPartial(partial);
