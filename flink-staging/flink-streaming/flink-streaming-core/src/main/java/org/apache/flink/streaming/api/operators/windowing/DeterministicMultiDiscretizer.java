@@ -93,9 +93,19 @@ public class DeterministicMultiDiscretizer<IN> extends
             int windowEvents = policyGroups.get(i).getWindowEvents(tuple);
 
             if (windowEvents != 0) {
-                //we have a border so include the partial in the aggregator and reset the partial
-                aggregator.add(partialCnt++, currentPartial);
-                currentPartial = identityValue;
+                
+                // **STRATEGY FOR REGISTERING PARTIALS**
+                // 1) first partial does not need to be added in the pre-aggregation buffer
+                // 2) we only need to add eviction borders in the pre-aggregation buffer - consecutive triggers
+                //    can reuse the current partial on-the-fly (no need to pre-aggregate that)!
+                
+                if((windowEvents >> 16) > 0) {
+                    if (partialCnt != 0){
+                        aggregator.add(partialCnt, currentPartial);
+                    }
+                    partialCnt++;
+                    currentPartial = identityValue;
+                }
 
                 for (int j = 0; j < (windowEvents >> 16); j++) {
                     queryBorders.get(i).add(partialCnt);
@@ -120,6 +130,7 @@ public class DeterministicMultiDiscretizer<IN> extends
     private void unregisterPartial(int partialId) throws Exception {
         int next = partialRefs.get(partialId) - 1;
         if (next == 0) {
+            LOG.info("REMOVING PARTIAL {}",partialId);
             partialRefs.remove(partialId);
             aggregator.remove(partialId);
         } else {
@@ -130,9 +141,10 @@ public class DeterministicMultiDiscretizer<IN> extends
     private void collectAggregate(int queryId) throws Exception {
         Integer partial = queryBorders.get(queryId).getFirst();
         LOG.info("Q{} Emitting window from partial id: {}", queryId, partial);
-        output.collect(new Tuple2<Integer, IN>(queryId, aggregator.aggregate(partial)));
+        output.collect(new Tuple2<Integer, IN>(queryId, reducer.reduce(serializer.copy(aggregator.aggregate(partial)), 
+                serializer.copy(currentPartial))));
         queryBorders.get(queryId).removeFirst();
-        //unregisterPartial(partial); TODO support range removals
+        unregisterPartial(partial);
     }
 
 }

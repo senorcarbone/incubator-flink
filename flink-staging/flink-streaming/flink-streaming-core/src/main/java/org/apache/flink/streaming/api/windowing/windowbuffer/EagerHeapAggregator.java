@@ -84,6 +84,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
 
     @Override
     public void remove(int partialId) throws Exception {
+        if(!leafIndex.containsKey(partialId)) return;
         int leafID = leafIndex.get(partialId);
         if (leafID != front) throw new IllegalArgumentException("Cannot evict out of order");
         leafIndex.remove(partialId);

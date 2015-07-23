@@ -23,7 +23,6 @@ import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeutils.base.IntSerializer;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
-import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 import org.apache.flink.streaming.api.windowing.helper.Timestamp;
 import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
@@ -34,8 +33,6 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
 
 public class DeterministicMultiDiscretizerTest extends TestCase {
 
@@ -152,11 +149,7 @@ public class DeterministicMultiDiscretizerTest extends TestCase {
                 new LinkedList<DeterministicPolicyGroup<Tuple2<Integer, Integer>>>();
         policyGroups.add(policyGroup);
         policyGroups.add(policyGroup2);
-        LinkedList<TriggerPolicy<Tuple2<Integer, Integer>>> triggerPolicies =
-                new LinkedList<TriggerPolicy<Tuple2<Integer, Integer>>>();
-        LinkedList<EvictionPolicy<Tuple2<Integer, Integer>>> evictionPolicies =
-                new LinkedList<EvictionPolicy<Tuple2<Integer, Integer>>>();
-        
+
         DeterministicMultiDiscretizer<Tuple2<Integer,Integer>> multiDiscretizer = 
                 new DeterministicMultiDiscretizer<Tuple2<Integer, Integer>>(policyGroups, new TupleSum(), 
                         new Tuple2<Integer, Integer>(0,0), 8, new TupleTypeInfo<Tuple2<Integer, Integer>>
