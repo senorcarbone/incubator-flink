@@ -88,15 +88,6 @@ public class DeterministicPolicyGroupTest {
             results.add(group.getWindowEvents(i));
         }
 
-        for (int i=0;i<=15; i++){
-            System.out.print((results.get(i)>>16)+" ");
-        }
-        System.out.println();
-        for (int i=0;i<=15; i++){
-            System.out.print((results.get(i)&0xFFFF)+" ");
-        }
-        System.out.println();
-
         //Check results for window begins and ends
         for (int i=0;i<=15; i++){
             assertEquals("The window begin counter at position "+i+" was wrong.",windowBeginCounters2[i],results.get(i)>>16);
