@@ -1,6 +1,8 @@
 package org.apache.flink.streaming.api.windowing.windowbuffer;
 
 
+import java.util.List;
+
 public interface WindowAggregator<T> {
 
     /**
@@ -11,6 +13,15 @@ public interface WindowAggregator<T> {
      */
     public void add(int id, T val) throws Exception;
 
+    /**
+     * It adds all values given and maps them with the given ids. Mind that ids and vals should have the same size
+     * since they are 1-1 mapped
+     * @param ids
+     * @param vals
+     * @throws Exception
+     */
+    public void add(List<Integer> ids, List<T> vals) throws Exception;
+    
     /**
      * It evicts the elements with the given ids. Currently only FIFO evictions are possible so a discretizer
      * should always invoke removals consecutively from id==HEAD.

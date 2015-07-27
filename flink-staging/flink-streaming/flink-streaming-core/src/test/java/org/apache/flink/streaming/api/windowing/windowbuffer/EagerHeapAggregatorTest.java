@@ -37,7 +37,7 @@ public class EagerHeapAggregatorTest {
             public Integer reduce(Integer value1, Integer value2) throws Exception {
                 return value1 + value2;
             }
-        }, IntSerializer.INSTANCE, 0, 8);
+        }, IntSerializer.INSTANCE, 0, 2);
     }
 
 
