@@ -37,8 +37,20 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 	private Extractor<DATA, Double> fieldExtractor;
 	private LinkedList<Double> windowStartLookahead = new LinkedList<Double>();
 	private LinkedList<Double> windowEndLookahead = new LinkedList<Double>();
+	/**
+	 * The position of the latest trigger in the lookahead
+	 */
 	private double latestTriggerPosition = Long.MIN_VALUE;
+	/**
+	 * The position of the last window end (the latest trigger in the past)
+	 */
+	private double lastTriggerPosition = Long.MIN_VALUE;
+	/**
+	 * The position of the latest tuple before the current one.
+	 */
+	private double lastTuplePosition = Long.MIN_VALUE;
 	private int currentBufferSize=0;
+	private boolean recomputeLookahead=false;
 
 	/**
 	 * This constructer sets up the policy group in case Tuple-types are used.
@@ -93,6 +105,7 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 			DeterministicEvictionPolicy<DATA> eviction) {
 		this.trigger = trigger;
 		this.eviction = eviction;
+		this.recomputeLookahead=trigger.getClass().isAnnotationPresent(RecomputeLookahead.class);
 	}
 
 	/**
@@ -144,19 +157,44 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 
 		// Calculate the number of window begins
 		short windowBeginCounter = 0;
+		double lhPosition;
 		while (!windowStartLookahead.isEmpty()
-				&& windowStartLookahead.getFirst() <= position) {
+				&& (lhPosition=windowStartLookahead.getFirst()) <= position) {
 			windowStartLookahead.removeFirst();
-			windowBeginCounter++;
+			// Count window begins only if they are between the
+			// last (inclusive) and the current (exclusive) tuple position
+			if (lhPosition>this.lastTuplePosition){
+				windowBeginCounter++;
+			}
 		}
 
 		// Calculate the number of window ends
 		short windowEndCounter = 0;
-		while (!windowEndLookahead.isEmpty()
-				&& windowEndLookahead.getFirst() <= position) {
-			windowEndLookahead.removeFirst();
-			windowEndCounter++;
+		if (recomputeLookahead){
+			while (!windowEndLookahead.isEmpty()
+					&& (lhPosition=windowEndLookahead.getFirst()) <= position) {
+				lastTriggerPosition = windowEndLookahead.getFirst();
+				windowEndLookahead.removeFirst();
+				// Count window ends only if they are between the
+				// last (inclusive) and the current (exclusive) tuple position
+				if (lhPosition>this.lastTuplePosition){
+					windowEndCounter++;
+				}
+			}
+			this.latestTriggerPosition=lastTriggerPosition;
+			windowStartLookahead.clear();
+			windowEndLookahead.clear();
+
+		} else {
+			while (!windowEndLookahead.isEmpty()
+					&& windowEndLookahead.getFirst() <= position) {
+				windowEndLookahead.removeFirst();
+				windowEndCounter++;
+			}
 		}
+
+		//Remember the position of the current tuple
+		this.lastTuplePosition=position;
 
 		// Combine and return counter
 		return (windowBeginCounter << 16) + windowEndCounter;
