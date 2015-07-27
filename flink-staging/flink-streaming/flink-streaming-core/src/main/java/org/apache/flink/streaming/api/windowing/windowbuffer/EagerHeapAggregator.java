@@ -74,6 +74,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
      * @param capacity
      */
     public EagerHeapAggregator(ReduceFunction<T> reduceFunction, TypeSerializer<T> serializer, T identityValue, int capacity) {
+        if(((capacity & -capacity) != capacity)) throw new IllegalArgumentException("Capacity should be a power of two");
         this.reduceFunction = reduceFunction;
         this.serializer = serializer;
         this.identityValue = identityValue;
@@ -101,7 +102,6 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
      */
     private int add(int partialId, T partialVal, boolean commit) throws Exception {
         if (currentCapacity() == 0) {
-            LOG.info("Resizing heap to {}" + 2 * numLeaves);
             resize(2 * numLeaves);
         }
         incrBack();
@@ -120,6 +120,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
      * @param newCapacity
      */
     private void resize(int newCapacity) throws Exception {
+        LOG.info("RESIZING HEAP TO {}", newCapacity);
         List<T> newHeap = new ArrayList<T>(Collections.nCopies(2 * newCapacity - 1, identityValue));
         Integer[] updated = new Integer[leafIndex.size()];
         int indx = newCapacity - 2;
@@ -163,15 +164,15 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
         for (int partialId : partialList) {
             if (!leafIndex.containsKey(partialId)) continue;
             int leafID = leafIndex.get(partialId);
+            leafIndex.remove(partialId);
             if (leafID != front) throw new IllegalArgumentException("Cannot evict out of order");
-            leafIndex.remove(leafID);
             circularHeap.set(front, identityValue);
             incrFront();
             leafBag.add(leafID);
         }
         update(leafBag.toArray(new Integer[leafBag.size()]));
         // shrink to half when the utilization is only one quarter
-        if (currentCapacity() >= 3 * numLeaves / 4) {
+        if (currentCapacity() > 3 * numLeaves / 4 && numLeaves >= 4) {
             resize(numLeaves / 2);
         }
     }
@@ -328,14 +329,8 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
      * @return the current number of free slots in the leaf space
      */
     private int currentCapacity() {
-        int diff = back - front + 1;
-        if (diff == 0) {
-            return 0;
-        } else if (diff < 0) {
-            return numLeaves - front - back;
-        } else {
-            return numLeaves - diff;
-        }
+        LOG.info("CURRENT CAPACITY : {}", numLeaves-leafIndex.size());
+        return numLeaves-leafIndex.size();
     }
 
 }

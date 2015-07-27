@@ -79,7 +79,7 @@ public class AggregationUtils {
 							policies.f0,
 							new Combine<A>(combine),
 							new Tuple2<A, Double>(identityValue, 0d),
-							20, liftReturnType.createSerializer(null)));
+							4, liftReturnType.createSerializer(null)));
 
 			return combinedWithID.map(new Lower(lower));
 		}
