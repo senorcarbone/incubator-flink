@@ -17,7 +17,7 @@
 
 package org.apache.flink.streaming.api.windowing.policy;
 
-public class KeepAllEvictionPolicy<T> implements EvictionPolicy<T> {
+public class KeepAllEvictionPolicy<T> implements DeterministicEvictionPolicy<T> {
 
 	private static final long serialVersionUID = 1L;
 
@@ -26,4 +26,15 @@ public class KeepAllEvictionPolicy<T> implements EvictionPolicy<T> {
 		return 0;
 	}
 
+	/**
+	 * The KeepAllEvictionPolicy is a special case of a deterministic
+	 * eviction policy used for continuous aggregate queries.
+	 * @param upperBorder
+	 *            The upper border (window end)
+	 * @return The lower border which is always zero.
+	 */
+	@Override
+	public double getLowerBorder(double upperBorder) {
+		return 0;
+	}
 }

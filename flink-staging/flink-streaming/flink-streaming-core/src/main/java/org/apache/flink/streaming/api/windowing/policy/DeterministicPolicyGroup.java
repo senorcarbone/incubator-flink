@@ -32,10 +32,25 @@ import java.util.LinkedList;
  */
 public class DeterministicPolicyGroup<DATA> implements Serializable {
 
+	/**
+	 * The trigger policy of the query
+	 */
 	private DeterministicTriggerPolicy<DATA> trigger;
+	/**
+	 * The eviction policy of the query
+	 */
 	private DeterministicEvictionPolicy<DATA> eviction;
+	/**
+	 * An extractor to read the position of the input tuple
+	 */
 	private Extractor<DATA, Double> fieldExtractor;
+	/**
+	 * The look ahead for window begins the future
+	 */
 	private LinkedList<Double> windowStartLookahead = new LinkedList<Double>();
+	/**
+	 * The look ahead for window ends in the future
+	 */
 	private LinkedList<Double> windowEndLookahead = new LinkedList<Double>();
 	/**
 	 * The position of the latest trigger in the lookahead
@@ -49,8 +64,18 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 	 * The position of the latest tuple before the current one.
 	 */
 	private double lastTuplePosition = Long.MIN_VALUE;
+	/**
+	 * The size of the current buffer (from the perspective of the eviction policy)
+	 */
 	private int currentBufferSize=0;
+	/**
+	 * Determines if the window begin and end lookahead shall be remembered or recomputed
+	 */
 	private boolean recomputeLookahead=false;
+	/**
+	 * Indicates if this is a continuous aggregation query
+	 */
+	private boolean isContinuousAggregation=false;
 
 	/**
 	 * This constructer sets up the policy group in case Tuple-types are used.
@@ -106,6 +131,7 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 		this.trigger = trigger;
 		this.eviction = eviction;
 		this.recomputeLookahead=trigger.getClass().isAnnotationPresent(RecomputeLookahead.class);
+		this.isContinuousAggregation=eviction instanceof KeepAllEvictionPolicy;
 	}
 
 	/**
@@ -158,15 +184,19 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 		// Calculate the number of window begins
 		short windowBeginCounter = 0;
 		double lhPosition;
-		while (!windowStartLookahead.isEmpty()
-				&& (lhPosition=windowStartLookahead.getFirst()) <= position) {
-			windowStartLookahead.removeFirst();
-			// Count window begins only if they are between the
-			// last (inclusive) and the current (exclusive) tuple position
-			if (lhPosition>this.lastTuplePosition){
-				windowBeginCounter++;
+		//If this is a continuous aggregation no begins are returned, because all begins are at 0.
+		if (!isContinuousAggregation){
+			while (!windowStartLookahead.isEmpty()
+					&& (lhPosition=windowStartLookahead.getFirst()) <= position) {
+				windowStartLookahead.removeFirst();
+				// Count window begins only if they are between the
+				// last (inclusive) and the current (exclusive) tuple position
+				if (lhPosition>this.lastTuplePosition){
+					windowBeginCounter++;
+				}
 			}
 		}
+
 
 		// Calculate the number of window ends
 		short windowEndCounter = 0;
@@ -198,6 +228,10 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 
 		// Combine and return counter
 		return (windowBeginCounter << 16) + windowEndCounter;
+	}
+
+	public boolean isContinuousAggregation(){
+		return this.isContinuousAggregation;
 	}
 
 }
