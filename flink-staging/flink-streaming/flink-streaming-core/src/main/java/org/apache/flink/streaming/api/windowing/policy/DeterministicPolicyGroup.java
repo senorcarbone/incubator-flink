@@ -173,13 +173,21 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 
 		// Extend the look ahead such that we know a complete window beyond the
 		// position of the current tuple
-		while (windowStartLookahead.isEmpty()
-				|| windowStartLookahead.getLast() <= position) {
-			windowEndLookahead.add(latestTriggerPosition = trigger
-					.getNextTriggerPosition(latestTriggerPosition));
-			windowStartLookahead.add(eviction
-					.getLowerBorder(latestTriggerPosition));
+		if (isContinuousAggregation){
+			while (windowEndLookahead.isEmpty()||windowEndLookahead.getLast()<=position){
+				windowEndLookahead.add(latestTriggerPosition = trigger
+						.getNextTriggerPosition(latestTriggerPosition));
+			}
+		} else {
+			while (windowStartLookahead.isEmpty()
+					|| windowStartLookahead.getLast() <= position) {
+				windowEndLookahead.add(latestTriggerPosition = trigger
+						.getNextTriggerPosition(latestTriggerPosition));
+				windowStartLookahead.add(eviction
+						.getLowerBorder(latestTriggerPosition));
+			}
 		}
+
 
 		// Calculate the number of window begins
 		short windowBeginCounter = 0;
