@@ -26,24 +26,37 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 
-public class EagerHeapAggregatorTest {
+public class WindowAggregatorsTest {
 
-    private EagerHeapAggregator<Integer> aggr;
+
+    private EagerHeapAggregator<Integer> eager;
+    private LazyAggregator<Integer> lazy;
 
     @Before
     public void setUp() throws Exception {
-        aggr = new EagerHeapAggregator<Integer>(new ReduceFunction<Integer>() {
+        
+        ReduceFunction<Integer> testReducer = new ReduceFunction<Integer>() {
             @Override
             public Integer reduce(Integer value1, Integer value2) throws Exception {
                 return value1 + value2;
             }
-        }, IntSerializer.INSTANCE, 0, 2);
+        };
+        eager = new EagerHeapAggregator<Integer>(testReducer, IntSerializer.INSTANCE, 0, 2);
+
+        lazy = new LazyAggregator<Integer>(testReducer, IntSerializer.INSTANCE, 0, 2);
     }
 
+    @Test
+    public void testEagerAggregator() throws Exception {
+        checkAggregator(eager);
+    }
 
     @Test
-    public void testAggregator() throws Exception {
-        
+    public void testLazyAggregator() throws Exception {
+        checkAggregator(lazy);
+    }
+
+    private void checkAggregator(WindowAggregator aggr) throws Exception {
         //testing typical circular heap operations
         aggr.add(1, 1);
         assertEquals(Integer.valueOf(1), aggr.aggregate());

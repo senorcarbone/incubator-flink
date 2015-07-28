@@ -329,8 +329,9 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable
      * @return the current number of free slots in the leaf space
      */
     private int currentCapacity() {
-        LOG.info("CURRENT CAPACITY : {}", numLeaves-leafIndex.size());
-        return numLeaves-leafIndex.size();
+        int capacity = numLeaves - leafIndex.size();
+        LOG.info("CURRENT CAPACITY : {}", capacity);
+        return capacity;
     }
 
 }
