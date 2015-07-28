@@ -1,9 +1,10 @@
 package org.apache.flink.streaming.api.windowing.windowbuffer;
 
 
+import java.io.Serializable;
 import java.util.List;
 
-public interface WindowAggregator<T> {
+public interface WindowAggregator<T> extends Serializable {
 
     /**
      * It adds a new node in the aggregation buffer with the given id and value

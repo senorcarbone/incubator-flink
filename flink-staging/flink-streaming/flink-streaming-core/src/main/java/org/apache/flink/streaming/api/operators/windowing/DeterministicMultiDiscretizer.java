@@ -24,7 +24,9 @@ import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
 import org.apache.flink.streaming.api.windowing.windowbuffer.EagerHeapAggregator;
+import org.apache.flink.streaming.api.windowing.windowbuffer.LazyAggregator;
 import org.apache.flink.streaming.api.windowing.windowbuffer.WindowAggregator;
+import org.apache.flink.streaming.paper.AggregationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +44,7 @@ public class DeterministicMultiDiscretizer<IN> extends
      */
     private final ReduceFunction<IN> reducer;
     /**
-     * The identity value for the given combine function where reduce(val, identity) == reduce(identity, val) == val 
+     * The identity value for the given combine function where reduce(val, identity) == reduce(identity, val) == val
      */
     private final IN identityValue;
     /**
@@ -82,13 +84,13 @@ public class DeterministicMultiDiscretizer<IN> extends
 
     public DeterministicMultiDiscretizer(
             List<DeterministicPolicyGroup<IN>> policyGroups,
-            ReduceFunction<IN> reduceFunction, IN identityValue, int capacity, TypeSerializer<IN> serializer) {
+            ReduceFunction<IN> reduceFunction, IN identityValue, int capacity, TypeSerializer<IN> serializer,
+            AggregationUtils.AGGREGATION_TYPE aggregationType) {
 
         this.policyGroups = policyGroups;
         this.serializer = serializer;
         this.queryBorders = new HashMap<Integer, Deque<Integer>>();
         this.partialDependencies = new HashMap<Integer, Integer>();
-        this.aggregator = new EagerHeapAggregator<IN>(reduceFunction, serializer, identityValue, capacity);
         this.reducer = reduceFunction;
 
         for (int i = 0; i < this.policyGroups.size(); i++) {
@@ -98,19 +100,27 @@ public class DeterministicMultiDiscretizer<IN> extends
         this.identityValue = identityValue;
         this.currentPartial = identityValue;
 
+        switch (aggregationType) {
+            case EAGER:
+                this.aggregator = new EagerHeapAggregator<IN>(reduceFunction, serializer, identityValue, capacity);
+                break;
+            case LAZY:
+                this.aggregator = new LazyAggregator<IN>(reduceFunction, serializer, identityValue, capacity);
+        }
+
         chainingStrategy = ChainingStrategy.ALWAYS;
     }
 
 
     /**
      * For each tuple it does the following:
-     * 
+     * <p/>
      * 1) registers the current partial to the WindowAggregator if any window begin event is invoked by the policy groups
      * with the exception of the first partial which is never used
-     * 
-     * 2) for each trigger event invoked by the policy groups it emits the full window aggregation via the collector 
+     * <p/>
+     * 2) for each trigger event invoked by the policy groups it emits the full window aggregation via the collector
      * by combining the pre-aggregated parts from the WindowAggregator with the current partial
-     * 
+     *
      * @param tuple
      * @throws Exception
      */
@@ -154,7 +164,7 @@ public class DeterministicMultiDiscretizer<IN> extends
     /**
      * It removes a reference for the given partial ID and garbage collects unused partials in FIFO order
      * when they are no longer needed
-     * 
+     *
      * @param partialId
      * @throws Exception
      */
@@ -176,6 +186,7 @@ public class DeterministicMultiDiscretizer<IN> extends
 
     /**
      * It adds or removes a reference for the given partial ID
+     *
      * @param partialId
      * @param addition
      * @return
@@ -193,7 +204,7 @@ public class DeterministicMultiDiscretizer<IN> extends
     /**
      * It collects at the output the result of a full window computation by fetching the aggregate needed
      * from the WindowAggregator and combining with the currently running partial
-     * 
+     *
      * @param queryId
      * @throws Exception
      */
