@@ -5,6 +5,7 @@ import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.util.*;
 
 
@@ -15,9 +16,9 @@ import java.util.*;
  *
  * @param <T>
  */
-public class LazyAggregator<T> implements WindowAggregator<T> {
+public class LazyAggregator<T> implements WindowAggregator<T>, Serializable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(EagerHeapAggregator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LazyAggregator.class);
 
     private final ReduceFunction<T> reduceFunction;
     private final TypeSerializer<T> serializer;
@@ -52,7 +53,7 @@ public class LazyAggregator<T> implements WindowAggregator<T> {
             entry.setValue(indx);
         }
         this.front = 0;
-        this.back = partialMappings.size()-1;
+        this.back = partialMappings.size() - 1;
         this.partialSpace = newSpace;
         this.buffer = newBuffer;
     }
@@ -102,17 +103,15 @@ public class LazyAggregator<T> implements WindowAggregator<T> {
 
     @Override
     public T aggregate(int startid) throws Exception {
-        int startIndx = partialMappings.get(startid);
-        if(startIndx<=front){
-            T partial = identityValue;
-            for(int i=startIndx; i<=front; i++){
-                partial = combine(partial, buffer.get(i));
+        if (partialMappings.containsKey(startid)) {
+            int startIndx = partialMappings.get(startid);
+            if (back < startIndx) {
+                return combine(suffix(startIndx), prefix(back));
+            } else {
+                return suffix(startIndx);
             }
-            return partial;
         }
-        else {
-            return combine(suffix(startIndx), prefix(front));
-        }
+        return identityValue;
     }
 
     @Override
@@ -127,10 +126,10 @@ public class LazyAggregator<T> implements WindowAggregator<T> {
         }
         return partial;
     }
-    
+
     private T prefix(int endId) throws Exception {
         T partial = identityValue;
-        for (int i = 0; i < endId; i++) {
+        for (int i = 0; i <= endId; i++) {
             partial = combine(partial, buffer.get(i));
         }
         return partial;
@@ -149,8 +148,9 @@ public class LazyAggregator<T> implements WindowAggregator<T> {
     }
 
     private int currentCapacity() {
-        LOG.info("CURRENT CAPACITY : {} ");
-        return partialSpace - partialMappings.size();
+        int capacity = partialSpace - partialMappings.size();
+        LOG.info("CURRENT CAPACITY : {} ", capacity);
+        return capacity;
     }
 
     private int incrBack() {

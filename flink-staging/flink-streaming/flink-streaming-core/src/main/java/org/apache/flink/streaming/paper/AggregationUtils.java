@@ -37,12 +37,16 @@ import java.util.List;
 @SuppressWarnings("serial")
 public class AggregationUtils {
 
+	public enum AGGREGATION_TYPE {EAGER, LAZY};
+
+
 	public static class WindowAggregation<A> {
 
 		private final MapFunction<Double, A> lift;
 		private final ReduceFunction<A> combine;
 		private final MapFunction<A, Double> lower;
 		private final A identityValue;
+
 
 		WindowAggregation(MapFunction<Double, A> lift,
 				ReduceFunction<A> combine, MapFunction<A, Double> lower, A identityValue) {
@@ -55,7 +59,8 @@ public class AggregationUtils {
 		@SuppressWarnings({ "unchecked", "rawtypes" })
 		public DataStream<Tuple2<Integer,Double>> applyOn(
 				DataStream<Tuple2<Double, Double>> input,
-				Tuple3<List<DeterministicPolicyGroup<Tuple2<A, Double>>>, List<TriggerPolicy>, List<EvictionPolicy>> policies) {
+				Tuple3<List<DeterministicPolicyGroup<Tuple2<A, Double>>>, List<TriggerPolicy>, 
+						List<EvictionPolicy>> policies, AGGREGATION_TYPE aggType) {
 
 			TypeInformation<Tuple2<A, Double>> liftReturnType = new TupleTypeInfo<Tuple2<A, Double>>(
 					TypeExtractor.getMapReturnTypes(lift,
@@ -79,7 +84,7 @@ public class AggregationUtils {
 							policies.f0,
 							new Combine<A>(combine),
 							new Tuple2<A, Double>(identityValue, 0d),
-							4, liftReturnType.createSerializer(null)));
+							4, liftReturnType.createSerializer(null), aggType));
 
 			return combinedWithID.map(new Lower(lower));
 		}

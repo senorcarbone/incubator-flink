@@ -24,7 +24,6 @@ import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -48,7 +47,7 @@ import java.util.*;
  *
  * @param <T>
  */
-public class EagerHeapAggregator<T> implements WindowAggregator<T>, Serializable {
+public class EagerHeapAggregator<T> implements WindowAggregator<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(EagerHeapAggregator.class);
     private final ReduceFunction<T> reduceFunction;
