@@ -33,6 +33,13 @@ public interface WindowAggregator<T> extends Serializable {
     public void remove(Integer... ids) throws Exception;
 
     /**
+     * It evicts all elements in FIFO order up to the given id
+     * @param id
+     * @throws Exception
+     */
+    public void removeUpTo(int id) throws Exception;
+    
+    /**
      * Returns the aggregate of the window buffer from startid to the front of the buffer
      * @param startid
      * @return

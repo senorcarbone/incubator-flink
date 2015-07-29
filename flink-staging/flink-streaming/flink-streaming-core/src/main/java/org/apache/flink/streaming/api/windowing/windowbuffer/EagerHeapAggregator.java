@@ -73,7 +73,8 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
      * @param capacity
      */
     public EagerHeapAggregator(ReduceFunction<T> reduceFunction, TypeSerializer<T> serializer, T identityValue, int capacity) {
-        if(((capacity & -capacity) != capacity)) throw new IllegalArgumentException("Capacity should be a power of two");
+        if (((capacity & -capacity) != capacity))
+            throw new IllegalArgumentException("Capacity should be a power of two");
         this.reduceFunction = reduceFunction;
         this.serializer = serializer;
         this.identityValue = identityValue;
@@ -174,6 +175,19 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
         if (currentCapacity() > 3 * numLeaves / 4 && numLeaves >= 4) {
             resize(numLeaves / 2);
         }
+    }
+
+    @Override
+    public void removeUpTo(int id) throws Exception {
+        List<Integer> toRemove = new ArrayList<Integer>();
+        if (leafIndex.containsKey(id)) {
+            for (Map.Entry<Integer, Integer> mapping : leafIndex.entrySet()) {
+                if (mapping.getKey() == id)
+                    break;
+                toRemove.add(mapping.getKey());
+            }
+        }
+        remove(toRemove.toArray(new Integer[toRemove.size()]));
     }
 
     @Override

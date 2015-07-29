@@ -35,7 +35,9 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class DeterministicMultiDiscretizerTest extends TestCase {
+import static org.junit.Assert.assertEquals;
+
+public class AllMultiDiscretizersTest extends TestCase {
 
     /*********************************************
      * Data                                      *
@@ -94,11 +96,11 @@ public class DeterministicMultiDiscretizerTest extends TestCase {
         policyGroups.add(policyGroup);
 
         //Create operator instance
-        DeterministicMultiDiscretizer<Integer> multiDiscretizer = new DeterministicMultiDiscretizer<Integer>
+        DeterministicMultiDiscretizer<Integer> deterministicMD = new DeterministicMultiDiscretizer<Integer>
                 (policyGroups, new Sum(), 0, 4, IntSerializer.INSTANCE, AggregationUtils.AGGREGATION_TYPE.LAZY);
 
         //Run the test
-        List<Tuple2<Integer, Integer>> result = MockContext.createAndExecute(multiDiscretizer, this.inputs1);
+        List<Tuple2<Integer, Integer>> result = MockContext.createAndExecute(deterministicMD, this.inputs1);
 
         //check correctness
         assertEquals(expected, result);
@@ -151,20 +153,112 @@ public class DeterministicMultiDiscretizerTest extends TestCase {
         policyGroups.add(policyGroup);
         policyGroups.add(policyGroup2);
 
-        DeterministicMultiDiscretizer<Tuple2<Integer,Integer>> multiDiscretizer = 
+        DeterministicMultiDiscretizer<Tuple2<Integer,Integer>> deterministicMD = 
                 new DeterministicMultiDiscretizer<Tuple2<Integer, Integer>>(policyGroups, new TupleSum(), 
                         new Tuple2<Integer, Integer>(0,0), 8, new TupleTypeInfo<Tuple2<Integer, Integer>>
                         (BasicTypeInfo.INT_TYPE_INFO, BasicTypeInfo.INT_TYPE_INFO).createSerializer(null), 
                         AggregationUtils.AGGREGATION_TYPE.EAGER);
 
         //Run the test
-        List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(multiDiscretizer, inputs2);
+        List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(deterministicMD, inputs2);
 
         //check correctness
         assertEquals(expected, result);
     }
 
 
+    @Test
+    public void testMultiDiscretizerNotDeterministic() {
+
+        //prepare expected result
+        LinkedList<Tuple2<Integer, Integer>> expected = new LinkedList<Tuple2<Integer, Integer>>();
+        expected.add(new Tuple2<Integer, Integer>(0, 5));  //0..4
+        expected.add(new Tuple2<Integer, Integer>(0, 5));  //0..9
+        expected.add(new Tuple2<Integer, Integer>(0, 35)); //5..14
+        expected.add(new Tuple2<Integer, Integer>(0, 51)); //10..19
+
+        //prepare policies
+        @SuppressWarnings("unchecked")
+        TimestampWrapper<Integer> timestampWrapper = new TimestampWrapper<Integer>(new Timestamp() {
+            @Override
+            public long getTimestamp(Object value) {
+                return ((Integer) value);
+            }
+        }, 0);
+        TriggerPolicy<Integer> triggerPolicy = new TimeTriggerPolicy<Integer>(5, timestampWrapper);
+        EvictionPolicy<Integer> evictionPolicy = new TimeEvictionPolicy<Integer>(10, timestampWrapper);
+
+        LinkedList<TriggerPolicy<Integer>> triggerPolicies = new LinkedList<TriggerPolicy<Integer>>();
+        triggerPolicies.add(triggerPolicy);
+        LinkedList<EvictionPolicy<Integer>> evictionPolicies = new LinkedList<EvictionPolicy<Integer>>();
+        evictionPolicies.add(evictionPolicy);
+
+        //Create operator instance
+        NDMultiDiscretizer<Integer> nonDeterministicMD = 
+                new NDMultiDiscretizer<Integer>(triggerPolicies, evictionPolicies, new Sum(), IntSerializer.INSTANCE,0,
+                        AggregationUtils.AGGREGATION_TYPE.LAZY);
+
+        //Run the test
+        List<Tuple2<Integer, Integer>> result = MockContext.createAndExecute(nonDeterministicMD, inputs1);
+
+        //check correctness
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testMultiDiscretizerMultipleNotDeterministic() {
+
+        //prepare expected result
+        LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>> expected = new LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>>();
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1, new Tuple2<Integer, Integer>(3, 1)));    //Q1 seq 0,1
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(5, 3)));   //Q0 0..4
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(5, 3)));   //Q0 0..9
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1, new Tuple2<Integer, Integer>(15, 6)));   //Q1 seq 0,1,2,3
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(35, 12))); //Q0 5..14
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1, new Tuple2<Integer, Integer>(39, 15)));  //Q1 seq 1,2,3,4,5
+        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(51, 18))); //Q0 10..19
+
+        //prepare policies
+        @SuppressWarnings("unchecked")
+        TimestampWrapper<Tuple2<Integer, Integer>> timestampWrapper = new TimestampWrapper<Tuple2<Integer, Integer>>(new Timestamp() {
+            @Override
+            public long getTimestamp(Object value) {
+                return ((Tuple2<Integer, Integer>) value).f0;
+            }
+        }, 0);
+        TriggerPolicy<Tuple2<Integer, Integer>> triggerPolicy =
+                new TimeTriggerPolicy<Tuple2<Integer, Integer>>(5, timestampWrapper);
+        EvictionPolicy<Tuple2<Integer, Integer>> evictionPolicy =
+                new TimeEvictionPolicy<Tuple2<Integer, Integer>>(10, timestampWrapper);
+
+        TriggerPolicy<Tuple2<Integer, Integer>> triggerPolicy2 =
+                new CountTriggerPolicy<Tuple2<Integer, Integer>>(2);
+        EvictionPolicy<Tuple2<Integer, Integer>> evictionPolicy2 =
+                new CountEvictionPolicy<Tuple2<Integer, Integer>>(5);
+
+        LinkedList<TriggerPolicy<Tuple2<Integer, Integer>>> triggerPolicies =
+                new LinkedList<TriggerPolicy<Tuple2<Integer, Integer>>>();
+        triggerPolicies.add(triggerPolicy);
+        triggerPolicies.add(triggerPolicy2);
+        LinkedList<EvictionPolicy<Tuple2<Integer, Integer>>> evictionPolicies =
+                new LinkedList<EvictionPolicy<Tuple2<Integer, Integer>>>();
+        evictionPolicies.add(evictionPolicy);
+        evictionPolicies.add(evictionPolicy2);
+
+        //Create operator instance
+        NDMultiDiscretizer<Tuple2<Integer, Integer>> nonDeterministicMD =
+                new NDMultiDiscretizer<Tuple2<Integer, Integer>>(triggerPolicies, evictionPolicies,new TupleSum(), 
+                        new TupleTypeInfo<Tuple2<Integer, Integer>>
+                        (BasicTypeInfo.INT_TYPE_INFO, BasicTypeInfo.INT_TYPE_INFO).createSerializer(null), 
+                        new Tuple2<Integer, Integer>(0,0),
+                        AggregationUtils.AGGREGATION_TYPE.EAGER);
+
+        //Run the test
+        List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(nonDeterministicMD, inputs2);
+
+        //check correctness
+        assertEquals(expected, result);
+    }
 
     /*********************************************
      * Utilities                                 *
