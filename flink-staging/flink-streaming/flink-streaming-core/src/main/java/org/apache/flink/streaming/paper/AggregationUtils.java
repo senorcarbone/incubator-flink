@@ -31,6 +31,7 @@ import org.apache.flink.streaming.api.operators.windowing.DeterministicMultiDisc
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
 import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
+import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
 
 import java.util.List;
 
@@ -147,7 +148,8 @@ public class AggregationUtils {
 	public static class Combine<A> implements ReduceFunction<Tuple2<A, Double>> {
 
 		ReduceFunction<A> combine;
-
+		AggregationStats stats = AggregationStats.getInstance();
+		
 		Combine(ReduceFunction<A> combine) {
 			this.combine = combine;
 		}
@@ -155,7 +157,7 @@ public class AggregationUtils {
 		@Override
 		public Tuple2<A, Double> reduce(Tuple2<A, Double> value1,
 				Tuple2<A, Double> value2) throws Exception {
-
+			stats.registerReduce();                       
 			value1.f0 = combine.reduce(value1.f0, value2.f0);
 			return value1;
 
