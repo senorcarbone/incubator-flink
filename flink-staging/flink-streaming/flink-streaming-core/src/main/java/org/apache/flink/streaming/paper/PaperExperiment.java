@@ -45,8 +45,7 @@ public class PaperExperiment {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment
 				.createLocalEnvironment(1);
 
-		DataStream<Tuple2<Double, Double>> source = env
-				.addSource(new DataGenerator(1000));
+		DataStream<Tuple3<Double, Double, Long>> source = env.addSource(new DataGenerator(1000));
 
 		SumAggregation.applyOn(source, getTestPolicies(10), AggregationUtils.AGGREGATION_TYPE.LAZY)
 				.map(new Prefix("SUM")).print();
@@ -56,49 +55,59 @@ public class PaperExperiment {
 		env.execute();
 	}
 
-	public static Tuple3<List<DeterministicPolicyGroup<Tuple2<Double, Double>>>, List<TriggerPolicy>, List<EvictionPolicy>> getTestPolicies(
+	public static Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>, List<TriggerPolicy>, List<EvictionPolicy>> getTestPolicies(
 			int nrOfDeterministicPolicies) {
 
-		LinkedList<DeterministicPolicyGroup<Tuple2<Double,Double>>> deterministicGroups = new LinkedList();
+		LinkedList<DeterministicPolicyGroup<Tuple3<Double,Double, Long>>> deterministicGroups = new LinkedList();
 		for (int i = 0; i < nrOfDeterministicPolicies; i++) {
 			deterministicGroups.add(generateDeterministicPolicyGroup());
 		}
 
-		return new Tuple3<List<DeterministicPolicyGroup<Tuple2<Double,Double>>>, List<TriggerPolicy>, List<EvictionPolicy>>(
+		return new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double,Double, Long>>>, List<TriggerPolicy>, List<EvictionPolicy>>(
 				deterministicGroups, emptyList, emptyList);
 	}
 
 	static LinkedList emptyList = new LinkedList();
 
-	static Extractor<Tuple2<Double, Double>, Double> extractor = new Extractor<Tuple2<Double, Double>, Double>() {
+	static Extractor<Tuple3<Double, Double, Long>, Double> countExtractor = new Extractor<Tuple3<Double, Double, Long>, Double>() {
 		@Override
-		public Double extract(Tuple2<Double, Double> in) {
+		public Double extract(Tuple3<Double, Double, Long> in) {
 			return in.f1;
+		}
+	};
+	
+	static Extractor<Tuple3<Double, Double, Long>, Double> timeExtractor = new Extractor<Tuple3<Double, Double, Long>, Double>() {
+		@Override
+		public Double extract(Tuple3<Double, Double, Long> in) {
+			return in.f2.doubleValue();
 		}
 	};
 
 	private static DeterministicPolicyGroup generateDeterministicPolicyGroup() {
-		DeterministicPolicyGroup<Tuple2<Double, Double>> group;
+		DeterministicPolicyGroup<Tuple3<Double, Double, Long>> group;
 
+		long evictionSize = (long) (rnd.nextGaussian()*10000+30000);
+		long triggerSize = (long) (rnd.nextGaussian()*5000+15000);
+		
 		boolean isTime = rnd.nextBoolean();
 		if (isTime) {
-
-			TimestampWrapper tsw = new TimestampWrapper(new Timestamp<Tuple2<Double,Double>>() {
+			TimestampWrapper tsw = new TimestampWrapper(new Timestamp<Tuple3<Double,Double, Long>>() {
 
 				@Override
-				public long getTimestamp(Tuple2<Double,Double> value) {
-					return value.f1.longValue();
+				public long getTimestamp(Tuple3<Double,Double, Long> value) {
+					return value.f2;
 				}
-			}, 0);
-			group = new DeterministicPolicyGroup<Tuple2<Double, Double>>(
-					new DeterministicTimeTriggerPolicy(rnd.nextInt(5) + 1, tsw),
-					new DeterministicTimeEvictionPolicy(rnd.nextInt(5) + 1, tsw),
-					extractor);
+			}, System.currentTimeMillis());
+			
+			group = new DeterministicPolicyGroup<Tuple3<Double, Double, Long>>(
+					new DeterministicTimeTriggerPolicy(triggerSize, tsw),
+					new DeterministicTimeEvictionPolicy(evictionSize, tsw),
+					timeExtractor);
 		} else {
-			group = new DeterministicPolicyGroup<Tuple2<Double, Double>>(
-					new DeterministicCountTriggerPolicy(rnd.nextInt(5) + 1),
-					new DeterministicCountEvictionPolicy(rnd.nextInt(5) + 1),
-					extractor);
+			group = new DeterministicPolicyGroup<Tuple3<Double, Double, Long>>(
+					new DeterministicCountTriggerPolicy((int) triggerSize),
+					new DeterministicCountEvictionPolicy((int) evictionSize),
+					countExtractor);
 		}
 
 		return group;
@@ -121,7 +130,7 @@ public class PaperExperiment {
 	}
 
 	public static class DataGenerator implements
-			SourceFunction<Tuple2<Double, Double>> {
+			SourceFunction<Tuple3<Double, Double, Long>> {
 
 		private static final long serialVersionUID = 1L;
 
@@ -135,13 +144,13 @@ public class PaperExperiment {
 		}
 
 		@Override
-		public void run(SourceContext<Tuple2<Double, Double>> ctx)
+		public void run(SourceContext<Tuple3<Double, Double, Long>> ctx)
 				throws Exception {
 			isRunning = true;
 			rnd = new Random();
 			while (isRunning) {
-				ctx.collect(new Tuple2<Double, Double>((double) rnd
-						.nextInt(1000), c++));
+				ctx.collect(new Tuple3<Double, Double, Long>((double) rnd
+						.nextInt(1000), c++, System.currentTimeMillis()));
 				Thread.sleep(sleepMillis);
 			}
 		}
