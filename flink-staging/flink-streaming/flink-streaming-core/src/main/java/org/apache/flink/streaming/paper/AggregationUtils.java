@@ -31,6 +31,7 @@ import org.apache.flink.streaming.api.operators.windowing.DeterministicMultiDisc
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
 import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
+import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
 
 import java.util.List;
 
@@ -58,32 +59,32 @@ public class AggregationUtils {
 
 		@SuppressWarnings({ "unchecked", "rawtypes" })
 		public DataStream<Tuple2<Integer,Double>> applyOn(
-				DataStream<Tuple2<Double, Double>> input,
-				Tuple3<List<DeterministicPolicyGroup<Tuple2<A, Double>>>, List<TriggerPolicy>, 
+				DataStream<Tuple3<Double, Double, Long>> input,
+				Tuple3<List<DeterministicPolicyGroup<Tuple3<A, Double, Long>>>, List<TriggerPolicy>, 
 						List<EvictionPolicy>> policies, AGGREGATION_TYPE aggType) {
 
-			TypeInformation<Tuple2<A, Double>> liftReturnType = new TupleTypeInfo<Tuple2<A, Double>>(
+			TypeInformation<Tuple3<A, Double, Long>> liftReturnType = new TupleTypeInfo<Tuple3<A, Double, Long>>(
 					TypeExtractor.getMapReturnTypes(lift,
 							BasicTypeInfo.DOUBLE_TYPE_INFO),
-					BasicTypeInfo.DOUBLE_TYPE_INFO);
+					BasicTypeInfo.DOUBLE_TYPE_INFO, BasicTypeInfo.LONG_TYPE_INFO);
 
-			DataStream<Tuple2<A, Double>> lifted = input.map(new Lift<A>(lift)).startNewChain()
+			DataStream<Tuple3<A, Double, Long>> lifted = input.map(new Lift<A>(lift)).startNewChain()
 					.returns(liftReturnType);
 
-			TypeInformation<Tuple2<Integer, Tuple2<A, Double>>> combinedType = new TupleTypeInfo<Tuple2<Integer, Tuple2<A, Double>>>(
+			TypeInformation<Tuple2<Integer, Tuple3<A, Double, Long>>> combinedType = new TupleTypeInfo<Tuple2<Integer, Tuple3<A, Double, Long>>>(
 					BasicTypeInfo.INT_TYPE_INFO, liftReturnType);
 
-			DataStream<Tuple2<Integer, Tuple2<A, Double>>> combinedWithID = lifted
+			DataStream<Tuple2<Integer, Tuple3<A, Double, Long>>> combinedWithID = lifted
 					.transform("WindowAggregation", combinedType,
 //							new MultiDiscretizer<Tuple2<A, Double>>(
 //									policies.f0,
 //									policies.f1,
 //									policies.f2,
 //									new Combine<A>(combine)));
-					new DeterministicMultiDiscretizer<Tuple2<A, Double>>(
+					new DeterministicMultiDiscretizer<Tuple3<A, Double, Long>>(
 							policies.f0,
 							new Combine<A>(combine),
-							new Tuple2<A, Double>(identityValue, 0d),
+							new Tuple3<A, Double, Long>(identityValue, 0d, 0l),
 							4, liftReturnType.createSerializer(null), aggType));
 
 			return combinedWithID.map(new Lower(lower));
@@ -144,25 +145,25 @@ public class AggregationUtils {
 
 	}
 
-	public static class Combine<A> implements ReduceFunction<Tuple2<A, Double>> {
+	public static class Combine<A> implements ReduceFunction<Tuple3<A, Double, Long>> {
 
 		ReduceFunction<A> combine;
-
+		AggregationStats stats = AggregationStats.getInstance();
+		
 		Combine(ReduceFunction<A> combine) {
 			this.combine = combine;
 		}
 
 		@Override
-		public Tuple2<A, Double> reduce(Tuple2<A, Double> value1,
-				Tuple2<A, Double> value2) throws Exception {
-
+		public Tuple3<A, Double, Long> reduce(Tuple3<A, Double, Long> value1,
+				Tuple3<A, Double, Long> value2) throws Exception {
 			value1.f0 = combine.reduce(value1.f0, value2.f0);
 			return value1;
 
 		}
 	}
 	
-	public static class Lower<A> implements MapFunction<Tuple2<Integer,Tuple2<A, Double>>,Tuple2<Integer,Double>>{
+	public static class Lower<A> implements MapFunction<Tuple2<Integer,Tuple3<A, Double, Long>>,Tuple2<Integer,Double>>{
 
 		MapFunction<A, Double> lower;
 		
@@ -172,14 +173,14 @@ public class AggregationUtils {
 		
 		@Override
 		public Tuple2<Integer, Double> map(
-				Tuple2<Integer, Tuple2<A, Double>> value) throws Exception {
+				Tuple2<Integer, Tuple3<A, Double, Long>> value) throws Exception {
 			return new Tuple2<Integer, Double>(value.f0, lower.map(value.f1.f0));
 		}
 		
 	}
 
 	public static class Lift<A> implements
-			MapFunction<Tuple2<Double, Double>, Tuple2<A, Double>> {
+			MapFunction<Tuple3<Double, Double, Long>, Tuple3<A, Double, Long>> {
 
 		private MapFunction<Double, A> lift;
 
@@ -188,9 +189,9 @@ public class AggregationUtils {
 		}
 
 		@Override
-		public Tuple2<A, Double> map(Tuple2<Double, Double> value)
+		public Tuple3<A, Double, Long> map(Tuple3<Double, Double, Long> value)
 				throws Exception {
-			return new Tuple2<A, Double>(lift.map(value.f0), value.f1);
+			return new Tuple3<A, Double, Long>(lift.map(value.f0), value.f1, value.f2);
 		}
 
 	}

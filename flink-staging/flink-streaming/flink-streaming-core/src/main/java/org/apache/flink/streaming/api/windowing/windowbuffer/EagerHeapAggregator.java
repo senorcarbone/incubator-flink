@@ -65,7 +65,14 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
     private int numLeaves;
     private int back, front;
     private final int ROOT = 0;
-
+    
+    private AggregationStats stats = AggregationStats.getInstance();
+    
+    private enum AGG_STATE {UPDATING, AGGREGATING}
+    
+    private AGG_STATE currentState = AGG_STATE.UPDATING; 
+    
+    
     /**
      * @param reduceFunction
      * @param serializer
@@ -101,6 +108,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
      * @throws Exception
      */
     private int add(int partialId, T partialVal, boolean commit) throws Exception {
+        currentState = AGG_STATE.UPDATING;
         if (currentCapacity() == 0) {
             resize(2 * numLeaves);
         }
@@ -139,6 +147,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
 
     @Override
     public void add(List<Integer> ids, List<T> vals) throws Exception {
+        currentState = AGG_STATE.UPDATING;
         if (ids.size() != vals.size()) throw new IllegalArgumentException("The ids and vals given do not match");
 
         //if we have reached max capacity (numLeaves) resize so that i*numLeaves > usedSpace+newSpace
@@ -160,6 +169,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
 
     @Override
     public void remove(Integer... partialList) throws Exception {
+        currentState = AGG_STATE.UPDATING;
         List<Integer> leafBag = new ArrayList<Integer>(partialList.length);
         for (int partialId : partialList) {
             if (!leafIndex.containsKey(partialId)) continue;
@@ -179,6 +189,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
 
     @Override
     public void removeUpTo(int id) throws Exception {
+        currentState = AGG_STATE.UPDATING;
         List<Integer> toRemove = new ArrayList<Integer>();
         if (leafIndex.containsKey(id)) {
             for (Map.Entry<Integer, Integer> mapping : leafIndex.entrySet()) {
@@ -192,6 +203,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
 
     @Override
     public T aggregate(int partialId) throws Exception {
+        currentState = AGG_STATE.AGGREGATING;
         if (leafIndex.containsKey(partialId)) {
             return aggregateFrom(leafIndex.get(partialId));
         }
@@ -232,6 +244,11 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
      * @throws Exception
      */
     private T combine(T val1, T val2) throws Exception {
+        switch(currentState){
+            case UPDATING:stats.registerUpdate();
+                break;
+            case AGGREGATING:stats.registerAggregate();
+        }
         return reduceFunction.reduce(serializer.copy(val1), serializer.copy(val2));
     }
 
@@ -243,6 +260,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
      * @throws Exception
      */
     private T aggregateFrom(int leafID) throws Exception {
+        currentState = AGG_STATE.AGGREGATING;
         if (back < leafID) {
             return combine(prefix(back), suffix(leafID));
         }
