@@ -5,6 +5,7 @@ import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.util.*;
 
 
@@ -15,7 +16,7 @@ import java.util.*;
  *
  * @param <T>
  */
-public class LazyAggregator<T> implements WindowAggregator<T> {
+public class LazyAggregator<T> implements WindowAggregator<T>, Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(LazyAggregator.class);
 
@@ -160,5 +161,18 @@ public class LazyAggregator<T> implements WindowAggregator<T> {
     private int incrFront() {
         front = (front + 1) % partialSpace;
         return front;
+    }
+
+    @Override
+    public void removeUpTo(int id) throws Exception {
+        List<Integer> toRemove = new ArrayList<Integer>();
+        if (partialMappings.containsKey(id)) {
+            for (Map.Entry<Integer, Integer> mapping : partialMappings.entrySet()) {
+                if (mapping.getKey() == id)
+                    break;
+                toRemove.add(mapping.getKey());
+            }
+        }
+        remove(toRemove.toArray(new Integer[toRemove.size()]));
     }
 }
