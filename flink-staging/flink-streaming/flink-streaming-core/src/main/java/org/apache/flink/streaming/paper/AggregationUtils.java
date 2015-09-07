@@ -21,13 +21,13 @@ import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.operators.windowing.DeterministicMultiDiscretizer;
+import org.apache.flink.streaming.api.operators.windowing.MultiDiscretizer;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
 import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
@@ -74,18 +74,23 @@ public class AggregationUtils {
 			TypeInformation<Tuple2<Integer, Tuple3<A, Double, Long>>> combinedType = new TupleTypeInfo<Tuple2<Integer, Tuple3<A, Double, Long>>>(
 					BasicTypeInfo.INT_TYPE_INFO, liftReturnType);
 
-			DataStream<Tuple2<Integer, Tuple3<A, Double, Long>>> combinedWithID = lifted
-					.transform("WindowAggregation", combinedType,
-//							new MultiDiscretizer<Tuple2<A, Double>>(
-//									policies.f0,
-//									policies.f1,
-//									policies.f2,
-//									new Combine<A>(combine)));
-					new DeterministicMultiDiscretizer<Tuple3<A, Double, Long>>(
-							policies.f0,
-							new Combine<A>(combine),
-							new Tuple3<A, Double, Long>(identityValue, 0d, 0l),
-							4, liftReturnType.createSerializer(null), aggType));
+			DataStream<Tuple2<Integer, Tuple3<A, Double, Long>>> combinedWithID;
+
+			if ((policies.f1==null||policies.f1.isEmpty())&&(policies.f2==null||policies.f2.isEmpty())){
+				combinedWithID = lifted.transform("WindowAggregation", combinedType,
+						new DeterministicMultiDiscretizer<Tuple3<A, Double, Long>>(
+						policies.f0,
+						new Combine<A>(combine),
+						new Tuple3<A, Double, Long>(identityValue, 0d, 0l),
+						4, liftReturnType.createSerializer(null), aggType));
+			} else {
+				combinedWithID = lifted.transform("WindowAggregation", combinedType,
+						new MultiDiscretizer(
+								policies.f0,
+								policies.f1,
+								policies.f2,
+								new Combine<A>(combine)));
+			}
 
 			return combinedWithID.map(new Lower(lower));
 		}
@@ -128,10 +133,12 @@ public class AggregationUtils {
 			new IdMap(), new ReduceFunction<Double>() {
 
 				private static final long serialVersionUID = 1L;
+				private AggregationStats stats=AggregationStats.getInstance();
 
 				@Override
 				public Double reduce(Double value1, Double value2)
 						throws Exception {
+					stats.registerReduce();
 					return value1 + value2;
 				}
 			}, new IdMap(), 0d);
@@ -148,7 +155,7 @@ public class AggregationUtils {
 	public static class Combine<A> implements ReduceFunction<Tuple3<A, Double, Long>> {
 
 		ReduceFunction<A> combine;
-		AggregationStats stats = AggregationStats.getInstance();
+		//AggregationStats stats = AggregationStats.getInstance();
 		
 		Combine(ReduceFunction<A> combine) {
 			this.combine = combine;
