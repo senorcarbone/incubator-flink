@@ -64,7 +64,7 @@ public class ExperimentDriver {
     /**
      * Specify the number of tuples you want to process
      */
-    private static final int NUM_TUPLES = 100000;
+    private static final int NUM_TUPLES = 20000;
 
     /**
      * Set a sleep period in ms.
@@ -164,9 +164,9 @@ public class ExperimentDriver {
 
                 List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenario[i]);
                 SumAggregation.applyOn(source2, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-                        List<TriggerPolicy>,
-                        List<EvictionPolicy>>(periodicPolicyGroups, new LinkedList<TriggerPolicy>(),
-                        new LinkedList<EvictionPolicy>()), AggregationUtils.AGGREGATION_TYPE.LAZY)
+                        List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
+                        List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(periodicPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
+                        new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationUtils.AGGREGATION_TYPE.LAZY)
                         .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
 
                 result = env2.execute("Scanario "+i+" Case "+testCase);
@@ -188,9 +188,9 @@ public class ExperimentDriver {
 
                 List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> randomWalkPolicyGroups = makeRandomWalkPolicyGroups(randomScenario[i]);
                 SumAggregation.applyOn(source3, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-                        List<TriggerPolicy>,
-                        List<EvictionPolicy>>(randomWalkPolicyGroups, new LinkedList<TriggerPolicy>(),
-                        new LinkedList<EvictionPolicy>()), AggregationUtils.AGGREGATION_TYPE.LAZY)
+                        List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
+                        List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(randomWalkPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
+                        new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationUtils.AGGREGATION_TYPE.LAZY)
                         .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
 
                 result = env3.execute();
@@ -211,8 +211,8 @@ public class ExperimentDriver {
                 DataStream<Tuple3<Double, Double, Long>> source4 = env4.addSource(new DataGenerator(SOURCE_SLEEP,NUM_TUPLES));
 
                 SumAggregation.applyOn(source4, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-                        List<TriggerPolicy>,
-                        List<EvictionPolicy>>(new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>(), makeNDRandomWalkTrigger(randomScenario[i]),
+                        List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
+                        List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>(), makeNDRandomWalkTrigger(randomScenario[i]),
                         makeNDRandomWalkEviction(randomScenario[i])), AggregationUtils.AGGREGATION_TYPE.LAZY)
                         .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
 
@@ -234,8 +234,8 @@ public class ExperimentDriver {
                 DataStream<Tuple3<Double, Double, Long>> source4 = env5.addSource(new DataGenerator(SOURCE_SLEEP,NUM_TUPLES));
 
                 SumAggregation.applyOn(source4, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-                        List<TriggerPolicy>,
-                        List<EvictionPolicy>>(new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>(), makeNDPeriodicTrigger(scenario[i]),
+                        List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
+                        List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>(), makeNDPeriodicTrigger(scenario[i]),
                         makeNDPeriodicEviction(scenario[i])), AggregationUtils.AGGREGATION_TYPE.LAZY)
                         .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
 
@@ -258,9 +258,9 @@ public class ExperimentDriver {
 
                 List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenario[i]);
                 SumAggregation.applyOn(source2, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-                        List<TriggerPolicy>,
-                        List<EvictionPolicy>>(periodicPolicyGroups, new LinkedList<TriggerPolicy>(),
-                        new LinkedList<EvictionPolicy>()), AggregationUtils.AGGREGATION_TYPE.EAGER)
+                        List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
+                        List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(periodicPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
+                        new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationUtils.AGGREGATION_TYPE.EAGER)
                         .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
 
                 result = env6.execute("Scanario "+i+" Case "+testCase);
@@ -282,9 +282,9 @@ public class ExperimentDriver {
 
                 List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> randomWalkPolicyGroups = makeRandomWalkPolicyGroups(randomScenario[i]);
                 SumAggregation.applyOn(source3, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-                        List<TriggerPolicy>,
-                        List<EvictionPolicy>>(randomWalkPolicyGroups, new LinkedList<TriggerPolicy>(),
-                        new LinkedList<EvictionPolicy>()), AggregationUtils.AGGREGATION_TYPE.EAGER)
+                        List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
+                        List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(randomWalkPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
+                        new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationUtils.AGGREGATION_TYPE.EAGER)
                         .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
 
                 result = env7.execute();
@@ -343,8 +343,8 @@ public class ExperimentDriver {
         return policyGroups;
     }
 
-    public static List<TriggerPolicy> makeNDRandomWalkTrigger(List<Tuple3<String, Double, Double[]>> settings){
-        List<TriggerPolicy> trigger = new LinkedList<TriggerPolicy>();
+    public static List<TriggerPolicy<Tuple3<Double, Double, Long>>> makeNDRandomWalkTrigger(List<Tuple3<String, Double, Double[]>> settings){
+        List<TriggerPolicy<Tuple3<Double, Double, Long>>> trigger = new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>();
         for (Tuple3<String, Double, Double[]> setting : settings) {
             if (setting.f0.equals("COUNT")) {
                 trigger.add(new RandomWalkTriggerPolicy<Tuple3<Double, Double, Long>>(setting.f2,countExtractor));
@@ -356,8 +356,8 @@ public class ExperimentDriver {
     }
 
     @SuppressWarnings("unchecked")
-    public static List<EvictionPolicy> makeNDRandomWalkEviction (List<Tuple3<String, Double, Double[]>> settings){
-        List<EvictionPolicy> eviction = new LinkedList<EvictionPolicy>();
+    public static List<EvictionPolicy<Tuple3<Double, Double, Long>>> makeNDRandomWalkEviction (List<Tuple3<String, Double, Double[]>> settings){
+        List<EvictionPolicy<Tuple3<Double, Double, Long>>> eviction = new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>();
         for (Tuple3<String, Double, Double[]> setting : settings) {
             if (setting.f0.equals("COUNT")) {
                  eviction.add(new CountEvictionPolicy<Tuple3<Double, Double, Long>>(setting.f1.intValue()));
@@ -369,8 +369,8 @@ public class ExperimentDriver {
     }
 
     @SuppressWarnings("unchecked")
-    public static List<TriggerPolicy> makeNDPeriodicTrigger(List<Tuple3<String, Double, Double>> settings){
-        List<TriggerPolicy> trigger = new LinkedList<TriggerPolicy>();
+    public static List<TriggerPolicy<Tuple3<Double, Double, Long>>> makeNDPeriodicTrigger(List<Tuple3<String, Double, Double>> settings){
+        List<TriggerPolicy<Tuple3<Double, Double, Long>>> trigger = new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>();
         for (Tuple3<String, Double, Double> setting : settings) {
             if (setting.f0.equals("COUNT")) {
                 trigger.add(new CountTriggerPolicy<Tuple3<Double, Double, Long>>(setting.f2.intValue()));
@@ -382,8 +382,8 @@ public class ExperimentDriver {
     }
 
     @SuppressWarnings("unchecked")
-    public static List<EvictionPolicy> makeNDPeriodicEviction (List<Tuple3<String, Double, Double>> settings){
-        List<EvictionPolicy> eviction = new LinkedList<EvictionPolicy>();
+    public static List<EvictionPolicy<Tuple3<Double, Double, Long>>> makeNDPeriodicEviction (List<Tuple3<String, Double, Double>> settings){
+        List<EvictionPolicy<Tuple3<Double, Double, Long>>> eviction = new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>();
         for (Tuple3<String, Double, Double> setting : settings) {
             if (setting.f0.equals("COUNT")) {
                 eviction.add(new DeterministicCountEvictionPolicy<Tuple3<Double, Double, Long>>(setting.f1.intValue()));

@@ -55,7 +55,7 @@ public class PaperExperiment {
 		env.execute();
 	}
 
-	public static Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>, List<TriggerPolicy>, List<EvictionPolicy>> getTestPolicies(
+	public static Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>, List<TriggerPolicy<Tuple3<Double, Double, Long>>>, List<EvictionPolicy<Tuple3<Double, Double, Long>>>> getTestPolicies(
 			int nrOfDeterministicPolicies) {
 
 		LinkedList<DeterministicPolicyGroup<Tuple3<Double,Double, Long>>> deterministicGroups = new LinkedList();
@@ -63,7 +63,7 @@ public class PaperExperiment {
 			deterministicGroups.add(generateDeterministicPolicyGroup());
 		}
 
-		return new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double,Double, Long>>>, List<TriggerPolicy>, List<EvictionPolicy>>(
+		return new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double,Double, Long>>>, List<TriggerPolicy<Tuple3<Double, Double, Long>>>, List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(
 				deterministicGroups, emptyList, emptyList);
 	}
 
