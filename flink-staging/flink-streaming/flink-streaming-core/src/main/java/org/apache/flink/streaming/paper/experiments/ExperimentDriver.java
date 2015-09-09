@@ -51,10 +51,12 @@ public class ExperimentDriver {
     private static final boolean RUN_PAIRES=false;
     private static final boolean RUN_PERIODIC=true;
     private static final boolean RUN_DETERMINISTIC_NOT_PERIODIC=true;
-    private static final boolean RUN_NOT_DETERMINISTIC_NOT_PERIODIC=false; //At the moment this uses MultiDiscretizer! (No pre-agg at all!)
-    private static final boolean RUN_PERIODIC_NO_PREAGG=false; //At the moment this uses MultiDiscretizer! (No pre-agg at all!)
+    private static final boolean RUN_NOT_DETERMINISTIC_NOT_PERIODIC=true;
+    private static final boolean RUN_PERIODIC_NO_PREAGG=true;
     private static final boolean RUN_PERIODIC_EAGER=true;
     private static final boolean RUN_DETERMINISTIC_NOT_PERIODIC_EAGER=true;
+    private static final boolean RUN_NOT_DETERMINISTIC_NOT_PERIODIC_EAGER=true;
+    private static final boolean RUN_PERIODIC_NO_PREAGG_EAGER=true;
 
     /**
      * Specify the output file for the experiment results
@@ -64,7 +66,7 @@ public class ExperimentDriver {
     /**
      * Specify the number of tuples you want to process
      */
-    private static final int NUM_TUPLES = 20000;
+    private static final int NUM_TUPLES = 100000;
 
     /**
      * Set a sleep period in ms.
@@ -138,6 +140,18 @@ public class ExperimentDriver {
         // Scenario 3 (i=2): high range, regular slide
         // Scenario 4 (i=3): regular range, low slide
         // Scenario 5 (i=4): regular range, high slide
+        //
+        //The differen Algorithms are the following
+        // CASE 0: Panes (not implemented yet)
+        // CASE 1: Paires (not implemented yet)
+        // CASE 2: deterministic policy groups; periodic; LAZY
+        // CASE 3: deterministic policy groups; not periodic; LAZY
+        // CASE 4: not deterministic; not periodic; LAZY
+        // CASE 5: not deterministic; periodic; LAZY (theoretically periodic & deterministic, but periodicity is not utilized)
+        // CASE 6: Same as case 2 but EAGER
+        // CASE 7: Same as case 3 but EAGER
+        // CASE 8: Same as case 4 but EAGER
+        // CASE 9: Same as case 5 but EAGER
         for (int i = 0; i < 5; i++) {
             int testCase=0;
 
@@ -288,6 +302,52 @@ public class ExperimentDriver {
                         .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
 
                 result = env7.execute();
+
+                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount());
+                stats.reset();
+                resultWriter.flush();
+            }
+
+            testCase++;
+
+            if (RUN_NOT_DETERMINISTIC_NOT_PERIODIC_EAGER){
+                /*
+                 *Evaluate not deterministic version  (case 8)
+                 */
+
+                StreamExecutionEnvironment env4 = StreamExecutionEnvironment.createLocalEnvironment(1);
+                DataStream<Tuple3<Double, Double, Long>> source4 = env4.addSource(new DataGenerator(SOURCE_SLEEP,NUM_TUPLES));
+
+                SumAggregation.applyOn(source4, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
+                        List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
+                        List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>(), makeNDRandomWalkTrigger(randomScenario[i]),
+                        makeNDRandomWalkEviction(randomScenario[i])), AggregationUtils.AGGREGATION_TYPE.EAGER)
+                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
+
+                result = env4.execute();
+
+                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount());
+                stats.reset();
+                resultWriter.flush();
+            }
+
+            testCase++;
+
+            if (RUN_PERIODIC_NO_PREAGG_EAGER){
+                /*
+                 *Evaluate periodic setup, but without any pre-aggregation (case 9)
+                 */
+
+                StreamExecutionEnvironment env5 = StreamExecutionEnvironment.createLocalEnvironment(1);
+                DataStream<Tuple3<Double, Double, Long>> source4 = env5.addSource(new DataGenerator(SOURCE_SLEEP,NUM_TUPLES));
+
+                SumAggregation.applyOn(source4, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
+                        List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
+                        List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>(), makeNDPeriodicTrigger(scenario[i]),
+                        makeNDPeriodicEviction(scenario[i])), AggregationUtils.AGGREGATION_TYPE.EAGER)
+                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
+
+                result = env5.execute();
 
                 resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount());
                 stats.reset();
