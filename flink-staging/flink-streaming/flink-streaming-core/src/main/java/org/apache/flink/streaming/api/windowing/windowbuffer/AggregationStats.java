@@ -16,6 +16,9 @@ public class AggregationStats implements Serializable{
     private long update_count = 0l;
     private long aggregate_count = 0l;
     private long reduce_count = 0l;
+    private long max_buf_size = 0l;
+    private long sum_buf_size = 0l;
+    private long cnt_buf_size = 0l; 
 
     public static AggregationStats getInstance() {
         if (ourInstance==null) {
@@ -38,6 +41,16 @@ public class AggregationStats implements Serializable{
 
     public void registerReduce() {
         reduce_count++;
+    }
+    
+    public void registerBufferSize(int bufSize) {
+        cnt_buf_size++;
+        sum_buf_size += bufSize;
+        max_buf_size = max_buf_size < bufSize ? bufSize : max_buf_size;
+    }
+    
+    public double getAverageBufferSize(){
+        return ((double) sum_buf_size) / cnt_buf_size; 
     }
 
     public long getUpdateCount() {

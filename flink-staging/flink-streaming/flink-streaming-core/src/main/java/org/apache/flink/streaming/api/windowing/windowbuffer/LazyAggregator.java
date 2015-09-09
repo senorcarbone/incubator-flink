@@ -31,9 +31,10 @@ public class LazyAggregator<T> implements WindowAggregator<T>, Serializable {
     private int back, front;
 
     private AggregationStats stats = AggregationStats.getInstance();
-    
+
     private enum AGG_STATE {UPDATING, AGGREGATING}
-    private AGG_STATE currentState;    
+
+    private AGG_STATE currentState;
 
 
     public LazyAggregator(ReduceFunction<T> reduceFunction, TypeSerializer<T> serializer, T identityValue, int initialCapacity) {
@@ -60,6 +61,7 @@ public class LazyAggregator<T> implements WindowAggregator<T>, Serializable {
         this.back = partialMappings.size() - 1;
         this.partialSpace = newSpace;
         this.buffer = newBuffer;
+        stats.registerBufferSize(newSpace);
     }
 
     @Override
@@ -153,10 +155,12 @@ public class LazyAggregator<T> implements WindowAggregator<T>, Serializable {
      * @throws Exception
      */
     private T combine(T val1, T val2) throws Exception {
-        switch(currentState){
-            case UPDATING:stats.registerUpdate();
+        switch (currentState) {
+            case UPDATING:
+                stats.registerUpdate();
                 break;
-            case AGGREGATING:stats.registerAggregate();
+            case AGGREGATING:
+                stats.registerAggregate();
         }
         return reduceFunction.reduce(serializer.copy(val1), serializer.copy(val2));
     }

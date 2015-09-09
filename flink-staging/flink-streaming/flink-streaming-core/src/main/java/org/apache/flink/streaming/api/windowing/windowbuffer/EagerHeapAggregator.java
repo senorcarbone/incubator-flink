@@ -65,14 +65,14 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
     private int numLeaves;
     private int back, front;
     private final int ROOT = 0;
-    
+
     private AggregationStats stats = AggregationStats.getInstance();
-    
+
     private enum AGG_STATE {UPDATING, AGGREGATING}
-    
-    private AGG_STATE currentState = AGG_STATE.UPDATING; 
-    
-    
+
+    private AGG_STATE currentState = AGG_STATE.UPDATING;
+
+
     /**
      * @param reduceFunction
      * @param serializer
@@ -143,6 +143,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
         this.front = newCapacity - 1;
         this.circularHeap = newHeap;
         update(updated);
+        stats.registerBufferSize(2 * newCapacity - 1);
     }
 
     @Override
@@ -244,10 +245,12 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
      * @throws Exception
      */
     private T combine(T val1, T val2) throws Exception {
-        switch(currentState){
-            case UPDATING:stats.registerUpdate();
+        switch (currentState) {
+            case UPDATING:
+                stats.registerUpdate();
                 break;
-            case AGGREGATING:stats.registerAggregate();
+            case AGGREGATING:
+                stats.registerAggregate();
         }
         return reduceFunction.reduce(serializer.copy(val1), serializer.copy(val2));
     }
