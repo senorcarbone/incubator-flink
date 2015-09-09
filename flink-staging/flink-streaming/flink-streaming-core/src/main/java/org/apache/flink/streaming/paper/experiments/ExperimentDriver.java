@@ -126,7 +126,7 @@ public class ExperimentDriver {
 
         //Writer for the results
         PrintWriter resultWriter = new PrintWriter("test-result.txt", "UTF-8");
-        resultWriter.println("SCEN\tCASE\tTIME\tAGG\tRED\tUPD");
+        resultWriter.println("SCEN\tCASE\tTIME\tAGG\tRED\tUPD\tMAXB\tAVGB");
 
         //run simple program to warm up (The first start up takes more time...)
         runWarmUpTask();
@@ -185,7 +185,7 @@ public class ExperimentDriver {
 
                 result = env2.execute("Scanario "+i+" Case "+testCase);
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount());
+                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
                 stats.reset();
                 resultWriter.flush();
             }
@@ -209,7 +209,7 @@ public class ExperimentDriver {
 
                 result = env3.execute();
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount());
+                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
                 stats.reset();
                 resultWriter.flush();
             }
@@ -232,7 +232,7 @@ public class ExperimentDriver {
 
                 result = env4.execute();
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount());
+                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
                 stats.reset();
                 resultWriter.flush();
             }
@@ -255,7 +255,7 @@ public class ExperimentDriver {
 
                 result = env5.execute();
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount());
+                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
                 stats.reset();
                 resultWriter.flush();
             }
@@ -279,7 +279,7 @@ public class ExperimentDriver {
 
                 result = env6.execute("Scanario "+i+" Case "+testCase);
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount());
+                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
                 stats.reset();
                 resultWriter.flush();
             }
@@ -303,7 +303,7 @@ public class ExperimentDriver {
 
                 result = env7.execute();
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount());
+                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
                 stats.reset();
                 resultWriter.flush();
             }
@@ -326,7 +326,7 @@ public class ExperimentDriver {
 
                 result = env4.execute();
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount());
+                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
                 stats.reset();
                 resultWriter.flush();
             }
@@ -349,7 +349,7 @@ public class ExperimentDriver {
 
                 result = env5.execute();
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount());
+                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
                 stats.reset();
                 resultWriter.flush();
             }

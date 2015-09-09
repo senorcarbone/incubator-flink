@@ -53,6 +53,10 @@ public class AggregationStats implements Serializable{
         return ((double) sum_buf_size) / cnt_buf_size; 
     }
 
+    public long getMaxBufferSize(){
+        return max_buf_size;
+    }
+
     public long getUpdateCount() {
         return update_count;
     }
@@ -69,6 +73,9 @@ public class AggregationStats implements Serializable{
         update_count = 0l;
         aggregate_count = 0l;
         reduce_count = 0l;
+        max_buf_size = 0l;
+        sum_buf_size = 0l;
+        cnt_buf_size = 0l;
     }
 
     protected Object readResolve() {
