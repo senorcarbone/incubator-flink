@@ -91,6 +91,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
         this.leafIndex = new LinkedHashMap<Integer, Integer>(capacity);
 
         int fullCapacity = 2 * capacity - 1;
+        stats.registerBufferSize(fullCapacity);
         this.circularHeap = new ArrayList<T>(Collections.nCopies(fullCapacity, identityValue));
     }
 
@@ -129,7 +130,8 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
      */
     private void resize(int newCapacity) throws Exception {
         LOG.info("RESIZING HEAP TO {}", newCapacity);
-        List<T> newHeap = new ArrayList<T>(Collections.nCopies(2 * newCapacity - 1, identityValue));
+        int fullCapacity = 2 * newCapacity - 1;
+        List<T> newHeap = new ArrayList<T>(Collections.nCopies(fullCapacity, identityValue));
         Integer[] updated = new Integer[leafIndex.size()];
         int indx = newCapacity - 2;
         int updateCount = 0;
@@ -143,7 +145,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
         this.front = newCapacity - 1;
         this.circularHeap = newHeap;
         update(updated);
-        stats.registerBufferSize(2 * newCapacity - 1);
+        stats.registerBufferSize(fullCapacity);
     }
 
     @Override

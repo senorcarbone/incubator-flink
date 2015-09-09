@@ -45,6 +45,7 @@ public class LazyAggregator<T> implements WindowAggregator<T>, Serializable {
 
         partialMappings = new LinkedHashMap<Integer, Integer>(partialSpace);
         buffer = new ArrayList<T>(Collections.nCopies(partialSpace, identityValue));
+        stats.registerBufferSize(partialSpace);
         back = -1;
         front = 0;
     }
