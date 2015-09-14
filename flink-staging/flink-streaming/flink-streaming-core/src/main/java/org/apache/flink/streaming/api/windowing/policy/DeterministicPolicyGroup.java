@@ -242,4 +242,11 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 		return this.isContinuousAggregation;
 	}
 
+	public DeterministicEvictionPolicy<DATA> getEviction() {
+		return eviction;
+	}
+
+	public DeterministicTriggerPolicy<DATA> getTrigger() {
+		return trigger;
+	}
 }

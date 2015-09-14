@@ -50,7 +50,7 @@ public class DeterministicMultiDiscretizer<IN> extends
     /**
      * All the policy groups that are co-located in one multi-discretizer
      */
-    private List<DeterministicPolicyGroup<IN>> policyGroups;
+    protected List<? extends DeterministicPolicyGroup<IN>> policyGroups;
     /**
      * A mapping of border IDs per query where border ID is the partial aggregate ID to start an aggregation
      */
