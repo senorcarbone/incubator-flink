@@ -47,8 +47,8 @@ public class ExperimentDriver {
     /**
      * Specify below which cases you want to run
      */
-    private static final boolean RUN_PANES=false;
-    private static final boolean RUN_PAIRES=false;
+    private static final boolean RUN_PAIRS_LAZY =false;
+    private static final boolean RUN_PAIRS_EAGER =false;
     private static final boolean RUN_PERIODIC=true;
     private static final boolean RUN_DETERMINISTIC_NOT_PERIODIC=true;
     private static final boolean RUN_NOT_DETERMINISTIC_NOT_PERIODIC=true;
@@ -155,15 +155,52 @@ public class ExperimentDriver {
         for (int i = 0; i < 5; i++) {
             int testCase=0;
 
-            if (RUN_PANES){
-                //TODO Evaluate with panes (case 0)
+            if (RUN_PAIRS_LAZY){
+                   /*
+                 * Evaluate with deterministic policy groups (periodic)  (case 2)
+                 */
+
+                StreamExecutionEnvironment env2 = StreamExecutionEnvironment.createLocalEnvironment(1);
+                DataStream<Tuple3<Double, Double, Long>> source2 = env2.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
+
+                List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenario[i]);
+                SumAggregation.applyOn(source2, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
+                                List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
+                                List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(periodicPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
+                                new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationUtils.AGGREGATION_TYPE.LAZY,
+                        AggregationUtils.DISCRETIZATION_TYPE.PAIRS)
+                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
+
+                result = env2.execute("Scanario "+i+" Case "+testCase);
+
+                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
+                stats.reset();
+                resultWriter.flush();
             }
 
             testCase++;
 
-            if (RUN_PAIRES){
-                //TODO Evaluate with pairs (case 1)
-                //The old window Operator without pre-agg. tree basically applies pairs.
+            if (RUN_PAIRS_EAGER){
+                                /*
+                 * Evaluate with deterministic policy groups (periodic) EAGER version  (case 6)
+                 */
+
+                StreamExecutionEnvironment env6 = StreamExecutionEnvironment.createLocalEnvironment(1);
+                DataStream<Tuple3<Double, Double, Long>> source2 = env6.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
+
+                List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenario[i]);
+                SumAggregation.applyOn(source2, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
+                                List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
+                                List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(periodicPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
+                                new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationUtils.AGGREGATION_TYPE.EAGER,
+                        AggregationUtils.DISCRETIZATION_TYPE.PAIRS)
+                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
+
+                result = env6.execute("Scanario "+i+" Case "+testCase);
+
+                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
+                stats.reset();
+                resultWriter.flush();
             }
 
             testCase++;
