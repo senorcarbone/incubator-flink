@@ -28,6 +28,7 @@ import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.operators.windowing.DeterministicMultiDiscretizer;
 import org.apache.flink.streaming.api.operators.windowing.NDMultiDiscretizer;
+import org.apache.flink.streaming.api.operators.windowing.PairDiscretization;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
 import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
@@ -40,8 +41,7 @@ public class AggregationUtils {
 
     public enum AGGREGATION_TYPE {EAGER, LAZY}
 
-    ;
-
+    public enum DISCRETIZATION_TYPE {B2B, PAIRS}
 
     public static class WindowAggregation<A> {
 
@@ -63,7 +63,8 @@ public class AggregationUtils {
         public DataStream<Tuple2<Integer, Double>> applyOn(
                 DataStream<Tuple3<Double, Double, Long>> input,
                 Tuple3<List<DeterministicPolicyGroup<Tuple3<A, Double, Long>>>, List<TriggerPolicy<Tuple3<A, Double, Long>>>,
-                        List<EvictionPolicy<Tuple3<A, Double, Long>>>> policies, AGGREGATION_TYPE aggType) {
+                        List<EvictionPolicy<Tuple3<A, Double, Long>>>> policies,
+                AGGREGATION_TYPE aggType, DISCRETIZATION_TYPE discType) {
 
             TypeInformation<Tuple3<A, Double, Long>> liftReturnType = new TupleTypeInfo<Tuple3<A, Double, Long>>(
                     TypeExtractor.getMapReturnTypes(lift,
@@ -76,32 +77,43 @@ public class AggregationUtils {
             TypeInformation<Tuple2<Integer, Tuple3<A, Double, Long>>> combinedType = new TupleTypeInfo<Tuple2<Integer, Tuple3<A, Double, Long>>>(
                     BasicTypeInfo.INT_TYPE_INFO, liftReturnType);
 
-            DataStream<Tuple2<Integer, Tuple3<A, Double, Long>>> combinedWithID;
+            DataStream<Tuple2<Integer, Tuple3<A, Double, Long>>> combinedWithID = null;
 
-            if ((policies.f1 == null || policies.f1.isEmpty()) && (policies.f2 == null || policies.f2.isEmpty())) {
-                combinedWithID = lifted.transform("WindowAggregation", combinedType,
-                        new DeterministicMultiDiscretizer<Tuple3<A, Double, Long>>(
-                                policies.f0,
-                                new Combine<A>(combine),
-                                new Tuple3<A, Double, Long>(identityValue, 0d, 0l),
-                                4, liftReturnType.createSerializer(null), aggType));
-            } else {
+            switch (discType) {
+                case B2B:
+                    if ((policies.f1 == null || policies.f1.isEmpty()) && (policies.f2 == null || policies.f2.isEmpty())) {
+                        combinedWithID = lifted.transform("WindowAggregation", combinedType,
+                                new DeterministicMultiDiscretizer<Tuple3<A, Double, Long>>(
+                                        policies.f0,
+                                        new Combine<A>(combine),
+                                        new Tuple3<A, Double, Long>(identityValue, 0d, 0l),
+                                        4, liftReturnType.createSerializer(null), aggType));
+                    } else {
 //				combinedWithID = lifted.transform("WindowAggregation", combinedType,
 //						new MultiDiscretizer(
 //								policies.f0,
 //								policies.f1,
 //								policies.f2,
 //								new Combine<A>(combine)));
-                combinedWithID = lifted.transform("WindowAggregation", combinedType,
-                        new NDMultiDiscretizer<Tuple3<A, Double, Long>>(
-                                policies.f1,
-                                policies.f2,
-                                new Combine<A>(combine),
-                                liftReturnType.createSerializer(null),
-                                new Tuple3<A, Double, Long>(identityValue, 0d, 0l),
-                                aggType
-                        ));
+                        combinedWithID = lifted.transform("WindowAggregation", combinedType,
+                                new NDMultiDiscretizer<Tuple3<A, Double, Long>>(
+                                        policies.f1,
+                                        policies.f2,
+                                        new Combine<A>(combine),
+                                        liftReturnType.createSerializer(null),
+                                        new Tuple3<A, Double, Long>(identityValue, 0d, 0l),
+                                        aggType
+                                ));
+                    }
+                    break;
+                case PAIRS:
+                    combinedWithID = lifted.transform("WindowAggregation", combinedType,
+                            PairDiscretization.create(policies.f0,
+                                    new Combine<A>(combine),
+                                    new Tuple3<A, Double, Long>(identityValue, 0d, 0l),
+                                    4, liftReturnType.createSerializer(null), aggType));
             }
+
 
             return combinedWithID.map(new Lower(lower));
         }

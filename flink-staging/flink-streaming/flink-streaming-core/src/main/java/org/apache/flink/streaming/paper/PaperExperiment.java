@@ -47,7 +47,7 @@ public class PaperExperiment {
 
 		DataStream<Tuple3<Double, Double, Long>> source = env.addSource(new DataGenerator(1000));
 
-		SumAggregation.applyOn(source, getTestPolicies(10), AggregationUtils.AGGREGATION_TYPE.LAZY)
+		SumAggregation.applyOn(source, getTestPolicies(10), AggregationUtils.AGGREGATION_TYPE.LAZY, AggregationUtils.DISCRETIZATION_TYPE.B2B)
 				.map(new Prefix("SUM")).print();
 		// StdAggregation.applyOn(source, getTestPolicies(3))
 		// .map(new Prefix("STD")).print();
