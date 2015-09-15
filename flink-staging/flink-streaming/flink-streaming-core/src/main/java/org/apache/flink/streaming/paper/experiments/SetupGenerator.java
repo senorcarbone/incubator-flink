@@ -20,6 +20,7 @@ package org.apache.flink.streaming.paper.experiments;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.Random;
@@ -464,10 +465,10 @@ public class SetupGenerator {
             values.add(value);
         }
 
-        values.sort(new Comparator<Double>() {
+        Collections.sort(values,new Comparator<Double>() {
             @Override
             public int compare(Double o1, Double o2) {
-                if(o1<o2) return -1;
+                if (o1 < o2) return -1;
                 else if (o1.equals(o2)) return 0;
                 else return 1;
             }
