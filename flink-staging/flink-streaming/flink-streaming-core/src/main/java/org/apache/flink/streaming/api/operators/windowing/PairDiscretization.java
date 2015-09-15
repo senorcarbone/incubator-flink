@@ -95,7 +95,7 @@ public class PairDiscretization {
             int multiples = lcm.divide(BigInteger.valueOf(wrapper.getPart1() + wrapper.getPart2())).intValue();
             int subPanes = multiples * 2;
             Deque<Long> periods = new ArrayDeque<Long>(subPanes);
-            int pair = (subPanes + 1) % 2;
+            int pair = 1;
             for (int i = 0; i < subPanes; i++) {
                 periods.addFirst(wrapper.getPart(pair));
                 pair = (pair == 0) ? 1 : 0;
