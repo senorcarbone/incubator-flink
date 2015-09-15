@@ -47,8 +47,8 @@ public class ExperimentDriver {
     /**
      * Specify below which cases you want to run
      */
-    private static final boolean RUN_PAIRS_LAZY =false;
-    private static final boolean RUN_PAIRS_EAGER =false;
+    private static final boolean RUN_PAIRS_LAZY =true;
+    private static final boolean RUN_PAIRS_EAGER =true;
     private static final boolean RUN_PERIODIC=true;
     private static final boolean RUN_DETERMINISTIC_NOT_PERIODIC=true;
     private static final boolean RUN_NOT_DETERMINISTIC_NOT_PERIODIC=true;
@@ -143,15 +143,15 @@ public class ExperimentDriver {
         //
         //The differen Algorithms are the following
         // CASE 0: Pairs LAZY - original
-        // CASE 1: Pairs EAGER
-        // CASE 2: deterministic policy groups; periodic; LAZY
-        // CASE 3: deterministic policy groups; not periodic; LAZY
-        // CASE 4: not deterministic; not periodic; LAZY
-        // CASE 5: not deterministic; periodic; LAZY (theoretically periodic & deterministic, but periodicity is not utilized)
-        // CASE 6: Same as case 2 but EAGER
-        // CASE 7: Same as case 3 but EAGER
-        // CASE 8: Same as case 4 but EAGER
-        // CASE 9: Same as case 5 but EAGER
+        // CASE 1: deterministic policy groups; periodic; LAZY
+        // CASE 2: deterministic policy groups; not periodic; LAZY
+        // CASE 3: not deterministic; not periodic; LAZY
+        // CASE 4: not deterministic; periodic; LAZY (theoretically periodic & deterministic, but periodicity is not utilized)
+        // CASE 5: Same as case 0 but EAGER
+        // CASE 6: Same as case 1 but EAGER
+        // CASE 7: Same as case 2 but EAGER
+        // CASE 8: Same as case 3 but EAGER
+        // CASE 9: Same as case 4 but EAGER
         for (int i = 0; i < 5; i++) {
             int testCase=0;
 
@@ -160,8 +160,8 @@ public class ExperimentDriver {
                  * Evaluate with deterministic policy groups (periodic)  (case 2)
                  */
 
-                StreamExecutionEnvironment env2 = StreamExecutionEnvironment.createLocalEnvironment(1);
-                DataStream<Tuple3<Double, Double, Long>> source2 = env2.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
+                StreamExecutionEnvironment env0 = StreamExecutionEnvironment.createLocalEnvironment(1);
+                DataStream<Tuple3<Double, Double, Long>> source2 = env0.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
                 List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenario[i]);
                 SumAggregation.applyOn(source2, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
@@ -171,32 +171,7 @@ public class ExperimentDriver {
                         AggregationUtils.DISCRETIZATION_TYPE.PAIRS)
                         .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
 
-                result = env2.execute("Scanario "+i+" Case "+testCase);
-
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
-                stats.reset();
-                resultWriter.flush();
-            }
-
-            testCase++;
-
-            if (RUN_PAIRS_EAGER){
-                                /*
-                 * Evaluate with deterministic policy groups (periodic) EAGER version  (case 6)
-                 */
-
-                StreamExecutionEnvironment env6 = StreamExecutionEnvironment.createLocalEnvironment(1);
-                DataStream<Tuple3<Double, Double, Long>> source2 = env6.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
-
-                List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenario[i]);
-                SumAggregation.applyOn(source2, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-                                List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
-                                List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(periodicPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
-                                new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationUtils.AGGREGATION_TYPE.EAGER,
-                        AggregationUtils.DISCRETIZATION_TYPE.PAIRS)
-                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
-
-                result = env6.execute("Scanario "+i+" Case "+testCase);
+                result = env0.execute("Scanario "+i+" Case "+testCase);
 
                 resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
                 stats.reset();
@@ -261,7 +236,7 @@ public class ExperimentDriver {
                  */
 
                 StreamExecutionEnvironment env4 = StreamExecutionEnvironment.createLocalEnvironment(1);
-                DataStream<Tuple3<Double, Double, Long>> source4 = env4.addSource(new DataGenerator(SOURCE_SLEEP,NUM_TUPLES));
+                DataStream<Tuple3<Double, Double, Long>> source4 = env4.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
                 SumAggregation.applyOn(source4, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
                         List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
@@ -301,7 +276,32 @@ public class ExperimentDriver {
             }
 
             testCase++;
+            
+            if (RUN_PAIRS_EAGER){
+                                /*
+                 * Evaluate with deterministic policy groups (periodic) EAGER version  (case 6)
+                 */
 
+                StreamExecutionEnvironment env1 = StreamExecutionEnvironment.createLocalEnvironment(1);
+                DataStream<Tuple3<Double, Double, Long>> source2 = env1.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
+
+                List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenario[i]);
+                SumAggregation.applyOn(source2, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
+                                List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
+                                List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(periodicPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
+                                new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationUtils.AGGREGATION_TYPE.EAGER,
+                        AggregationUtils.DISCRETIZATION_TYPE.PAIRS)
+                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
+
+                result = env1.execute("Scanario "+i+" Case "+testCase);
+
+                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
+                stats.reset();
+                resultWriter.flush();
+            }
+
+            testCase++;
+            
             if (RUN_PERIODIC_EAGER){
                 /*
                  * Evaluate with deterministic policy groups (periodic) EAGER version  (case 6)

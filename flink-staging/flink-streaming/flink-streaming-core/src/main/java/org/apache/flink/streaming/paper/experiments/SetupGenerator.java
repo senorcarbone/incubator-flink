@@ -36,12 +36,12 @@ public class SetupGenerator {
     /**
      * The number of time based queries to be generated
      */
-    private static final int numTimeQueries=100;
+    private static final int numTimeQueries=0;
 
     /**
      * The number of count based queries to be generated
      */
-    private static final int numCountQueries=100;
+    private static final int numCountQueries=15;
 
     /**
      * The number of tuples which will be processed in the experiment.
@@ -61,7 +61,7 @@ public class SetupGenerator {
     /**
      * A scale factor: All the minimums and maximums below will be multiplied with this factor.
      */
-    private static final double scaleFactor=1000;
+    private static final double scaleFactor=1;
 
 
 
@@ -77,7 +77,7 @@ public class SetupGenerator {
     /**
      * Maximum slide step for the regular case (COUNT)
      */
-    private static final double regularCountMaxSlide=9;
+    private static final double regularCountMaxSlide=10;
 
     /**
      * Minimum slide step for the scenario with small slides (COUNT)
@@ -107,27 +107,27 @@ public class SetupGenerator {
     /**
      * Maximum range for the regular case (COUNT)
      */
-    private static final double regularCountMaxRange=19;
+    private static final double regularCountMaxRange=20;
 
     /**
      * Minimum range for the scenario with small ranges (COUNT)
      */
-    private static final double lowerCountMinRange=11;
+    private static final double lowerCountMinRange=12;
 
     /**
      * Maximum range for the scenario with small ranges (COUNT)
      */
-    private static final double lowerCountMaxRange=13;
+    private static final double lowerCountMaxRange=14;
 
     /**
      * Minimum range for the scenario with large ranges (COUNT)
      */
-    private static final double upperCountMinRange=17;
+    private static final double upperCountMinRange=18;
 
     /**
      * Maximum range for the scenario with large ranges (COUNT)
      */
-    private static final double upperCountMaxRange=19;
+    private static final double upperCountMaxRange=20;
 
 
 
@@ -361,7 +361,7 @@ public class SetupGenerator {
             }
             writer.println();
         }
-        for (int i=0;i<numCountQueries;i++){
+        for (int i=0;i<numTimeQueries;i++){
             writer.print("\t\tCOUNT\t"+regularTimeWindowRangeDefs[i]+"\t");
             for (Double d:makeRandomValueList(timeExperimentSize,regularTimeWindowSlideDefs[i])){
                 writer.print(d+" ");
@@ -379,7 +379,7 @@ public class SetupGenerator {
             }
             writer.println();
         }
-        for (int i=0;i<numCountQueries;i++){
+        for (int i=0;i<numTimeQueries;i++){
             writer.print("\t\tCOUNT\t"+lowerTimeWindowRangeDefs[i]+"\t");
             for (Double d:makeRandomValueList(timeExperimentSize,regularTimeWindowSlideDefs[i])){
                 writer.print(d+" ");
@@ -397,7 +397,7 @@ public class SetupGenerator {
             }
             writer.println();
         }
-        for (int i=0;i<numCountQueries;i++){
+        for (int i=0;i<numTimeQueries;i++){
             writer.print("\t\tCOUNT\t"+upperTimeWindowRangeDefs[i]+"\t");
             for (Double d:makeRandomValueList(timeExperimentSize,regularTimeWindowSlideDefs[i])){
                 writer.print(d+" ");
@@ -415,7 +415,7 @@ public class SetupGenerator {
             }
             writer.println();
         }
-        for (int i=0;i<numCountQueries;i++){
+        for (int i=0;i<numTimeQueries;i++){
             writer.print("\t\tCOUNT\t"+regularTimeWindowRangeDefs[i]+"\t");
             for (Double d:makeRandomValueList(timeExperimentSize,lowerTimeWindowSlideDefs[i])){
                 writer.print(d+" ");
@@ -432,7 +432,7 @@ public class SetupGenerator {
             }
             writer.println();
         }
-        for (int i=0;i<numCountQueries;i++){
+        for (int i=0;i<numTimeQueries;i++){
             writer.print("\t\tCOUNT\t"+regularTimeWindowRangeDefs[i]+"\t");
             for (Double d:makeRandomValueList(timeExperimentSize,upperTimeWindowSlideDefs[i])){
                 writer.print(d+" ");
@@ -465,7 +465,7 @@ public class SetupGenerator {
             values.add(value);
         }
 
-        Collections.sort(values,new Comparator<Double>() {
+        Collections.sort(values, new Comparator<Double>() {
             @Override
             public int compare(Double o1, Double o2) {
                 if (o1 < o2) return -1;

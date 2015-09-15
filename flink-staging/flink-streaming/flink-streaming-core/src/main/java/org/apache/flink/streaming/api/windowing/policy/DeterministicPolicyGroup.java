@@ -249,4 +249,8 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 	public DeterministicTriggerPolicy<DATA> getTrigger() {
 		return trigger;
 	}
+
+	public Extractor<DATA, Double> getFieldExtractor() {
+		return fieldExtractor;
+	}
 }

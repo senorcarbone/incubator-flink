@@ -3,14 +3,19 @@ package org.apache.flink.streaming.api.operators.windowing;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
+import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 import org.apache.flink.streaming.api.windowing.policy.*;
 import org.apache.flink.streaming.paper.AggregationUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
 import java.util.*;
 
 public class PairDiscretization {
 
+    private static final Logger LOG = LoggerFactory.getLogger(PairDiscretization.class);
     /**
      * It creates a new MultiDiscretizer that emulates the logic of operator sharing using pairs, for the given policies 
      * 
@@ -82,7 +87,7 @@ public class PairDiscretization {
      */
     public static <DATA> DeterministicPolicyGroup<DATA> getCommonPairPolicy(List<PairPolicyGroup<DATA>> policies) {
 
-        // we first compute the uber window size (num of panes) as the lcm of all subsequent period sizes
+        // we first compute the uber window size as the lcm of all subsequent period sizes
         BigInteger lcm = null;
         for (PairPolicyGroup wrapper : policies) {
             BigInteger next = BigInteger.valueOf(wrapper.getPart1() + wrapper.getPart2());
@@ -94,7 +99,8 @@ public class PairDiscretization {
         for (PairPolicyGroup wrapper : policies) {
             int multiples = lcm.divide(BigInteger.valueOf(wrapper.getPart1() + wrapper.getPart2())).intValue();
             int subPanes = multiples * 2;
-            Deque<Long> periods = new ArrayDeque<Long>(subPanes);
+            LOG.error("Allocating "+subPanes+" pairs");
+            Deque<Long> periods = new ArrayDeque<Long>();
             int pair = 1;
             for (int i = 0; i < subPanes; i++) {
                 periods.addFirst(wrapper.getPart(pair));
@@ -136,7 +142,7 @@ public class PairDiscretization {
                                                                             List<Long> sequence){
         if (group.getEviction() instanceof DeterministicCountEvictionPolicy) {
             return new DeterministicPolicyGroup<DATA>(new DeterministicCountSequenceTrigger<DATA>(sequence),
-                    new DeterministicCountSequenceEviction<DATA>(sequence));
+                    new DeterministicCountSequenceEviction<DATA>(sequence), group.getFieldExtractor());
         } else
             throw new IllegalArgumentException("Onlycount based policies are currently supported for pairs ");
     }

@@ -18,7 +18,7 @@ public class PairPolicyGroup<DATA> extends DeterministicPolicyGroup<DATA> {
 
 
     public PairPolicyGroup(DeterministicPolicyGroup<DATA> group) {
-        super(group.getTrigger(), group.getEviction());
+        super(group.getTrigger(), group.getEviction(),group.getFieldExtractor());
 
         //Possibly not the cleanest code ever made
         //we only do this in the name of science...
