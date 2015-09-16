@@ -152,7 +152,7 @@ public class ExperimentDriver {
         // CASE 7: Same as case 2 but EAGER
         // CASE 8: Same as case 3 but EAGER
         // CASE 9: Same as case 4 but EAGER
-        for (int i = 0; i < 5; i++) {
+        for (int i = 4; i < 5; i++) {
             int testCase=0;
 
             if (RUN_PAIRS_LAZY){

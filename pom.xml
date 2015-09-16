@@ -166,7 +166,7 @@ under the License.
 			We can use all guava versions everywhere by adding it directly as a dependency to each project.
 		-->
 		<dependencies>
-
+			
 			<!-- Make sure we use a consistent jetty version throughout the project -->
 			<dependency>
 				<groupId>org.eclipse.jetty</groupId>

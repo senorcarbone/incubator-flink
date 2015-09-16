@@ -33,9 +33,17 @@ under the License.
 	<name>flink-streaming-core</name>
 
 	<packaging>jar</packaging>
-
+	
 	<dependencies>
 
+		<!-- This is only added for the experiment configuration -->
+			<dependency>
+				<groupId>org.aeonbits.owner</groupId>
+				<artifactId>owner</artifactId>
+				<version>1.0.9</version>
+			</dependency>
+
+		
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-math</artifactId>
@@ -63,6 +71,11 @@ under the License.
 	</dependencies>
 
 	<build>
+		<resources>
+			<resource>
+				<directory>exp-properties</directory>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
