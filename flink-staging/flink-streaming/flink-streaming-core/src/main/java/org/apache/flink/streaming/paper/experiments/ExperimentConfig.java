@@ -8,7 +8,7 @@ import org.aeonbits.owner.Config;
  * source files you can check the following: http://owner.aeonbits.org/docs/loading-strategies/
  */
 @Config.LoadPolicy(Config.LoadType.FIRST)
-@Config.Sources({"classpath:pairs.properties","classpath:default.properties"})
+@Config.Sources({"classpath:default.properties","classpath:pairs.properties"})
 public interface ExperimentConfig extends Config{
 
 
@@ -47,7 +47,42 @@ public interface ExperimentConfig extends Config{
     @DefaultValue("10")
     double scaleFactor();
 
+    /**
+     * Indicates if window ends for the random walk shall be generated or not.
+     */
+    @DefaultValue("true")
+    boolean generateRandomWalks();
 
+    /*******************************************************
+     * COUNT BASED QUERIES SETUP
+     *******************************************************/
+
+    @DefaultValue("true")
+    boolean scenarioRegularSlideRegularRange();
+
+    @DefaultValue("true")
+    boolean scenarioSmallSlideRegularRange();
+
+    @DefaultValue("true")
+    boolean scenarioHighSlideRegularRange();
+
+    @DefaultValue("true")
+    boolean scenarioRegularSlideSmallRange();
+
+    @DefaultValue("true")
+    boolean scenarioRegularSlideHighRange();
+
+    @DefaultValue("true")
+    boolean scenarioSmallSlideHighRange();
+
+    @DefaultValue("true")
+    boolean scenarioHighSlideHighRange();
+
+    @DefaultValue("true")
+    boolean scenarioSmallSlideSmallRange();
+
+    @DefaultValue("true")
+    boolean scenarioHighSlideSmallRange();
 
     /*******************************************************
      * COUNT BASED QUERIES SETUP
