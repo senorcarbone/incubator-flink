@@ -158,7 +158,7 @@ public class SetupGenerator {
                 plotWriter1.println(regularCountWindowRangeDefs[i] + "\t" + regularCountWindowSlideDefs[i] + "\ta");
             }
             for (int i = 0; i < numTimeQueries; i++) {
-                writer.println("\t\tTIME\t" + regularTimeWindowRangeDefs[i] + "\t" + regularTimeWindowSlideDefs[i] + "\t" + (10000 / regularCountWindowSlideDefs[i]));
+                writer.println("\t\tTIME\t" + regularTimeWindowRangeDefs[i] + "\t" + regularTimeWindowSlideDefs[i] + "\t" + (10000 / regularTimeWindowSlideDefs[i]));
             }
         }
 
@@ -171,7 +171,7 @@ public class SetupGenerator {
                 plotWriter1.println(lowerCountWindowRangeDefs[i] + "\t" + regularCountWindowSlideDefs[i] + "\tb");
             }
             for (int i = 0; i < numTimeQueries; i++) {
-                writer.println("\t\tTIME\t" + lowerTimeWindowRangeDefs[i] + "\t" + regularTimeWindowSlideDefs[i] + "\t" + (10000 / regularCountWindowSlideDefs[i]));
+                writer.println("\t\tTIME\t" + lowerTimeWindowRangeDefs[i] + "\t" + regularTimeWindowSlideDefs[i] + "\t" + (10000 / regularTimeWindowSlideDefs[i]));
             }
         }
 
@@ -184,7 +184,7 @@ public class SetupGenerator {
                 plotWriter1.println(upperCountWindowRangeDefs[i] + "\t" + regularCountWindowSlideDefs[i] + "\tc");
             }
             for (int i = 0; i < numTimeQueries; i++) {
-                writer.println("\t\tTIME\t" + upperTimeWindowRangeDefs[i] + "\t" + regularTimeWindowSlideDefs[i] + "\t" + (10000 / regularCountWindowSlideDefs[i]));
+                writer.println("\t\tTIME\t" + upperTimeWindowRangeDefs[i] + "\t" + regularTimeWindowSlideDefs[i] + "\t" + (10000 / regularTimeWindowSlideDefs[i]));
             }
         }
 
@@ -197,7 +197,7 @@ public class SetupGenerator {
                 plotWriter1.println(regularCountWindowRangeDefs[i] + "\t" + lowerCountWindowSlideDefs[i] + "\td");
             }
             for (int i = 0; i < numTimeQueries; i++) {
-                writer.println("\t\tTIME\t" + regularTimeWindowRangeDefs[i] + "\t" + lowerTimeWindowSlideDefs[i] + "\t" + (10000 / regularCountWindowSlideDefs[i]));
+                writer.println("\t\tTIME\t" + regularTimeWindowRangeDefs[i] + "\t" + lowerTimeWindowSlideDefs[i] + "\t" + (10000 / regularTimeWindowSlideDefs[i]));
             }
         }
 
@@ -210,24 +210,56 @@ public class SetupGenerator {
                 plotWriter1.println(regularCountWindowRangeDefs[i] + "\t" + upperCountWindowSlideDefs[i] + "\te");
             }
             for (int i = 0; i < numTimeQueries; i++) {
-                writer.println("\t\tTIME\t" + regularTimeWindowRangeDefs[i] + "\t" + upperTimeWindowSlideDefs[i] + "\t" + (10000 / regularCountWindowSlideDefs[i]));
+                writer.println("\t\tTIME\t" + regularTimeWindowRangeDefs[i] + "\t" + upperTimeWindowSlideDefs[i] + "\t" + (10000 / regularTimeWindowSlideDefs[i]));
             }
         }
 
         if (scenarioHighSlideHighRange){
-            //TODO implement this
+            writer.println("SCENARIO 6: HIGH RANGE; HIGH SLIDE");
+            writer.println("\tDETERMINISTIC AND PERIODIC");
+            for (int i = 0; i < numCountQueries; i++) {
+                writer.println("\t\tCOUNT\t" + upperCountWindowRangeDefs[i] + "\t" + upperCountWindowSlideDefs[i] + "\t" + (10000 / upperCountWindowSlideDefs[i]));
+                plotWriter1.println(upperCountWindowRangeDefs[i] + "\t" + upperCountWindowSlideDefs[i] + "\tf");
+            }
+            for (int i = 0; i < numTimeQueries; i++) {
+                writer.println("\t\tTIME\t" + upperTimeWindowRangeDefs[i] + "\t" + upperTimeWindowSlideDefs[i] + "\t" + (10000 / upperTimeWindowSlideDefs[i]));
+            }
         }
 
         if (scenarioHighSlideSmallRange){
-            //TODO implement this
+            writer.println("SCENARIO 7: LOW RANGE; HIGH SLIDE");
+            writer.println("\tDETERMINISTIC AND PERIODIC");
+            for (int i = 0; i < numCountQueries; i++) {
+                writer.println("\t\tCOUNT\t" + lowerCountWindowRangeDefs[i] + "\t" + upperCountWindowSlideDefs[i] + "\t" + (10000 / upperCountWindowSlideDefs[i]));
+                plotWriter1.println(lowerCountWindowRangeDefs[i] + "\t" + upperCountWindowSlideDefs[i] + "\tg");
+            }
+            for (int i = 0; i < numTimeQueries; i++) {
+                writer.println("\t\tTIME\t" + lowerTimeWindowRangeDefs[i] + "\t" + upperTimeWindowSlideDefs[i] + "\t" + (10000 / upperTimeWindowSlideDefs[i]));
+            }
         }
 
         if (scenarioSmallSlideSmallRange){
-            //TODO implement this
+            writer.println("SCENARIO 8: LOW RANGE; LOW SLIDE");
+            writer.println("\tDETERMINISTIC AND PERIODIC");
+            for (int i = 0; i < numCountQueries; i++) {
+                writer.println("\t\tCOUNT\t" + lowerCountWindowRangeDefs[i] + "\t" + lowerCountWindowSlideDefs[i] + "\t" + (10000 / lowerCountWindowSlideDefs[i]));
+                plotWriter1.println(lowerCountWindowRangeDefs[i] + "\t" + lowerCountWindowSlideDefs[i] + "\th");
+            }
+            for (int i = 0; i < numTimeQueries; i++) {
+                writer.println("\t\tTIME\t" + lowerTimeWindowRangeDefs[i] + "\t" + lowerTimeWindowSlideDefs[i] + "\t" + (10000 / lowerTimeWindowSlideDefs[i]));
+            }
         }
 
         if (scenarioSmallSlideHighRange){
-            //TODO implement this
+            writer.println("SCENARIO 9: HIGH RANGE; LOW SLIDE");
+            writer.println("\tDETERMINISTIC AND PERIODIC");
+            for (int i = 0; i < numCountQueries; i++) {
+                writer.println("\t\tCOUNT\t" + upperCountWindowRangeDefs[i] + "\t" + lowerCountWindowSlideDefs[i] + "\t" + (10000 / lowerCountWindowSlideDefs[i]));
+                plotWriter1.println(upperCountWindowRangeDefs[i] + "\t" + lowerCountWindowSlideDefs[i] + "\th");
+            }
+            for (int i = 0; i < numTimeQueries; i++) {
+                writer.println("\t\tTIME\t" + upperTimeWindowRangeDefs[i] + "\t" + lowerTimeWindowSlideDefs[i] + "\t" + (10000 / lowerTimeWindowSlideDefs[i]));
+            }
         }
 
 
@@ -276,7 +308,7 @@ public class SetupGenerator {
             }
 
             if (scenarioRegularSlideHighRange){
-                writer.println("SCENARIO 1: HIGH RANGE; REGULAR SLIDE");
+                writer.println("SCENARIO 3: HIGH RANGE; REGULAR SLIDE");
                 writer.println("\tRANDOM WINDOW ENDS (DETERMINISTIC BUT NOT PERIODIC)");
                 //Slide Regular, High range
                 for (int i = 0; i < numCountQueries; i++) {
@@ -296,7 +328,7 @@ public class SetupGenerator {
             }
 
             if (scenarioSmallSlideRegularRange){
-                writer.println("SCENARIO 1: REGULAR RANGE; LOW SLIDE");
+                writer.println("SCENARIO 4: REGULAR RANGE; LOW SLIDE");
                 writer.println("\tRANDOM WINDOW ENDS (DETERMINISTIC BUT NOT PERIODIC)");
                 //Slide low, Range regular
                 for (int i = 0; i < numCountQueries; i++) {
@@ -316,7 +348,7 @@ public class SetupGenerator {
             }
 
             if (scenarioHighSlideRegularRange){
-                writer.println("SCENARIO 1: REGULAR RANGE; HIGH SLIDE");
+                writer.println("SCENARIO 5: REGULAR RANGE; HIGH SLIDE");
                 writer.println("\tRANDOM WINDOW ENDS (DETERMINISTIC BUT NOT PERIODIC)");
                 for (int i = 0; i < numCountQueries; i++) {
                     writer.print("\t\tCOUNT\t" + regularCountWindowRangeDefs[i] + "\t");
@@ -335,19 +367,79 @@ public class SetupGenerator {
             }
 
             if (scenarioHighSlideHighRange){
-                //TODO implement this
+                writer.println("SCENARIO 6: HIGH RANGE; HIGH SLIDE");
+                writer.println("\tRANDOM WINDOW ENDS (DETERMINISTIC BUT NOT PERIODIC)");
+                for (int i = 0; i < numCountQueries; i++) {
+                    writer.print("\t\tCOUNT\t" + upperCountWindowRangeDefs[i] + "\t");
+                    for (Double d : makeRandomValueList(countExperimentSize, upperCountWindowSlideDefs[i])) {
+                        writer.print(d + " ");
+                    }
+                    writer.println();
+                }
+                for (int i = 0; i < numTimeQueries; i++) {
+                    writer.print("\t\tCOUNT\t" + upperTimeWindowRangeDefs[i] + "\t");
+                    for (Double d : makeRandomValueList(timeExperimentSize, upperTimeWindowSlideDefs[i])) {
+                        writer.print(d + " ");
+                    }
+                    writer.println();
+                }
             }
 
             if (scenarioHighSlideSmallRange){
-                //TODO implement this
+                writer.println("SCENARIO 7: LOW RANGE; HIGH SLIDE");
+                writer.println("\tRANDOM WINDOW ENDS (DETERMINISTIC BUT NOT PERIODIC)");
+                for (int i = 0; i < numCountQueries; i++) {
+                    writer.print("\t\tCOUNT\t" + lowerCountWindowRangeDefs[i] + "\t");
+                    for (Double d : makeRandomValueList(countExperimentSize, upperCountWindowSlideDefs[i])) {
+                        writer.print(d + " ");
+                    }
+                    writer.println();
+                }
+                for (int i = 0; i < numTimeQueries; i++) {
+                    writer.print("\t\tCOUNT\t" + lowerTimeWindowRangeDefs[i] + "\t");
+                    for (Double d : makeRandomValueList(timeExperimentSize, upperTimeWindowSlideDefs[i])) {
+                        writer.print(d + " ");
+                    }
+                    writer.println();
+                }
             }
 
             if (scenarioSmallSlideSmallRange){
-                //TODO implement this
+                writer.println("SCENARIO 8: LOW RANGE; LOW SLIDE");
+                writer.println("\tRANDOM WINDOW ENDS (DETERMINISTIC BUT NOT PERIODIC)");
+                for (int i = 0; i < numCountQueries; i++) {
+                    writer.print("\t\tCOUNT\t" + lowerCountWindowRangeDefs[i] + "\t");
+                    for (Double d : makeRandomValueList(countExperimentSize, lowerCountWindowSlideDefs[i])) {
+                        writer.print(d + " ");
+                    }
+                    writer.println();
+                }
+                for (int i = 0; i < numTimeQueries; i++) {
+                    writer.print("\t\tCOUNT\t" + lowerTimeWindowRangeDefs[i] + "\t");
+                    for (Double d : makeRandomValueList(timeExperimentSize, lowerTimeWindowSlideDefs[i])) {
+                        writer.print(d + " ");
+                    }
+                    writer.println();
+                }
             }
 
             if (scenarioSmallSlideHighRange){
-                //TODO implement this
+                writer.println("SCENARIO 9: HIGH RANGE; LOW SLIDE");
+                writer.println("\tRANDOM WINDOW ENDS (DETERMINISTIC BUT NOT PERIODIC)");
+                for (int i = 0; i < numCountQueries; i++) {
+                    writer.print("\t\tCOUNT\t" + upperCountWindowRangeDefs[i] + "\t");
+                    for (Double d : makeRandomValueList(countExperimentSize, lowerCountWindowSlideDefs[i])) {
+                        writer.print(d + " ");
+                    }
+                    writer.println();
+                }
+                for (int i = 0; i < numTimeQueries; i++) {
+                    writer.print("\t\tCOUNT\t" + upperTimeWindowRangeDefs[i] + "\t");
+                    for (Double d : makeRandomValueList(timeExperimentSize, lowerTimeWindowSlideDefs[i])) {
+                        writer.print(d + " ");
+                    }
+                    writer.println();
+                }
             }
 
         }
