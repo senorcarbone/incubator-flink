@@ -120,6 +120,12 @@ public class ExperimentDriver {
                 i++;
                 randomScenario[i] = new LinkedList<Tuple3<String, Double, Double[]>>();
             }
+
+            //Stop loop if eof is reached (happens if there is no random walk setup present)
+            if (line == null){
+                break;
+            }
+
             do {
                 line = br.readLine();
             } while (!line.startsWith("\t\t"));
