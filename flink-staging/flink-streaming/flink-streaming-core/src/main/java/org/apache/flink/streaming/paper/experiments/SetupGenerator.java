@@ -255,7 +255,7 @@ public class SetupGenerator {
             writer.println("\tDETERMINISTIC AND PERIODIC");
             for (int i = 0; i < numCountQueries; i++) {
                 writer.println("\t\tCOUNT\t" + upperCountWindowRangeDefs[i] + "\t" + lowerCountWindowSlideDefs[i] + "\t" + (10000 / lowerCountWindowSlideDefs[i]));
-                plotWriter1.println(upperCountWindowRangeDefs[i] + "\t" + lowerCountWindowSlideDefs[i] + "\th");
+                plotWriter1.println(upperCountWindowRangeDefs[i] + "\t" + lowerCountWindowSlideDefs[i] + "\ti");
             }
             for (int i = 0; i < numTimeQueries; i++) {
                 writer.println("\t\tTIME\t" + upperTimeWindowRangeDefs[i] + "\t" + lowerTimeWindowSlideDefs[i] + "\t" + (10000 / lowerTimeWindowSlideDefs[i]));
