@@ -144,7 +144,7 @@ public class SetupGenerator {
             upperTimeWindowRangeDefs[i] = makeGaussian(upperTimeMinRange, upperTimeMaxRange, false);
         }
 
-        //Write out windows for the 6 scenarios (Full setup)
+        //Write out windows for the different scenarios (Full setup)
         PrintWriter writer = new PrintWriter("test-setup.txt", "UTF-8");
         //Write out ranges and slides for plotting them
         PrintWriter plotWriter1 = new PrintWriter("plot-range-slide1.txt", "UTF-8");

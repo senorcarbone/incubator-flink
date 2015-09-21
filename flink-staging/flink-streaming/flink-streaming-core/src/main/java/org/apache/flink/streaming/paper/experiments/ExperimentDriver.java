@@ -47,8 +47,8 @@ public class ExperimentDriver {
     /**
      * Specify below which cases you want to run
      */
-    private static final boolean RUN_PAIRS_LAZY =true;
-    private static final boolean RUN_PAIRS_EAGER =true;
+    private static final boolean RUN_PAIRS_LAZY =false;
+    private static final boolean RUN_PAIRS_EAGER =false;
     private static final boolean RUN_PERIODIC=true;
     private static final boolean RUN_DETERMINISTIC_NOT_PERIODIC=true;
     private static final boolean RUN_NOT_DETERMINISTIC_NOT_PERIODIC=true;
@@ -66,7 +66,7 @@ public class ExperimentDriver {
     /**
      * Specify the number of tuples you want to process
      */
-    private static final int NUM_TUPLES = 100000;
+    private static final int NUM_TUPLES = 1000;
 
     /**
      * Set a sleep period in ms.
@@ -82,15 +82,20 @@ public class ExperimentDriver {
     public static void main(String[] args) throws Exception {
         //Read the setup
         BufferedReader br = new BufferedReader(new FileReader(SETUP_PATH));
-        String line;
+        String line = null;
         AggregationStats stats=AggregationStats.getInstance();
 
         //Read the periodic setups
         @SuppressWarnings("unchecked")
-        LinkedList<Tuple3<String, Double, Double>>[] scenario = new LinkedList[5];
-        for (int i = 0; i < 5; i++) {
+        LinkedList<Tuple3<String, Double, Double>>[] scenario = new LinkedList[9];
+        line=br.readLine();
+        for (int i = 0; i < 9; i++) {
             scenario[i] = new LinkedList<Tuple3<String, Double, Double>>();
             //Skip separation lines between scenarios
+            while (line!=null &&(!line.startsWith("SCENARIO "+(i+1)))){
+                i++;
+                scenario[i] = new LinkedList<Tuple3<String, Double, Double>>();
+            }
             do {
                 line = br.readLine();
             } while (!line.startsWith("\t\t"));
@@ -104,10 +109,17 @@ public class ExperimentDriver {
 
         //Read the random walk setup
         @SuppressWarnings("unchecked")
-        LinkedList<Tuple3<String, Double, Double[]>>[] randomScenario = new LinkedList[5];
-        for (int i = 0; i < 5; i++) {
+        LinkedList<Tuple3<String, Double, Double[]>>[] randomScenario = new LinkedList[9];
+        if (line==null){
+            line=br.readLine();
+        }
+        for (int i = 0; i < 9; i++) {
             randomScenario[i] = new LinkedList<Tuple3<String, Double, Double[]>>();
             //Skip separation lines between scenarios
+            while (line!=null &&(! line.startsWith("SCENARIO "+(i+1)))){
+                i++;
+                randomScenario[i] = new LinkedList<Tuple3<String, Double, Double[]>>();
+            }
             do {
                 line = br.readLine();
             } while (!line.startsWith("\t\t"));
@@ -140,6 +152,10 @@ public class ExperimentDriver {
         // Scenario 3 (i=2): high range, regular slide
         // Scenario 4 (i=3): regular range, low slide
         // Scenario 5 (i=4): regular range, high slide
+        // Scenario 6 (i=5): high range, high slide
+        // Scenario 7 (i=6): low range, high slide
+        // Scenario 8 (i=7): low range, low slide
+        // Scenario 9 (i=8): high range, low slide
         //
         //The differen Algorithms are the following
         // CASE 0: Pairs LAZY - original
@@ -152,13 +168,15 @@ public class ExperimentDriver {
         // CASE 7: Same as case 2 but EAGER
         // CASE 8: Same as case 3 but EAGER
         // CASE 9: Same as case 4 but EAGER
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 9; i++) {
+            //check if the scenario is present in the setup file, otherwise skip this iterations
+            if (scenario[i]==null || scenario[i].size()==0){
+                continue;
+            }
+
             int testCase=0;
 
             if (RUN_PAIRS_LAZY){
-                   /*
-                 * Evaluate with deterministic policy groups (periodic)  (case 2)
-                 */
 
                 StreamExecutionEnvironment env0 = StreamExecutionEnvironment.createLocalEnvironment(1);
                 DataStream<Tuple3<Double, Double, Long>> source2 = env0.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
@@ -181,9 +199,6 @@ public class ExperimentDriver {
             testCase++;
 
             if (RUN_PERIODIC){
-                /*
-                 * Evaluate with deterministic policy groups (periodic)  (case 2)
-                 */
 
                 StreamExecutionEnvironment env2 = StreamExecutionEnvironment.createLocalEnvironment(1);
                 DataStream<Tuple3<Double, Double, Long>> source2 = env2.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
@@ -205,7 +220,7 @@ public class ExperimentDriver {
 
             testCase++;
 
-            if (RUN_DETERMINISTIC_NOT_PERIODIC){
+            if (RUN_DETERMINISTIC_NOT_PERIODIC && randomScenario[i]!=null && randomScenario[i].size()>0){
                 /*
                  * Evaluate with deterministic policy groups (not periodic)  (case 3)
                  */
@@ -230,7 +245,10 @@ public class ExperimentDriver {
 
             testCase++;
 
-            if (RUN_NOT_DETERMINISTIC_NOT_PERIODIC){
+
+
+
+            if (RUN_NOT_DETERMINISTIC_NOT_PERIODIC && randomScenario[i]!=null && randomScenario[i].size()>0){
                 /*
                  *Evaluate not deterministic version  (case 4)
                  */
@@ -327,7 +345,7 @@ public class ExperimentDriver {
 
             testCase++;
 
-            if (RUN_DETERMINISTIC_NOT_PERIODIC_EAGER){
+            if (RUN_DETERMINISTIC_NOT_PERIODIC_EAGER && randomScenario[i]!=null && randomScenario[i].size()>0){
                 /*
                  * Evaluate with deterministic policy groups (not periodic) EAGER version (case 7)
                  */
@@ -352,7 +370,7 @@ public class ExperimentDriver {
 
             testCase++;
 
-            if (RUN_NOT_DETERMINISTIC_NOT_PERIODIC_EAGER){
+            if (RUN_NOT_DETERMINISTIC_NOT_PERIODIC_EAGER && randomScenario[i]!=null && randomScenario[i].size()>0){
                 /*
                  *Evaluate not deterministic version  (case 8)
                  */
