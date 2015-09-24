@@ -66,7 +66,7 @@ public class ExperimentDriver {
     /**
      * Specify the number of tuples you want to process
      */
-    private static final int NUM_TUPLES = 1000;
+    private static final int NUM_TUPLES = 100000;
 
     /**
      * Set a sleep period in ms.
@@ -197,9 +197,7 @@ public class ExperimentDriver {
 
                 result = env0.execute("Scanario "+i+" Case "+testCase);
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
-                stats.reset();
-                resultWriter.flush();
+                finalizeExperiment(stats,resultWriter, result, i, testCase);
             }
 
             testCase++;
@@ -215,13 +213,11 @@ public class ExperimentDriver {
                         List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(periodicPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
                         new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationUtils.AGGREGATION_TYPE.LAZY, 
                         AggregationUtils.DISCRETIZATION_TYPE.B2B)
-                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
+                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
                 result = env2.execute("Scanario "+i+" Case "+testCase);
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
-                stats.reset();
-                resultWriter.flush();
+                finalizeExperiment(stats,resultWriter, result, i, testCase);
             }
 
             testCase++;
@@ -240,13 +236,11 @@ public class ExperimentDriver {
                         List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(randomWalkPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
                         new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationUtils.AGGREGATION_TYPE.LAZY,
                         AggregationUtils.DISCRETIZATION_TYPE.B2B)
-                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
+                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
                 result = env3.execute();
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
-                stats.reset();
-                resultWriter.flush();
+                finalizeExperiment(stats,resultWriter, result, i, testCase);
             }
 
             testCase++;
@@ -267,13 +261,11 @@ public class ExperimentDriver {
                         List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>(), makeNDRandomWalkTrigger(randomScenario[i]),
                         makeNDRandomWalkEviction(randomScenario[i])), AggregationUtils.AGGREGATION_TYPE.LAZY,
                         AggregationUtils.DISCRETIZATION_TYPE.B2B)
-                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
+                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
                 result = env4.execute();
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
-                stats.reset();
-                resultWriter.flush();
+                finalizeExperiment(stats,resultWriter, result, i, testCase);
             }
 
             testCase++;
@@ -290,13 +282,11 @@ public class ExperimentDriver {
                         List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
                         List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>(), makeNDPeriodicTrigger(scenario[i]),
                         makeNDPeriodicEviction(scenario[i])), AggregationUtils.AGGREGATION_TYPE.LAZY, AggregationUtils.DISCRETIZATION_TYPE.B2B)
-                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
+                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
                 result = env5.execute();
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
-                stats.reset();
-                resultWriter.flush();
+                finalizeExperiment(stats,resultWriter, result, i, testCase);
             }
 
             testCase++;
@@ -315,13 +305,11 @@ public class ExperimentDriver {
                                 List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(periodicPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
                                 new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationUtils.AGGREGATION_TYPE.EAGER,
                         AggregationUtils.DISCRETIZATION_TYPE.PAIRS)
-                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
+                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
                 result = env1.execute("Scanario "+i+" Case "+testCase);
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
-                stats.reset();
-                resultWriter.flush();
+                finalizeExperiment(stats,resultWriter, result, i, testCase);
             }
 
             testCase++;
@@ -340,13 +328,11 @@ public class ExperimentDriver {
                         List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(periodicPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
                         new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationUtils.AGGREGATION_TYPE.EAGER,
                         AggregationUtils.DISCRETIZATION_TYPE.B2B)
-                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
+                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
                 result = env6.execute("Scanario "+i+" Case "+testCase);
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
-                stats.reset();
-                resultWriter.flush();
+                finalizeExperiment(stats, resultWriter, result, i, testCase);
             }
 
             testCase++;
@@ -365,13 +351,11 @@ public class ExperimentDriver {
                         List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(randomWalkPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
                         new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationUtils.AGGREGATION_TYPE.EAGER,
                         AggregationUtils.DISCRETIZATION_TYPE.B2B)
-                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
+                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
                 result = env7.execute();
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
-                stats.reset();
-                resultWriter.flush();
+                finalizeExperiment(stats, resultWriter, result, i, testCase);
             }
 
             testCase++;
@@ -389,13 +373,11 @@ public class ExperimentDriver {
                         List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>(), makeNDRandomWalkTrigger(randomScenario[i]),
                         makeNDRandomWalkEviction(randomScenario[i])), AggregationUtils.AGGREGATION_TYPE.EAGER,
                         AggregationUtils.DISCRETIZATION_TYPE.B2B)
-                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
+                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
                 result = env4.execute();
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
-                stats.reset();
-                resultWriter.flush();
+                finalizeExperiment(stats, resultWriter, result, i, testCase);
             }
 
             testCase++;
@@ -413,13 +395,11 @@ public class ExperimentDriver {
                         List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>(), makeNDPeriodicTrigger(scenario[i]),
                         makeNDPeriodicEviction(scenario[i])), AggregationUtils.AGGREGATION_TYPE.EAGER,
                         AggregationUtils.DISCRETIZATION_TYPE.B2B)
-                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-"+i+"-"+testCase, FileSystem.WriteMode.OVERWRITE);
+                        .map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
                 result = env5.execute();
 
-                resultWriter.println(i + "\t" + testCase + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()+ "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize());
-                stats.reset();
-                resultWriter.flush();
+                finalizeExperiment(stats, resultWriter, result, i, testCase);
             }
 
         }
@@ -427,6 +407,14 @@ public class ExperimentDriver {
         //close writer
         resultWriter.flush();
         resultWriter.close();
+    }
+
+    private static void finalizeExperiment(AggregationStats stats, PrintWriter resultWriter, JobExecutionResult result, int scenarioId, int caseId) {
+        resultWriter.println(scenarioId + "\t" + caseId + "\t" + result.getNetRuntime()+ "\t" +stats.getAggregateCount()
+                + "\t" +stats.getReduceCount()+ "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize() 
+                + "\t" + stats.getAverageUpdTime() + "\t" + stats.getTotalUpdateCount()+ "\t" + stats.getAverageMergeTime()+ "\t" + stats.getTotalMergeCount());
+        stats.reset();
+        resultWriter.flush();
     }
 
     @SuppressWarnings("unchecked")

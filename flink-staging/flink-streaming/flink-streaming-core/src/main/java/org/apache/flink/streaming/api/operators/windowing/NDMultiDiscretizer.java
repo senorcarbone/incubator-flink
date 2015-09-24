@@ -26,6 +26,7 @@ import org.apache.flink.streaming.api.windowing.policy.ActiveEvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.ActiveTriggerPolicy;
 import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
+import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
 import org.apache.flink.streaming.api.windowing.windowbuffer.EagerHeapAggregator;
 import org.apache.flink.streaming.api.windowing.windowbuffer.LazyAggregator;
 import org.apache.flink.streaming.api.windowing.windowbuffer.WindowAggregator;
@@ -43,6 +44,8 @@ public class NDMultiDiscretizer<IN> extends
 
     private static final Logger LOG = LoggerFactory
             .getLogger(NDMultiDiscretizer.class);
+
+    private AggregationStats stats = AggregationStats.getInstance();
 
     private static final int DEFAULT_CAPACITY = 32;
 
@@ -102,7 +105,9 @@ public class NDMultiDiscretizer<IN> extends
             }
             
             if (triggerPolicies.get(i).notifyTrigger(tuple)) {
+                stats.registerStartMerge();
                 emitWindow(i);
+                stats.registerEndMerge();
                 int evicted = evictionPolicies.get(i).notifyEviction(tuple, true, recordCounter - queryBorders.get(i) + 1);
                 hasEvicted = evicted > 0;
                 evict(i, evicted);
@@ -115,7 +120,10 @@ public class NDMultiDiscretizer<IN> extends
         if (hasEvicted) {
             aggregator.removeUpTo(Collections.min(queryBorders));
         }
+        
+        stats.registerStartUpdate();
         store(tuple);
+        stats.registerEndUpdate();
     }
 
 

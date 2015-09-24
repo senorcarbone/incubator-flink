@@ -12,6 +12,14 @@ public class AggregationStats implements Serializable {
     private long max_buf_size = 0l;
     private long sum_buf_size = 0l;
     private long cnt_buf_size = 0l;
+    
+    private long totalUpdateCount = 1l;
+    private long sum_upd_time = 0l;
+    private long totalMergeCount = 1l;
+    private long sum_merge_time = 0l;
+    
+    private long upd_timestamp;
+    private long merge_timestamp;
 
     public static AggregationStats getInstance() {
         if (ourInstance == null) {
@@ -26,6 +34,24 @@ public class AggregationStats implements Serializable {
 
     public void registerUpdate() {
         update_count++;
+    }
+    
+    public void registerStartUpdate(){
+        this.upd_timestamp = System.currentTimeMillis();
+    }
+    
+    public void registerEndUpdate(){
+        this.totalUpdateCount++;
+        this.sum_upd_time += System.currentTimeMillis()-upd_timestamp;
+    }
+
+    public void registerStartMerge(){
+        this.merge_timestamp = System.currentTimeMillis();
+    }
+
+    public void registerEndMerge(){
+        this.totalMergeCount++;
+        this.sum_merge_time += System.currentTimeMillis()-merge_timestamp;
     }
 
     public void registerAggregate() {
@@ -69,9 +95,31 @@ public class AggregationStats implements Serializable {
         max_buf_size = 0l;
         sum_buf_size = 0l;
         cnt_buf_size = 0l;
+        totalUpdateCount = 1l;
+        sum_upd_time = 0l;
+        totalMergeCount = 1l;
+        sum_merge_time = 0l;
+        upd_timestamp = 0l;
+        merge_timestamp = 0l;
     }
 
     protected Object readResolve() {
         return getInstance();
+    }
+
+    public long getTotalMergeCount() {
+        return totalMergeCount;
+    }
+
+    public long getTotalUpdateCount() {
+        return totalUpdateCount;
+    }
+
+    public double getAverageMergeTime() {
+        return (double) sum_merge_time/ totalMergeCount;
+    }
+    
+    public double getAverageUpdTime(){
+        return (double) sum_upd_time/ totalUpdateCount;
     }
 }

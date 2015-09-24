@@ -23,6 +23,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
+import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
 import org.apache.flink.streaming.api.windowing.windowbuffer.EagerHeapAggregator;
 import org.apache.flink.streaming.api.windowing.windowbuffer.LazyAggregator;
 import org.apache.flink.streaming.api.windowing.windowbuffer.WindowAggregator;
@@ -39,6 +40,8 @@ public class DeterministicMultiDiscretizer<IN> extends
 
     private static final Logger LOG = LoggerFactory.getLogger(DeterministicMultiDiscretizer.class);
 
+    private AggregationStats stats = AggregationStats.getInstance();
+    
     /**
      * A user given reduce function used for continuously combining pre-aggregates
      */
@@ -140,12 +143,14 @@ public class DeterministicMultiDiscretizer<IN> extends
                 //    can reuse the current partial on-the-fly (no need to pre-aggregate that)!
 
                 if ((windowEvents >> 16) > 0) {
+                    stats.registerStartUpdate();
                     if (partialIdx != 0) {
                         LOG.info("ADDING PARTIAL {} with value {} ", partialIdx, currentPartial);
                         aggregator.add(partialIdx, currentPartial);
                     }
                     partialIdx++;
                     currentPartial = identityValue;
+                    stats.registerEndUpdate();
                 }
 
                 for (int j = 0; j < (windowEvents >> 16); j++) {
@@ -153,11 +158,15 @@ public class DeterministicMultiDiscretizer<IN> extends
                     updatePartial(partialIdx, true);
                 }
                 for (int j = 0; j < (windowEvents & 0xFFFF); j++) {
+                    stats.registerStartMerge();
                     collectAggregate(i);
+                    stats.registerEndMerge();
                 }
             }
         }
+        stats.registerStartUpdate();
         currentPartial = reducer.reduce(serializer.copy(currentPartial), tuple);
+        stats.registerEndUpdate();
     }
 
 
