@@ -132,6 +132,7 @@ public class DeterministicMultiDiscretizer<IN> extends
     public void processElement(IN tuple) throws Exception {
         // First handle the deterministic policies
         LOG.info("Processing element " + tuple);
+        boolean partialUpdated = false;
         for (int i = 0; i < policyGroups.size(); i++) {
             int windowEvents = policyGroups.get(i).getWindowEvents(tuple);
 
@@ -142,7 +143,7 @@ public class DeterministicMultiDiscretizer<IN> extends
                 // 2) we only need to add eviction borders in the pre-aggregation buffer - consecutive triggers
                 //    can reuse the current partial on-the-fly (no need to pre-aggregate that)!
 
-                if ((windowEvents >> 16) > 0) {
+                if ((windowEvents >> 16) > 0 && !partialUpdated) {
                     stats.registerStartUpdate();
                     if (partialIdx != 0) {
                         LOG.info("ADDING PARTIAL {} with value {} ", partialIdx, currentPartial);
@@ -151,6 +152,7 @@ public class DeterministicMultiDiscretizer<IN> extends
                     partialIdx++;
                     currentPartial = identityValue;
                     stats.registerEndUpdate();
+                    partialUpdated = true;
                 }
 
                 for (int j = 0; j < (windowEvents >> 16); j++) {

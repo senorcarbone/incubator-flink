@@ -66,7 +66,7 @@ public class ExperimentDriver {
     /**
      * Specify the number of tuples you want to process
      */
-    private static final int NUM_TUPLES = 100000;
+    private static final int NUM_TUPLES = 1000000;
 
     /**
      * Set a sleep period in ms.
@@ -144,7 +144,7 @@ public class ExperimentDriver {
 
         //Writer for the results
         PrintWriter resultWriter = new PrintWriter("test-result.txt", "UTF-8");
-        resultWriter.println("SCEN\tCASE\tTIME\tAGG\tRED\tUPD\tMAXB\tAVGB");
+        resultWriter.println("SCEN\tCASE\tTIME\tAGG\tRED\tUPD\tMAXB\tAVGB\tUPD_AVG\tUPD_CNT\tMERGE_AVG\tMERGE_CNT");
 
         //run simple program to warm up (The first start up takes more time...)
         runWarmUpTask();
