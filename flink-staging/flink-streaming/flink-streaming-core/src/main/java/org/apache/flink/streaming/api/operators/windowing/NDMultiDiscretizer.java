@@ -100,7 +100,9 @@ public class NDMultiDiscretizer<IN> extends
                         evict(i, ((ActiveEvictionPolicy) evictionPolicies.get(i)).notifyEvictionWithFakeElement(
                                 preNotificationTuple, recordCounter-queryBorders.get(i)+1));
                     }
+                    stats.registerStartMerge();
                     emitWindow(i);
+                    stats.registerEndMerge();
                 }
             }
             
