@@ -61,7 +61,8 @@ public class ExperimentDriver {
     /**
      * Specify the output file for the experiment results
      */
-    private static final String SETUP_PATH = "test-setup.txt";
+    private static String SETUP_PATH = "test-setup.txt";
+    private static String RESULT_PATH = "test-result.txt";
 
     /**
      * Specify the number of tuples you want to process
@@ -80,6 +81,13 @@ public class ExperimentDriver {
      * @throws Exception Any exception which may occurs at the runtime.
      */
     public static void main(String[] args) throws Exception {
+
+        //If setup and result paths are provided as paramaters, replace the defaults
+        if (args.length==2){
+            SETUP_PATH=args[0];
+            RESULT_PATH=args[1];
+        }
+
         //Read the setup
         BufferedReader br = new BufferedReader(new FileReader(SETUP_PATH));
         String line = null;
@@ -143,7 +151,7 @@ public class ExperimentDriver {
         }
 
         //Writer for the results
-        PrintWriter resultWriter = new PrintWriter("test-result.txt", "UTF-8");
+        PrintWriter resultWriter = new PrintWriter(RESULT_PATH, "UTF-8");
         resultWriter.println("SCEN\tCASE\tTIME\tAGG\tRED\tUPD\tMAXB\tAVGB\tUPD_AVG\tUPD_CNT\tMERGE_AVG\tMERGE_CNT");
 
         //run simple program to warm up (The first start up takes more time...)
