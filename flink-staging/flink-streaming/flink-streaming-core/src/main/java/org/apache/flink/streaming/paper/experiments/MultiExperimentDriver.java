@@ -30,6 +30,16 @@ public class MultiExperimentDriver {
             "setups/test-setup-10c10t-7.txt",
             "setups/test-setup-10c10t-8.txt",
             "setups/test-setup-10c10t-9.txt",
+            "setups/test-setup-50c50t-0.txt",
+            "setups/test-setup-50c50t-1.txt",
+            "setups/test-setup-50c50t-2.txt",
+            "setups/test-setup-50c50t-3.txt",
+            "setups/test-setup-50c50t-4.txt",
+            "setups/test-setup-50c50t-5.txt",
+            "setups/test-setup-50c50t-6.txt",
+            "setups/test-setup-50c50t-7.txt",
+            "setups/test-setup-50c50t-8.txt",
+            "setups/test-setup-50c50t-9.txt",
             "setups/test-setup-100c100t-0.txt",
             "setups/test-setup-100c100t-1.txt",
             "setups/test-setup-100c100t-2.txt",
@@ -40,7 +50,7 @@ public class MultiExperimentDriver {
             "setups/test-setup-100c100t-7.txt",
             "setups/test-setup-100c100t-8.txt",
             "setups/test-setup-100c100t-9.txt",
-            "setups/test-setup-1000c1000t-0.txt",
+            /*"setups/test-setup-1000c1000t-0.txt",
             "setups/test-setup-1000c1000t-1.txt",
             "setups/test-setup-1000c1000t-2.txt",
             "setups/test-setup-1000c1000t-3.txt",
@@ -49,7 +59,7 @@ public class MultiExperimentDriver {
             "setups/test-setup-1000c1000t-6.txt",
             "setups/test-setup-1000c1000t-7.txt",
             "setups/test-setup-1000c1000t-8.txt",
-            "setups/test-setup-1000c1000t-9.txt"
+            "setups/test-setup-1000c1000t-9.txt"*/
     };
     private static final String[] RESULT_PATHS={
             "setups/test-result-10c10t-0.txt",
@@ -62,6 +72,16 @@ public class MultiExperimentDriver {
             "setups/test-result-10c10t-7.txt",
             "setups/test-result-10c10t-8.txt",
             "setups/test-result-10c10t-9.txt",
+            "setups/test-result-50c50t-0.txt",
+            "setups/test-result-50c50t-1.txt",
+            "setups/test-result-50c50t-2.txt",
+            "setups/test-result-50c50t-3.txt",
+            "setups/test-result-50c50t-4.txt",
+            "setups/test-result-50c50t-5.txt",
+            "setups/test-result-50c50t-6.txt",
+            "setups/test-result-50c50t-7.txt",
+            "setups/test-result-50c50t-8.txt",
+            "setups/test-result-50c50t-9.txt",
             "setups/test-result-100c100t-0.txt",
             "setups/test-result-100c100t-1.txt",
             "setups/test-result-100c100t-2.txt",
@@ -72,7 +92,7 @@ public class MultiExperimentDriver {
             "setups/test-result-100c100t-7.txt",
             "setups/test-result-100c100t-8.txt",
             "setups/test-result-100c100t-9.txt",
-            "setups/test-result-1000c1000t-0.txt",
+            /*"setups/test-result-1000c1000t-0.txt",
             "setups/test-result-1000c1000t-1.txt",
             "setups/test-result-1000c1000t-2.txt",
             "setups/test-result-1000c1000t-3.txt",
@@ -81,7 +101,7 @@ public class MultiExperimentDriver {
             "setups/test-result-1000c1000t-6.txt",
             "setups/test-result-1000c1000t-7.txt",
             "setups/test-result-1000c1000t-8.txt",
-            "setups/test-result-1000c1000t-9.txt"
+            "setups/test-result-1000c1000t-9.txt"*/
     };
 
     public static void main(String args[]) throws Exception {
