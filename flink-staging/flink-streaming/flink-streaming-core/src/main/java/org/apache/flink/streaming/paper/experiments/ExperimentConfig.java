@@ -9,7 +9,7 @@ import org.aeonbits.owner.Config;
  */
 @Config.LoadPolicy(Config.LoadType.FIRST)
 @Config.Sources({"classpath:default.properties","classpath:pairs.properties",
-        "classpath:default.10c10t.properties","classpath:default.100c100t.properties","classpath:default.1000c1000t.properties",
+        "classpath:default.10c10t.properties","classpath:default.50c50t.properties","classpath:default.100c100t.properties","classpath:default.1000c1000t.properties",
         "classpath:pairs.5c.properties","classpath:pairs.10c.properties","classpath:pairs.15c.properties","classpath:pairs.20c.properties"})
 public interface ExperimentConfig extends Config{
 
