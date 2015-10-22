@@ -50,7 +50,17 @@ public class SetupGenerator {
 
         ExperimentConfig cfg = ConfigFactory.create(ExperimentConfig.class);
 
-        makeSetup(cfg.countExperimentSize(), cfg.timeExperimentSize(),
+        String setupOutputPath;
+        String plotDataOutputPath;
+        if (args.length==2){
+            setupOutputPath=args[0];
+            plotDataOutputPath=args[1];
+        } else {
+            setupOutputPath="test-setup.txt";
+            plotDataOutputPath="plot-range-slide1.txt";
+        }
+
+        makeSetup(setupOutputPath,plotDataOutputPath,cfg.countExperimentSize(), cfg.timeExperimentSize(),
                 cfg.regularCountMinSlide() * cfg.scaleFactor(), cfg.regularCountMaxSlide() * cfg.scaleFactor(),
                 cfg.lowerCountMinSlide() * cfg.scaleFactor(), cfg.lowerCountMaxSlide() * cfg.scaleFactor(),
                 cfg.upperCountMinSlide() * cfg.scaleFactor(), cfg.upperCountMaxSlide() * cfg.scaleFactor(),
@@ -103,7 +113,7 @@ public class SetupGenerator {
      * @throws FileNotFoundException        If the output file cannot be accessed.
      * @throws UnsupportedEncodingException If no file using UTF8 encoding can be created.
      */
-    private static void makeSetup(int countExperimentSize, int timeExperimentSize,
+    private static void makeSetup(String setupOutputPath, String plotDataOutputPath, int countExperimentSize, int timeExperimentSize,
                                   double regularCountMinSlide, double regularCountMaxSlide, double lowerCountMinSlide, double lowerCountMaxSlide, double upperCountMinSlide, double upperCountMaxSlide,
                                   double regularCountMinRange, double regularCountMaxRange, double lowerCountMinRange, double lowerCountMaxRange, double upperCountMinRange, double upperCountMaxRange,
                                   double regularTimeMinSlide, double regularTimeMaxSlide, double lowerTimeMinSlide, double lowerTimeMaxSlide, double upperTimeMinSlide, double upperTimeMaxSlide,
@@ -145,9 +155,9 @@ public class SetupGenerator {
         }
 
         //Write out windows for the different scenarios (Full setup)
-        PrintWriter writer = new PrintWriter("test-setup.txt", "UTF-8");
+        PrintWriter writer = new PrintWriter(setupOutputPath, "UTF-8");
         //Write out ranges and slides for plotting them
-        PrintWriter plotWriter1 = new PrintWriter("plot-range-slide1.txt", "UTF-8");
+        PrintWriter plotWriter1 = new PrintWriter(plotDataOutputPath, "UTF-8");
 
         //Regular scenario
         if (scenarioRegularSlideRegularRange){
