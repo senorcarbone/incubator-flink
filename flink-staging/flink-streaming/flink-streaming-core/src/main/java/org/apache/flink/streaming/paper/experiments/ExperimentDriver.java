@@ -192,6 +192,10 @@ public class ExperimentDriver {
 
             if (RUN_PAIRS_LAZY){
 
+                /*
+                 * Case 0
+                 */
+
                 StreamExecutionEnvironment env0 = StreamExecutionEnvironment.createLocalEnvironment(1);
                 DataStream<Tuple3<Double, Double, Long>> source2 = env0.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
@@ -211,6 +215,10 @@ public class ExperimentDriver {
             testCase++;
 
             if (RUN_PERIODIC){
+
+                /*
+                 * Case 1
+                 */
 
                 StreamExecutionEnvironment env2 = StreamExecutionEnvironment.createLocalEnvironment(1);
                 DataStream<Tuple3<Double, Double, Long>> source2 = env2.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
@@ -232,7 +240,7 @@ public class ExperimentDriver {
 
             if (RUN_DETERMINISTIC_NOT_PERIODIC && randomScenario[i]!=null && randomScenario[i].size()>0){
                 /*
-                 * Evaluate with deterministic policy groups (not periodic)  (case 3)
+                 * Evaluate with deterministic policy groups (not periodic)  (case 2)
                  */
 
                 StreamExecutionEnvironment env3 = StreamExecutionEnvironment.createLocalEnvironment(1);
@@ -258,7 +266,7 @@ public class ExperimentDriver {
 
             if (RUN_NOT_DETERMINISTIC_NOT_PERIODIC && randomScenario[i]!=null && randomScenario[i].size()>0){
                 /*
-                 *Evaluate not deterministic version  (case 4)
+                 *Evaluate not deterministic version  (case 3)
                  */
 
                 StreamExecutionEnvironment env4 = StreamExecutionEnvironment.createLocalEnvironment(1);
@@ -280,7 +288,7 @@ public class ExperimentDriver {
 
             if (RUN_PERIODIC_NO_PREAGG){
                 /*
-                 *Evaluate periodic setup, but without any pre-aggregation (case 5)
+                 *Evaluate periodic setup, but without any pre-aggregation (case 4)
                  */
 
                 StreamExecutionEnvironment env5 = StreamExecutionEnvironment.createLocalEnvironment(1);
@@ -300,8 +308,8 @@ public class ExperimentDriver {
             testCase++;
             
             if (RUN_PAIRS_EAGER){
-                                /*
-                 * Evaluate with deterministic policy groups (periodic) EAGER version  (case 6)
+                /*
+                 * Evaluate with deterministic policy groups (periodic) EAGER version  (case 5)
                  */
 
                 StreamExecutionEnvironment env1 = StreamExecutionEnvironment.createLocalEnvironment(1);
