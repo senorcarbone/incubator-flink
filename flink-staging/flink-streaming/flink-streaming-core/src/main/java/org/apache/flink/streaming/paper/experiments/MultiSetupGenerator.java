@@ -19,10 +19,11 @@ package org.apache.flink.streaming.paper.experiments;
 
 public class MultiSetupGenerator {
 
+    private final static String CURRENT_SIZE="100";
     private final static int NUMBER_OF_SETUPS=10;
-    private final static String SETUP_BASE_PATH="";
-    private final static String SETUP_BASE_NAME="test-setup-50c50t";
-    private final static String PLOTDATA_BASE_NAME="plot-range-slide-50c50t";
+    private final static String SETUP_BASE_PATH="setups/";
+    private final static String SETUP_BASE_NAME="test-setup-"+CURRENT_SIZE+"c"+CURRENT_SIZE+"t";
+    private final static String PLOTDATA_BASE_NAME="plot-range-slide-"+CURRENT_SIZE+"c"+CURRENT_SIZE+"t";
     private final static String SETUP_ID_SEPARATOR="-";
     private final static String FILETYPE_SUFFIX=".txt";
 
