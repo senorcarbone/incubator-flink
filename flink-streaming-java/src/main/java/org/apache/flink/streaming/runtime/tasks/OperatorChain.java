@@ -72,7 +72,7 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>> {
 	
 	private final Output<StreamRecord<OUT>> chainEntryPoint;
 
-	private final OP headOperator;
+	private  OP headOperator;
 
 	public OperatorChain(StreamTask<OUT, OP> containingTask) {
 		
@@ -80,7 +80,10 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>> {
 		final StreamConfig configuration = containingTask.getConfiguration();
 
 		headOperator = configuration.getStreamOperator(userCodeClassloader);
-
+		
+		if(headOperator == null){
+			headOperator = configuration.getStreamOperator(Thread.currentThread().getContextClassLoader());
+		}
 		// we read the chained configs, and the order of record writer registrations by output name
 		Map<Integer, StreamConfig> chainedConfigs = configuration.getTransitiveChainedTaskConfigs(userCodeClassloader);
 		chainedConfigs.put(configuration.getVertexID(), configuration);

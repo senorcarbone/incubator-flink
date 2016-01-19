@@ -136,7 +136,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	protected OP headOperator;
 
 	/** The chain of operators executed by this task */
-	private OperatorChain<OUT, OP> operatorChain;
+	protected OperatorChain<OUT, OP> operatorChain;
 
 	/** The configuration of this streaming task */
 	private StreamConfig configuration;
@@ -561,7 +561,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 		}
 	}
 
-	private boolean performCheckpoint(CheckpointMetaData checkpointMetaData) throws Exception {
+	protected boolean performCheckpoint(CheckpointMetaData checkpointMetaData) throws Exception {
 		LOG.debug("Starting checkpoint {} on task {}", checkpointMetaData.getCheckpointId(), getName());
 
 		synchronized (lock) {
@@ -616,7 +616,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 		}
 	}
 
-	private void checkpointState(CheckpointMetaData checkpointMetaData) throws Exception {
+	protected void checkpointState(CheckpointMetaData checkpointMetaData) throws Exception {
 		CheckpointingOperation checkpointingOperation = new CheckpointingOperation(this, checkpointMetaData);
 		checkpointingOperation.executeCheckpointing();
 	}

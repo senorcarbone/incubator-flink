@@ -21,6 +21,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
+import org.apache.flink.runtime.io.network.api.CheckpointBarrier;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 import org.apache.flink.streaming.api.operators.Output;
@@ -28,6 +30,7 @@ import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.runtime.io.BlockingQueueBroker;
 import org.apache.flink.streaming.runtime.streamrecord.LatencyMarker;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
+import org.apache.flink.types.Either;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +38,9 @@ import org.slf4j.LoggerFactory;
 public class StreamIterationTail<IN> extends OneInputStreamTask<IN, IN> {
 
 	private static final Logger LOG = LoggerFactory.getLogger(StreamIterationTail.class);
+	private
+	@SuppressWarnings("unchecked")
+	BlockingQueue<Either<StreamRecord<IN>, CheckpointBarrier>> dataChannel;
 
 	@Override
 	public void init() throws Exception {
@@ -51,15 +57,29 @@ public class StreamIterationTail<IN> extends OneInputStreamTask<IN, IN> {
 		final long iterationWaitTime = getConfiguration().getIterationWaitTime();
 
 		LOG.info("Iteration tail {} trying to acquire feedback queue under {}", getName(), brokerID);
-		
-		@SuppressWarnings("unchecked")
-		BlockingQueue<StreamRecord<IN>> dataChannel =
-				(BlockingQueue<StreamRecord<IN>>) BlockingQueueBroker.INSTANCE.get(brokerID);
+
+		dataChannel = (BlockingQueue<Either<StreamRecord<IN>, CheckpointBarrier>>) BlockingQueueBroker.INSTANCE.get(brokerID);
 		
 		LOG.info("Iteration tail {} acquired feedback queue {}", getName(), brokerID);
 		
 		this.headOperator = new RecordPusher<>();
 		this.headOperator.setup(this, getConfiguration(), new IterationTailOutput<>(dataChannel, iterationWaitTime));
+	}
+
+	@Override
+	protected boolean performCheckpoint(CheckpointMetaData checkpointMetaData) throws Exception {
+		LOG.debug("Starting checkpoint {} on task {}", checkpointMetaData.getCheckpointId(), getName());
+
+		synchronized (getCheckpointLock()) {
+			if (isRunning()) {
+				dataChannel.put(new Either.Right(new CheckpointBarrier(checkpointMetaData.getCheckpointId(), checkpointMetaData.getTimestamp())));
+				getEnvironment().acknowledgeCheckpoint(checkpointMetaData);
+				return true;
+			}
+			else {
+				return super.performCheckpoint(checkpointMetaData);
+			}
+		}
 	}
 
 	private static class RecordPusher<IN> extends AbstractStreamOperator<IN> implements OneInputStreamOperator<IN, IN> {
@@ -85,13 +105,13 @@ public class StreamIterationTail<IN> extends OneInputStreamTask<IN, IN> {
 	private static class IterationTailOutput<IN> implements Output<StreamRecord<IN>> {
 
 		@SuppressWarnings("NonSerializableFieldInSerializableClass")
-		private final BlockingQueue<StreamRecord<IN>> dataChannel;
+		private final BlockingQueue<Either<StreamRecord<IN>, CheckpointBarrier>> dataChannel;
 		
 		private final long iterationWaitTime;
 		
 		private final boolean shouldWait;
 
-		IterationTailOutput(BlockingQueue<StreamRecord<IN>> dataChannel, long iterationWaitTime) {
+		IterationTailOutput(BlockingQueue<Either<StreamRecord<IN>, CheckpointBarrier>> dataChannel, long iterationWaitTime) {
 			this.dataChannel = dataChannel;
 			this.iterationWaitTime = iterationWaitTime;
 			this.shouldWait =  iterationWaitTime > 0;
@@ -109,10 +129,10 @@ public class StreamIterationTail<IN> extends OneInputStreamTask<IN, IN> {
 		public void collect(StreamRecord<IN> record) {
 			try {
 				if (shouldWait) {
-					dataChannel.offer(record, iterationWaitTime, TimeUnit.MILLISECONDS);
+					dataChannel.offer(new Either.Left(record), iterationWaitTime, TimeUnit.MILLISECONDS);
 				}
 				else {
-					dataChannel.put(record);
+					dataChannel.put(new Either.Left(record));
 				}
 			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
