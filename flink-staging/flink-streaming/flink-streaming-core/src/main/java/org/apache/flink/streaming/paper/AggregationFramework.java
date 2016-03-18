@@ -100,7 +100,7 @@ public class AggregationFramework {
 									aggTypeInfo.createSerializer(null), aggType));
 			}
 
-			return combinedWithID.map(new Lift(this.lower));
+			return combinedWithID.map(new Lift(this.lift));
 		}
 	}
 	
