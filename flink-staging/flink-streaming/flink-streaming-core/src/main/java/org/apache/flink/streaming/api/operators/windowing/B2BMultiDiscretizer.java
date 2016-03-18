@@ -27,29 +27,29 @@ import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
 import org.apache.flink.streaming.api.windowing.windowbuffer.EagerHeapAggregator;
 import org.apache.flink.streaming.api.windowing.windowbuffer.LazyAggregator;
 import org.apache.flink.streaming.api.windowing.windowbuffer.WindowAggregator;
-import org.apache.flink.streaming.paper.AggregationUtils;
+import org.apache.flink.streaming.paper.AggregationFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 @SuppressWarnings("unused")
-public class DeterministicMultiDiscretizer<IN> extends
-        AbstractStreamOperator<Tuple2<Integer, IN>> implements
-        OneInputStreamOperator<IN, Tuple2<Integer, IN>> {
+public class B2BMultiDiscretizer<IN, AGG> extends
+        AbstractStreamOperator<Tuple2<Integer, AGG>> implements
+        OneInputStreamOperator<Tuple2<IN, AGG>, Tuple2<Integer, AGG>> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DeterministicMultiDiscretizer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(B2BMultiDiscretizer.class);
 
     private AggregationStats stats = AggregationStats.getInstance();
     
     /**
      * A user given reduce function used for continuously combining pre-aggregates
      */
-    private final ReduceFunction<IN> reducer;
+    private final ReduceFunction<AGG> reducer;
     /**
      * The identity value for the given combine function where reduce(val, identity) == reduce(identity, val) == val
      */
-    private final IN identityValue;
+    private final AGG identityValue;
     /**
      * All the policy groups that are co-located in one multi-discretizer
      */
@@ -69,11 +69,11 @@ public class DeterministicMultiDiscretizer<IN> extends
     /**
      * An aggregator for pre-computing all shared preaggregates per partial result addition
      */
-    private WindowAggregator<IN> aggregator;
+    private WindowAggregator<AGG> aggregator;
     /**
      * A serializer used for copying values for immutability
      */
-    private final TypeSerializer<IN> serializer;
+    private final TypeSerializer<AGG> serializer;
 
     /**
      * The partial ID index counter
@@ -82,22 +82,22 @@ public class DeterministicMultiDiscretizer<IN> extends
     /**
      * The current inter-border aggregate
      */
-    private IN currentPartial;
+    private AGG currentPartial;
 
 
-    public DeterministicMultiDiscretizer(
+    public B2BMultiDiscretizer(
             List<DeterministicPolicyGroup<IN>> policyGroups,
-            ReduceFunction<IN> reduceFunction, IN identityValue, int capacity, TypeSerializer<IN> serializer,
-            AggregationUtils.AGGREGATION_TYPE aggregationType) {
+            ReduceFunction<AGG> reduceFunction, AGG identityValue, int capacity, TypeSerializer<AGG> serializer,
+            AggregationFramework.AGGREGATION_STRATEGY aggregationType) {
 
         this.policyGroups = policyGroups;
         this.serializer = serializer;
-        this.queryBorders = new HashMap<Integer, Deque<Integer>>();
-        this.partialDependencies = new HashMap<Integer, Integer>();
+        this.queryBorders = new HashMap<>();
+        this.partialDependencies = new HashMap<>();
         this.reducer = reduceFunction;
 
         for (int i = 0; i < this.policyGroups.size(); i++) {
-            queryBorders.put(i, new LinkedList<Integer>());
+            queryBorders.put(i, new LinkedList<>());
         }
 
         this.identityValue = identityValue;
@@ -105,17 +105,19 @@ public class DeterministicMultiDiscretizer<IN> extends
 
         switch (aggregationType) {
             case EAGER:
-                this.aggregator = new EagerHeapAggregator<IN>(reduceFunction, serializer, identityValue, capacity);
+                this.aggregator = new EagerHeapAggregator<>(reduceFunction, serializer, identityValue, capacity);
                 break;
             case LAZY:
-                this.aggregator = new LazyAggregator<IN>(reduceFunction, serializer, identityValue, capacity);
+                this.aggregator = new LazyAggregator<>(reduceFunction, serializer, identityValue, capacity);
         }
 
         chainingStrategy = ChainingStrategy.ALWAYS;
     }
 
+	
 
-    /**
+
+	/**
      * For each tuple it does the following:
      * <p/>
      * 1) registers the current partial to the WindowAggregator if any window begin event is invoked by the policy groups
@@ -129,12 +131,12 @@ public class DeterministicMultiDiscretizer<IN> extends
      */
     @SuppressWarnings("unchecked")
     @Override
-    public void processElement(IN tuple) throws Exception {
+    public void processElement(Tuple2<IN, AGG> tuple) throws Exception {
         // First handle the deterministic policies
         LOG.info("Processing element " + tuple);
         boolean partialUpdated = false;
         for (int i = 0; i < policyGroups.size(); i++) {
-            int windowEvents = policyGroups.get(i).getWindowEvents(tuple);
+            int windowEvents = policyGroups.get(i).getWindowEvents(tuple.f0);
 
             if (windowEvents != 0) {
 
@@ -167,7 +169,7 @@ public class DeterministicMultiDiscretizer<IN> extends
             }
         }
         stats.registerStartUpdate();
-        currentPartial = reducer.reduce(serializer.copy(currentPartial), tuple);
+        currentPartial = reducer.reduce(serializer.copy(currentPartial), tuple.f1);
         stats.registerEndUpdate();
     }
 
@@ -222,8 +224,8 @@ public class DeterministicMultiDiscretizer<IN> extends
     private void collectAggregate(int queryId) throws Exception {
         Integer partial = queryBorders.get(queryId).getFirst();
         LOG.info("Q{} Emitting window from partial id: {}", queryId, partial);
-        output.collect(new Tuple2<Integer, IN>(queryId, reducer.reduce(serializer.copy(aggregator.aggregate(partial)),
-                serializer.copy(currentPartial))));
+        output.collect(new Tuple2<>(queryId, reducer.reduce(serializer.copy(aggregator.aggregate(partial)),
+				serializer.copy(currentPartial))));
         queryBorders.get(queryId).removeFirst();
         unregisterPartial(partial);
     }

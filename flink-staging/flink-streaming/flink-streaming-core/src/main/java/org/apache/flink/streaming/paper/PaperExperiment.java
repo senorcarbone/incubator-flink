@@ -18,6 +18,7 @@
 package org.apache.flink.streaming.paper;
 
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -27,16 +28,15 @@ import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 import org.apache.flink.streaming.api.windowing.helper.Timestamp;
 import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
 import org.apache.flink.streaming.api.windowing.policy.*;
+import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
-import static org.apache.flink.streaming.paper.AggregationUtils.SumAggregation;
 
 @SuppressWarnings({ "serial", "rawtypes", "unchecked" })
 public class PaperExperiment {
-
 
 	private static Random rnd = new Random();
 
@@ -47,7 +47,7 @@ public class PaperExperiment {
 
 		DataStream<Tuple3<Double, Double, Long>> source = env.addSource(new DataGenerator(1000));
 
-		SumAggregation.applyOn(source, getTestPolicies(10), AggregationUtils.AGGREGATION_TYPE.LAZY, AggregationUtils.DISCRETIZATION_TYPE.B2B)
+		SumAggregation.applyOn(source, getTestPolicies(10), AggregationFramework.AGGREGATION_STRATEGY.LAZY, AggregationFramework.DISCRETIZATION_TYPE.B2B)
 				.map(new Prefix("SUM")).print();
 		// StdAggregation.applyOn(source, getTestPolicies(3))
 		// .map(new Prefix("STD")).print();
@@ -161,5 +161,20 @@ public class PaperExperiment {
 		}
 
 	}
+
+
+	public static AggregationFramework.WindowAggregation<Double, Tuple3<Double, Double, Long>, Double>
+			SumAggregation = new AggregationFramework.WindowAggregation<>(
+			t -> t, new ReduceFunction<Double>() {
+		private static final long serialVersionUID = 1L;
+		private AggregationStats stats = AggregationStats.getInstance();
+
+		@Override
+		public Double reduce(Double value1, Double value2)
+				throws Exception {
+			stats.registerReduce();
+			return value1 + value2;
+		}
+	}, value -> value.f0, 0d);
 
 }

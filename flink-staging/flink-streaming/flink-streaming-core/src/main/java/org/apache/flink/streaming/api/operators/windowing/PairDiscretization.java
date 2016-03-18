@@ -3,10 +3,8 @@ package org.apache.flink.streaming.api.operators.windowing;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
-import org.apache.flink.api.java.tuple.Tuple3;
-import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 import org.apache.flink.streaming.api.windowing.policy.*;
-import org.apache.flink.streaming.paper.AggregationUtils;
+import org.apache.flink.streaming.paper.AggregationFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,18 +26,18 @@ public class PairDiscretization {
      * @param <IN>
      * @return
      */
-    public static <IN> DeterministicMultiDiscretizer<IN> create(List<DeterministicPolicyGroup<IN>> policyGroups, ReduceFunction<IN> reduceFunction,
-                                                                IN identityValue, int capacity, TypeSerializer<IN> serializer,
-                                                                AggregationUtils.AGGREGATION_TYPE aggregationType) {
+    public static <IN, AGG> B2BMultiDiscretizer<IN, AGG> create(List<DeterministicPolicyGroup<IN>> policyGroups, ReduceFunction<AGG> reduceFunction,
+													  AGG identityValue, int capacity, TypeSerializer<AGG> serializer,
+													  AggregationFramework.AGGREGATION_STRATEGY aggregationType) {
         ensureCompatibility(policyGroups);
 
-        List<DeterministicPolicyGroup<IN>> groups = new ArrayList<DeterministicPolicyGroup<IN>>(policyGroups.size() + 1);
+        List<DeterministicPolicyGroup<IN>> groups = new ArrayList<>(policyGroups.size() + 1);
         for (DeterministicPolicyGroup group : policyGroups) {
-            groups.add(new PairPolicyGroup<IN>(group));
+            groups.add(new PairPolicyGroup<>(group));
         }
         groups.add(getCommonPairPolicy((List<PairPolicyGroup<IN>>) (List) groups));
 
-        return new DeterministicMultiDiscretizer<IN>(groups, reduceFunction, identityValue, capacity, serializer, aggregationType);
+        return new B2BMultiDiscretizer<>(groups, reduceFunction, identityValue, capacity, serializer, aggregationType);
 
     }
 

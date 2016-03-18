@@ -26,8 +26,20 @@ import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 import org.apache.flink.streaming.api.windowing.helper.Timestamp;
 import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
-import org.apache.flink.streaming.api.windowing.policy.*;
-import org.apache.flink.streaming.paper.AggregationUtils;
+import org.apache.flink.streaming.api.windowing.policy.CountEvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.CountTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.DeterministicCountEvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.DeterministicCountTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.DeterministicEvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
+import org.apache.flink.streaming.api.windowing.policy.DeterministicTimeEvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.DeterministicTimeTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.DeterministicTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TimeEvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TimeTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
+import org.apache.flink.streaming.paper.AggregationFramework;
 import org.apache.flink.streaming.util.MockContext;
 import org.junit.Test;
 
@@ -35,271 +47,249 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-
 public class AllMultiDiscretizersTest extends TestCase {
 
-    /*********************************************
-     * Data                                      *
-     *********************************************/
+	/*********************************************
+	 * Data                                      *
+	 *********************************************/
 
-    List<Integer> inputs1 = new ArrayList<Integer>();
-    List<Tuple2<Integer, Integer>> inputs2 = new ArrayList<Tuple2<Integer, Integer>>();
+	List<Tuple2<Integer, Integer>> inputs1 = new ArrayList<>();
+	List<Tuple2<Tuple2<Integer, Integer>, Tuple2<Integer, Integer>>> inputs2 = new ArrayList<>();
 
-    {
-        inputs1.add(1);
-        inputs1.add(2);
-        inputs1.add(2);
-        inputs1.add(10);
-        inputs1.add(11);
-        inputs1.add(14);
-        inputs1.add(16);
-        inputs1.add(21);
+	{
+		inputs1.add(new Tuple2<>(1, 1));
+		inputs1.add(new Tuple2<>(2, 2));
+		inputs1.add(new Tuple2<>(2, 2));
+		inputs1.add(new Tuple2<>(10, 10));
+		inputs1.add(new Tuple2<>(11, 11));
+		inputs1.add(new Tuple2<>(14, 14));
+		inputs1.add(new Tuple2<>(16, 16));
+		inputs1.add(new Tuple2<>(21, 21));
 
-        inputs2.add(new Tuple2<Integer, Integer>(1, 0));
-        inputs2.add(new Tuple2<Integer, Integer>(2, 1));
-        inputs2.add(new Tuple2<Integer, Integer>(2, 2));
-        inputs2.add(new Tuple2<Integer, Integer>(10, 3));
-        inputs2.add(new Tuple2<Integer, Integer>(11, 4));
-        inputs2.add(new Tuple2<Integer, Integer>(14, 5));
-        inputs2.add(new Tuple2<Integer, Integer>(16, 6));
-        inputs2.add(new Tuple2<Integer, Integer>(21, 7));
-    }
+		inputs2.add(new Tuple2<>(new Tuple2<>(1, 0), new Tuple2<>(1, 0)));
+		inputs2.add(new Tuple2<>(new Tuple2<>(2, 1), new Tuple2<>(2, 1)));
+		inputs2.add(new Tuple2<>(new Tuple2<>(2, 2),new Tuple2<>(2, 2)));
+		inputs2.add(new Tuple2<>(new Tuple2<>(10, 3),new Tuple2<>(10, 3)));
+		inputs2.add(new Tuple2<>(new Tuple2<>(11, 4),new Tuple2<>(11, 4)));
+		inputs2.add(new Tuple2<>(new Tuple2<>(14, 5),new Tuple2<>(14, 5)));
+		inputs2.add(new Tuple2<>(new Tuple2<>(16, 6),new Tuple2<>(16, 6)));
+		inputs2.add(new Tuple2<>(new Tuple2<>(21, 7),new Tuple2<>(21, 7)));
+	}
 
-    /*********************************************
-     * Tests                                     *
-     *********************************************/
+	/*********************************************
+	 * Tests                                     *
+	 *********************************************/
 
-    @Test
-    public void testMultiDiscretizerDeterministic() {
+	@Test
+	public void testMultiDiscretizerDeterministic() {
 
-        //prepare expected result
-        LinkedList<Tuple2<Integer, Integer>> expected = new LinkedList<Tuple2<Integer, Integer>>();
-        expected.add(new Tuple2<Integer, Integer>(0, 5));  //0..4
-        expected.add(new Tuple2<Integer, Integer>(0, 5));  //0..9
-        expected.add(new Tuple2<Integer, Integer>(0, 35)); //5..14
-        expected.add(new Tuple2<Integer, Integer>(0, 51)); //10..19
+		//prepare expected result
+		LinkedList<Tuple2<Integer, Integer>> expected = new LinkedList<>();
+		expected.add(new Tuple2<>(0, 5));  //0..4
+		expected.add(new Tuple2<>(0, 5));  //0..9
+		expected.add(new Tuple2<>(0, 35)); //5..14
+		expected.add(new Tuple2<>(0, 51)); //10..19
 
-        //prepare policies
-        @SuppressWarnings("unchecked")
-        TimestampWrapper<Integer> timestampWrapper = new TimestampWrapper<Integer>(new Timestamp() {
-            @Override
-            public long getTimestamp(Object value) {
-                return ((Integer) value);
-            }
-        }, 0);
-        DeterministicTriggerPolicy<Integer> triggerPolicy = new DeterministicTimeTriggerPolicy<Integer>(5, timestampWrapper);
-        DeterministicEvictionPolicy<Integer> evictionPolicy = new DeterministicTimeEvictionPolicy<Integer>(10, timestampWrapper);
-        DeterministicPolicyGroup<Integer> policyGroup = new DeterministicPolicyGroup<Integer>(triggerPolicy, evictionPolicy, new IntegerToDouble());
+		//prepare policies
+		@SuppressWarnings("unchecked")
+		TimestampWrapper<Integer> timestampWrapper = new TimestampWrapper<>(value -> value, 0);
+		DeterministicTriggerPolicy<Integer> triggerPolicy = new DeterministicTimeTriggerPolicy<>(5, timestampWrapper);
+		DeterministicEvictionPolicy<Integer> evictionPolicy = new DeterministicTimeEvictionPolicy<>(10, timestampWrapper);
+		DeterministicPolicyGroup<Integer> policyGroup = new DeterministicPolicyGroup<>(triggerPolicy, evictionPolicy, new IntegerToDouble());
 
-        LinkedList<DeterministicPolicyGroup<Integer>> policyGroups = new LinkedList<DeterministicPolicyGroup<Integer>>();
-        policyGroups.add(policyGroup);
+		LinkedList<DeterministicPolicyGroup<Integer>> policyGroups = new LinkedList<>();
+		policyGroups.add(policyGroup);
 
-        //Create operator instance
-        DeterministicMultiDiscretizer<Integer> deterministicMD = new DeterministicMultiDiscretizer<Integer>
-                (policyGroups, new Sum(), 0, 4, IntSerializer.INSTANCE, AggregationUtils.AGGREGATION_TYPE.LAZY);
+		//Create operator instance
+		B2BMultiDiscretizer<Integer,Integer> deterministicMD = new B2BMultiDiscretizer<>
+				(policyGroups, new Sum(), 0, 4, IntSerializer.INSTANCE, AggregationFramework.AGGREGATION_STRATEGY.LAZY);
 
-        //Run the test
-        List<Tuple2<Integer, Integer>> result = MockContext.createAndExecute(deterministicMD, this.inputs1);
+		//Run the test
+		List<Tuple2<Integer, Integer>> result = MockContext.createAndExecute(deterministicMD, this.inputs1);
 
-        //check correctness
-        assertEquals(expected, result);
-    }
+		//check correctness
+		assertEquals(expected, result);
+	}
 
-    @Test
-    public void testMultiDiscretizerMultipleDeterministic() {
+	@Test
+	public void testMultiDiscretizerMultipleDeterministic() {
 
-        //prepare expected result
-        LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>> expected = new LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>>();
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1,
-                new Tuple2<Integer, Integer>(3, 1)));    //Q1 seq 0,1
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0,
-                new Tuple2<Integer, Integer>(5, 3)));   //Q0 0..4
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0,
-                new Tuple2<Integer, Integer>(5, 3)));   //Q0 0..9
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1,
-                new Tuple2<Integer, Integer>(15, 6)));   //Q1 seq 0,1,2,3
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0,
-                new Tuple2<Integer, Integer>(35, 12))); //Q0 5..14
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1,
-                new Tuple2<Integer, Integer>(39, 15)));  //Q1 seq 1,2,3,4,5
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0,
-                new Tuple2<Integer, Integer>(51, 18))); //Q0 10..19
+		//prepare expected result
+		LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>> expected = new LinkedList<>();
+		expected.add(new Tuple2<>(1,
+				new Tuple2<>(3, 1)));    //Q1 seq 0,1
+		expected.add(new Tuple2<>(0,
+				new Tuple2<>(5, 3)));   //Q0 0..4
+		expected.add(new Tuple2<>(0,
+				new Tuple2<>(5, 3)));   //Q0 0..9
+		expected.add(new Tuple2<>(1,
+				new Tuple2<>(15, 6)));   //Q1 seq 0,1,2,3
+		expected.add(new Tuple2<>(0,
+				new Tuple2<>(35, 12))); //Q0 5..14
+		expected.add(new Tuple2<>(1,
+				new Tuple2<>(39, 15)));  //Q1 seq 1,2,3,4,5
+		expected.add(new Tuple2<>(0,
+				new Tuple2<>(51, 18))); //Q0 10..19
 
-        //prepare policies
-        @SuppressWarnings("unchecked")
-        TimestampWrapper<Tuple2<Integer, Integer>> timestampWrapper = new TimestampWrapper<Tuple2<Integer, Integer>>(new Timestamp() {
-            @Override
-            public long getTimestamp(Object value) {
-                return ((Tuple2<Integer, Integer>) value).f0;
-            }
-        }, 0);
-        DeterministicTriggerPolicy<Tuple2<Integer, Integer>> triggerPolicy =
-                new DeterministicTimeTriggerPolicy<Tuple2<Integer, Integer>>(5, timestampWrapper);
-        DeterministicEvictionPolicy<Tuple2<Integer, Integer>> evictionPolicy =
-                new DeterministicTimeEvictionPolicy<Tuple2<Integer, Integer>>(10, timestampWrapper);
-        DeterministicPolicyGroup<Tuple2<Integer, Integer>> policyGroup =
-                new DeterministicPolicyGroup<Tuple2<Integer, Integer>>(triggerPolicy, evictionPolicy, new Tuple2ToDouble(0));
+		//prepare policies
+		@SuppressWarnings("unchecked")
+		TimestampWrapper<Tuple2<Integer, Integer>> timestampWrapper = new TimestampWrapper<>(value -> value.f0, 0);
+		
+		DeterministicTriggerPolicy<Tuple2<Integer, Integer>> triggerPolicy =
+				new DeterministicTimeTriggerPolicy<>(5, timestampWrapper);
+		DeterministicEvictionPolicy<Tuple2<Integer, Integer>> evictionPolicy =
+				new DeterministicTimeEvictionPolicy<>(10, timestampWrapper);
+		DeterministicPolicyGroup<Tuple2<Integer, Integer>> policyGroup =
+				new DeterministicPolicyGroup<>(triggerPolicy, evictionPolicy, new Tuple2ToDouble(0));
 
-        DeterministicTriggerPolicy<Tuple2<Integer, Integer>> triggerPolicy2 =
-                new DeterministicCountTriggerPolicy<Tuple2<Integer, Integer>>(2);
-        DeterministicEvictionPolicy<Tuple2<Integer, Integer>> evictionPolicy2 =
-                new DeterministicCountEvictionPolicy<Tuple2<Integer, Integer>>(5);
-        DeterministicPolicyGroup<Tuple2<Integer, Integer>> policyGroup2 =
-                new DeterministicPolicyGroup<Tuple2<Integer, Integer>>(triggerPolicy2, evictionPolicy2, new Tuple2ToDouble(1));
+		DeterministicTriggerPolicy<Tuple2<Integer, Integer>> triggerPolicy2 =
+				new DeterministicCountTriggerPolicy<>(2);
+		DeterministicEvictionPolicy<Tuple2<Integer, Integer>> evictionPolicy2 =
+				new DeterministicCountEvictionPolicy<>(5);
+		DeterministicPolicyGroup<Tuple2<Integer, Integer>> policyGroup2 =
+				new DeterministicPolicyGroup<>(triggerPolicy2, evictionPolicy2, new Tuple2ToDouble(1));
 
-        LinkedList<DeterministicPolicyGroup<Tuple2<Integer, Integer>>> policyGroups =
-                new LinkedList<DeterministicPolicyGroup<Tuple2<Integer, Integer>>>();
-        policyGroups.add(policyGroup);
-        policyGroups.add(policyGroup2);
+		LinkedList<DeterministicPolicyGroup<Tuple2<Integer, Integer>>> policyGroups =
+				new LinkedList<>();
+		policyGroups.add(policyGroup);
+		policyGroups.add(policyGroup2);
 
-        DeterministicMultiDiscretizer<Tuple2<Integer,Integer>> deterministicMD = 
-                new DeterministicMultiDiscretizer<Tuple2<Integer, Integer>>(policyGroups, new TupleSum(), 
-                        new Tuple2<Integer, Integer>(0,0), 8, new TupleTypeInfo<Tuple2<Integer, Integer>>
-                        (BasicTypeInfo.INT_TYPE_INFO, BasicTypeInfo.INT_TYPE_INFO).createSerializer(null), 
-                        AggregationUtils.AGGREGATION_TYPE.EAGER);
+		B2BMultiDiscretizer<Tuple2<Integer, Integer>, Tuple2<Integer, Integer>> deterministicMD =
+				new B2BMultiDiscretizer<>(policyGroups, new TupleSum(),
+						new Tuple2<>(0, 0), 8, new TupleTypeInfo<Tuple2<Integer, Integer>>
+						(BasicTypeInfo.INT_TYPE_INFO, BasicTypeInfo.INT_TYPE_INFO).createSerializer(null),
+						AggregationFramework.AGGREGATION_STRATEGY.EAGER);
 
-        //Run the test
-        List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(deterministicMD, inputs2);
+		//Run the test
+		List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(deterministicMD, inputs2);
 
-        //check correctness
-        assertEquals(expected, result);
-    }
+		//check correctness
+		assertEquals(expected, result);
+	}
 
 
-    @Test
-    public void testMultiDiscretizerNotDeterministic() {
+	@Test
+	public void testMultiDiscretizerNotDeterministic() {
 
-        //prepare expected result
-        LinkedList<Tuple2<Integer, Integer>> expected = new LinkedList<Tuple2<Integer, Integer>>();
-        expected.add(new Tuple2<Integer, Integer>(0, 5));  //0..4
-        expected.add(new Tuple2<Integer, Integer>(0, 5));  //0..9
-        expected.add(new Tuple2<Integer, Integer>(0, 35)); //5..14
-        expected.add(new Tuple2<Integer, Integer>(0, 51)); //10..19
+		//prepare expected result
+		LinkedList<Tuple2<Integer, Integer>> expected = new LinkedList<>();
+		expected.add(new Tuple2<>(0, 5));  //0..4
+		expected.add(new Tuple2<>(0, 5));  //0..9
+		expected.add(new Tuple2<>(0, 35)); //5..14
+		expected.add(new Tuple2<>(0, 51)); //10..19
 
-        //prepare policies
-        @SuppressWarnings("unchecked")
-        TimestampWrapper<Integer> timestampWrapper = new TimestampWrapper<Integer>(new Timestamp() {
-            @Override
-            public long getTimestamp(Object value) {
-                return ((Integer) value);
-            }
-        }, 0);
-        TriggerPolicy<Integer> triggerPolicy = new TimeTriggerPolicy<Integer>(5, timestampWrapper);
-        EvictionPolicy<Integer> evictionPolicy = new TimeEvictionPolicy<Integer>(10, timestampWrapper);
+		//prepare policies
+		@SuppressWarnings("unchecked")
+		TimestampWrapper<Integer> timestampWrapper = new TimestampWrapper<>(value -> value,0);
+		TriggerPolicy<Integer> triggerPolicy = new TimeTriggerPolicy<>(5, timestampWrapper);
+		EvictionPolicy<Integer> evictionPolicy = new TimeEvictionPolicy<>(10, timestampWrapper);
 
-        LinkedList<TriggerPolicy<Integer>> triggerPolicies = new LinkedList<TriggerPolicy<Integer>>();
-        triggerPolicies.add(triggerPolicy);
-        LinkedList<EvictionPolicy<Integer>> evictionPolicies = new LinkedList<EvictionPolicy<Integer>>();
-        evictionPolicies.add(evictionPolicy);
+		List<TriggerPolicy<Integer>> triggerPolicies = new LinkedList<>();
+		triggerPolicies.add(triggerPolicy);
+		List<EvictionPolicy<Integer>> evictionPolicies = new LinkedList<>();
+		evictionPolicies.add(evictionPolicy);
 
-        //Create operator instance
-        NDMultiDiscretizer<Integer> nonDeterministicMD = 
-                new NDMultiDiscretizer<Integer>(triggerPolicies, evictionPolicies, new Sum(), IntSerializer.INSTANCE,0,
-                        AggregationUtils.AGGREGATION_TYPE.LAZY);
+		//Create operator instance
+		GeneralMultiDiscretizer<Integer, Integer> nonDeterministicMD =
+				new GeneralMultiDiscretizer<>(triggerPolicies, evictionPolicies, new Sum(), IntSerializer.INSTANCE, 0,
+						AggregationFramework.AGGREGATION_STRATEGY.LAZY);
 
-        //Run the test
-        List<Tuple2<Integer, Integer>> result = MockContext.createAndExecute(nonDeterministicMD, inputs1);
+		//Run the test
+		List<Tuple2<Integer, Integer>> result = MockContext.createAndExecute(nonDeterministicMD, inputs1);
 
-        //check correctness
-        assertEquals(expected, result);
-    }
+		//check correctness
+		assertEquals(expected, result);
+	}
 
-    @Test
-    public void testMultiDiscretizerMultipleNotDeterministic() {
+	@Test
+	public void testMultiDiscretizerMultipleNotDeterministic() {
 
-        //prepare expected result
-        LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>> expected = new LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>>();
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1, new Tuple2<Integer, Integer>(3, 1)));    //Q1 seq 0,1
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(5, 3)));   //Q0 0..4
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(5, 3)));   //Q0 0..9
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1, new Tuple2<Integer, Integer>(15, 6)));   //Q1 seq 0,1,2,3
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(35, 12))); //Q0 5..14
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(1, new Tuple2<Integer, Integer>(39, 15)));  //Q1 seq 1,2,3,4,5
-        expected.add(new Tuple2<Integer, Tuple2<Integer, Integer>>(0, new Tuple2<Integer, Integer>(51, 18))); //Q0 10..19
+		//prepare expected result
+		LinkedList<Tuple2<Integer, Tuple2<Integer, Integer>>> expected = new LinkedList<>();
+		expected.add(new Tuple2<>(1, new Tuple2<>(3, 1)));    //Q1 seq 0,1
+		expected.add(new Tuple2<>(0, new Tuple2<>(5, 3)));   //Q0 0..4
+		expected.add(new Tuple2<>(0, new Tuple2<>(5, 3)));   //Q0 0..9
+		expected.add(new Tuple2<>(1, new Tuple2<>(15, 6)));   //Q1 seq 0,1,2,3
+		expected.add(new Tuple2<>(0, new Tuple2<>(35, 12))); //Q0 5..14
+		expected.add(new Tuple2<>(1, new Tuple2<>(39, 15)));  //Q1 seq 1,2,3,4,5
+		expected.add(new Tuple2<>(0, new Tuple2<>(51, 18))); //Q0 10..19
 
-        //prepare policies
-        @SuppressWarnings("unchecked")
-        TimestampWrapper<Tuple2<Integer, Integer>> timestampWrapper = new TimestampWrapper<Tuple2<Integer, Integer>>(new Timestamp() {
-            @Override
-            public long getTimestamp(Object value) {
-                return ((Tuple2<Integer, Integer>) value).f0;
-            }
-        }, 0);
-        TriggerPolicy<Tuple2<Integer, Integer>> triggerPolicy =
-                new TimeTriggerPolicy<Tuple2<Integer, Integer>>(5, timestampWrapper);
-        EvictionPolicy<Tuple2<Integer, Integer>> evictionPolicy =
-                new TimeEvictionPolicy<Tuple2<Integer, Integer>>(10, timestampWrapper);
+		//prepare policies
+		@SuppressWarnings("unchecked")
+		TimestampWrapper<Tuple2<Integer, Integer>> timestampWrapper =
+				new TimestampWrapper<>(value -> value.f0, 0);
+		TriggerPolicy<Tuple2<Integer, Integer>> triggerPolicy =
+				new TimeTriggerPolicy<>(5, timestampWrapper);
+		EvictionPolicy<Tuple2<Integer, Integer>> evictionPolicy =
+				new TimeEvictionPolicy<>(10, timestampWrapper);
 
-        TriggerPolicy<Tuple2<Integer, Integer>> triggerPolicy2 =
-                new CountTriggerPolicy<Tuple2<Integer, Integer>>(2);
-        EvictionPolicy<Tuple2<Integer, Integer>> evictionPolicy2 =
-                new CountEvictionPolicy<Tuple2<Integer, Integer>>(5);
+		TriggerPolicy<Tuple2<Integer, Integer>> triggerPolicy2 =
+				new CountTriggerPolicy<>(2);
+		EvictionPolicy<Tuple2<Integer, Integer>> evictionPolicy2 =
+				new CountEvictionPolicy<>(5);
 
-        LinkedList<TriggerPolicy<Tuple2<Integer, Integer>>> triggerPolicies =
-                new LinkedList<TriggerPolicy<Tuple2<Integer, Integer>>>();
-        triggerPolicies.add(triggerPolicy);
-        triggerPolicies.add(triggerPolicy2);
-        LinkedList<EvictionPolicy<Tuple2<Integer, Integer>>> evictionPolicies =
-                new LinkedList<EvictionPolicy<Tuple2<Integer, Integer>>>();
-        evictionPolicies.add(evictionPolicy);
-        evictionPolicies.add(evictionPolicy2);
+		LinkedList<TriggerPolicy<Tuple2<Integer, Integer>>> triggerPolicies =
+				new LinkedList<>();
+		triggerPolicies.add(triggerPolicy);
+		triggerPolicies.add(triggerPolicy2);
+		LinkedList<EvictionPolicy<Tuple2<Integer, Integer>>> evictionPolicies =
+				new LinkedList<>();
+		evictionPolicies.add(evictionPolicy);
+		evictionPolicies.add(evictionPolicy2);
 
-        //Create operator instance
-        NDMultiDiscretizer<Tuple2<Integer, Integer>> nonDeterministicMD =
-                new NDMultiDiscretizer<Tuple2<Integer, Integer>>(triggerPolicies, evictionPolicies,new TupleSum(), 
-                        new TupleTypeInfo<Tuple2<Integer, Integer>>
-                        (BasicTypeInfo.INT_TYPE_INFO, BasicTypeInfo.INT_TYPE_INFO).createSerializer(null), 
-                        new Tuple2<Integer, Integer>(0,0),
-                        AggregationUtils.AGGREGATION_TYPE.EAGER);
+		//Create operator instance
+		GeneralMultiDiscretizer<Tuple2<Integer, Integer>, Tuple2<Integer, Integer>> nonDeterministicMD =
+				new GeneralMultiDiscretizer<>(triggerPolicies, evictionPolicies, new TupleSum(),
+						new TupleTypeInfo<Tuple2<Integer, Integer>> (BasicTypeInfo.INT_TYPE_INFO, BasicTypeInfo.INT_TYPE_INFO).createSerializer(null),
+						new Tuple2<>(0, 0), AggregationFramework.AGGREGATION_STRATEGY.EAGER);
 
-        //Run the test
-        List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(nonDeterministicMD, inputs2);
+		//Run the test
+		List<Tuple2<Integer, Tuple2<Integer, Integer>>> result = MockContext.createAndExecute(nonDeterministicMD, inputs2);
 
-        //check correctness
-        assertEquals(expected, result);
-    }
+		//check correctness
+		assertEquals(expected, result);
+	}
 
-    /*********************************************
-     * Utilities                                 *
-     *********************************************/
+	/*********************************************
+	 * Utilities                                 *
+	 *********************************************/
 
-    private class Sum implements ReduceFunction<Integer> {
+	private class Sum implements ReduceFunction<Integer> {
 
-        @Override
-        public Integer reduce(Integer value1, Integer value2) throws Exception {
-            return value1 + value2;
-        }
+		@Override
+		public Integer reduce(Integer value1, Integer value2) throws Exception {
+			return value1 + value2;
+		}
 
-    }
+	}
 
-    private class TupleSum implements ReduceFunction<Tuple2<Integer, Integer>> {
+	private class TupleSum implements ReduceFunction<Tuple2<Integer, Integer>> {
 
-        @Override
-        public Tuple2<Integer, Integer> reduce(Tuple2<Integer, Integer> value1, Tuple2<Integer, Integer> value2) throws Exception {
-            return new Tuple2<Integer, Integer>(value1.f0 + value2.f0, value1.f1 + value2.f1);
-        }
-    }
+		@Override
+		public Tuple2<Integer, Integer> reduce(Tuple2<Integer, Integer> value1, Tuple2<Integer, Integer> value2) throws Exception {
+			return new Tuple2<>(value1.f0 + value2.f0, value1.f1 + value2.f1);
+		}
+	}
 
-    private class IntegerToDouble implements Extractor<Integer, Double> {
+	private class IntegerToDouble implements Extractor<Integer, Double> {
 
-        @Override
-        public Double extract(Integer in) {
-            return in.doubleValue();
-        }
-    }
+		@Override
+		public Double extract(Integer in) {
+			return in.doubleValue();
+		}
+	}
 
-    private class Tuple2ToDouble implements Extractor<Tuple2<Integer, Integer>, Double> {
+	private class Tuple2ToDouble implements Extractor<Tuple2<Integer, Integer>, Double> {
 
-        int field;
+		int field;
 
-        public Tuple2ToDouble(int field) {
-            this.field = field;
-        }
+		public Tuple2ToDouble(int field) {
+			this.field = field;
+		}
 
-        @Override
-        public Double extract(Tuple2<Integer, Integer> in) {
-            return ((Integer) in.getField(this.field)).doubleValue();
-        }
-    }
+		@Override
+		public Double extract(Tuple2<Integer, Integer> in) {
+			return ((Integer) in.getField(this.field)).doubleValue();
+		}
+	}
 }
