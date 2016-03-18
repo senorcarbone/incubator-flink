@@ -17,8 +17,12 @@
 package org.apache.flink.streaming.paper.experiments;
 
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
+import org.apache.flink.streaming.paper.AggregationFramework;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -29,9 +33,22 @@ import java.text.SimpleDateFormat;
  * The results are written to a file.
  */
 public class DEBSExpDriver {
-	
-	
-	
+
+
+	public static AggregationFramework.WindowAggregation<Tuple2<Long, Long>, Tuple4<Long, Long, Long, Integer>, Double>
+			AvgAggregation = new AggregationFramework.WindowAggregation<>(
+			sumCount -> (double) sumCount.f0 / sumCount.f1,
+			new ReduceFunction<Tuple2<Long, Long>>() {
+				private static final long serialVersionUID = 1L;
+				private AggregationStats stats = AggregationStats.getInstance();
+
+				@Override
+				public Tuple2<Long, Long> reduce(Tuple2<Long, Long> t1, Tuple2<Long, Long> t2)
+						throws Exception {
+					stats.registerReduce();
+					return new Tuple2<>(t1.f0 + t2.f0, t1.f1 + t1.f1);
+				}
+			}, debs -> new Tuple2<>(debs.f2, 1l), new Tuple2<>(0l, 0l));
 
 	/**
 	 * Main program: Runs all the test cases and writed the results to the specified output files.
