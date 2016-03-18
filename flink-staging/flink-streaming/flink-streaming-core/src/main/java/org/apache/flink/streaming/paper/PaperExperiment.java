@@ -63,25 +63,14 @@ public class PaperExperiment {
 			deterministicGroups.add(generateDeterministicPolicyGroup());
 		}
 
-		return new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double,Double, Long>>>, List<TriggerPolicy<Tuple3<Double, Double, Long>>>, List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(
-				deterministicGroups, emptyList, emptyList);
+		return new Tuple3<>(deterministicGroups, emptyList, emptyList);
 	}
 
 	static LinkedList emptyList = new LinkedList();
 
-	static Extractor<Tuple3<Double, Double, Long>, Double> countExtractor = new Extractor<Tuple3<Double, Double, Long>, Double>() {
-		@Override
-		public Double extract(Tuple3<Double, Double, Long> in) {
-			return in.f1;
-		}
-	};
+	static Extractor<Tuple3<Double, Double, Long>, Double> countExtractor = (Extractor<Tuple3<Double, Double, Long>, Double>) in -> in.f1;
 	
-	static Extractor<Tuple3<Double, Double, Long>, Double> timeExtractor = new Extractor<Tuple3<Double, Double, Long>, Double>() {
-		@Override
-		public Double extract(Tuple3<Double, Double, Long> in) {
-			return in.f2.doubleValue();
-		}
-	};
+	static Extractor<Tuple3<Double, Double, Long>, Double> timeExtractor = (Extractor<Tuple3<Double, Double, Long>, Double>) in -> in.f2.doubleValue();
 
 	private static DeterministicPolicyGroup generateDeterministicPolicyGroup() {
 		DeterministicPolicyGroup<Tuple3<Double, Double, Long>> group;
@@ -99,12 +88,12 @@ public class PaperExperiment {
 				}
 			}, System.currentTimeMillis());
 			
-			group = new DeterministicPolicyGroup<Tuple3<Double, Double, Long>>(
+			group = new DeterministicPolicyGroup<>(
 					new DeterministicTimeTriggerPolicy(triggerSize, tsw),
 					new DeterministicTimeEvictionPolicy(evictionSize, tsw),
 					timeExtractor);
 		} else {
-			group = new DeterministicPolicyGroup<Tuple3<Double, Double, Long>>(
+			group = new DeterministicPolicyGroup<>(
 					new DeterministicCountTriggerPolicy((int) triggerSize),
 					new DeterministicCountEvictionPolicy((int) evictionSize),
 					countExtractor);
@@ -149,7 +138,7 @@ public class PaperExperiment {
 			isRunning = true;
 			rnd = new Random();
 			while (isRunning) {
-				ctx.collect(new Tuple3<Double, Double, Long>((double) rnd
+				ctx.collect(new Tuple3<>((double) rnd
 						.nextInt(1000), c++, System.currentTimeMillis()));
 				Thread.sleep(sleepMillis);
 			}

@@ -128,11 +128,11 @@ public class ExperimentDriver {
 		LinkedList<Tuple3<String, Double, Double>>[] scenario = new LinkedList[9];
 		line = br.readLine();
 		for (int i = 0; i < 9; i++) {
-			scenario[i] = new LinkedList<Tuple3<String, Double, Double>>();
+			scenario[i] = new LinkedList<>();
 			//Skip separation lines between scenarios
 			while (line != null && (!line.startsWith("SCENARIO " + (i + 1)))) {
 				i++;
-				scenario[i] = new LinkedList<Tuple3<String, Double, Double>>();
+				scenario[i] = new LinkedList<>();
 			}
 			do {
 				line = br.readLine();
@@ -140,7 +140,7 @@ public class ExperimentDriver {
 			//parse data rows
 			do {
 				String[] fields = line.split("\t");
-				scenario[i].add(new Tuple3<String, Double, Double>(fields[2], Double.parseDouble(fields[3]), Double.parseDouble(fields[4])));
+				scenario[i].add(new Tuple3<>(fields[2], Double.parseDouble(fields[3]), Double.parseDouble(fields[4])));
 				line = br.readLine();
 			} while (line != null && line.startsWith("\t\t"));
 		}
@@ -152,11 +152,11 @@ public class ExperimentDriver {
 			line = br.readLine();
 		}
 		for (int i = 0; i < 9; i++) {
-			randomScenario[i] = new LinkedList<Tuple3<String, Double, Double[]>>();
+			randomScenario[i] = new LinkedList<>();
 			//Skip separation lines between scenarios
 			while (line != null && (!line.startsWith("SCENARIO " + (i + 1)))) {
 				i++;
-				randomScenario[i] = new LinkedList<Tuple3<String, Double, Double[]>>();
+				randomScenario[i] = new LinkedList<>();
 			}
 
 			//Stop loop if eof is reached (happens if there is no random walk setup present)
@@ -252,10 +252,8 @@ public class ExperimentDriver {
 				DataStream<Tuple3<Double, Double, Long>> source2 = env2.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
 				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenario[i]);
-				SumAggregation.applyOn(source2, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-								List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
-								List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(periodicPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
-								new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationFramework.AGGREGATION_STRATEGY.LAZY,
+				SumAggregation.applyOn(source2, new Tuple3<>(periodicPolicyGroups, new LinkedList<>(),
+								new LinkedList<>()), AggregationFramework.AGGREGATION_STRATEGY.LAZY,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B)
 						.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
@@ -275,10 +273,8 @@ public class ExperimentDriver {
 				DataStream<Tuple3<Double, Double, Long>> source3 = env3.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
 				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> randomWalkPolicyGroups = makeRandomWalkPolicyGroups(randomScenario[i]);
-				SumAggregation.applyOn(source3, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-								List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
-								List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(randomWalkPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
-								new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationFramework.AGGREGATION_STRATEGY.LAZY,
+				SumAggregation.applyOn(source3, new Tuple3<>(randomWalkPolicyGroups, new LinkedList<>(),
+								new LinkedList<>()), AggregationFramework.AGGREGATION_STRATEGY.LAZY,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B)
 						.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
@@ -298,9 +294,7 @@ public class ExperimentDriver {
 				StreamExecutionEnvironment env4 = StreamExecutionEnvironment.createLocalEnvironment(1);
 				DataStream<Tuple3<Double, Double, Long>> source4 = env4.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
-				SumAggregation.applyOn(source4, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-								List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
-								List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>(), makeNDRandomWalkTrigger(randomScenario[i]),
+				SumAggregation.applyOn(source4, new Tuple3<>(new LinkedList<>(), makeNDRandomWalkTrigger(randomScenario[i]),
 								makeNDRandomWalkEviction(randomScenario[i])), AggregationFramework.AGGREGATION_STRATEGY.LAZY,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B)
 						.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
@@ -320,9 +314,7 @@ public class ExperimentDriver {
 				StreamExecutionEnvironment env5 = StreamExecutionEnvironment.createLocalEnvironment(1);
 				DataStream<Tuple3<Double, Double, Long>> source4 = env5.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
-				SumAggregation.applyOn(source4, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-						List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
-						List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>(), makeNDPeriodicTrigger(scenario[i]),
+				SumAggregation.applyOn(source4, new Tuple3<>(new LinkedList<>(), makeNDPeriodicTrigger(scenario[i]),
 						makeNDPeriodicEviction(scenario[i])), AggregationFramework.AGGREGATION_STRATEGY.LAZY, AggregationFramework.DISCRETIZATION_TYPE.B2B)
 						.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
@@ -342,10 +334,8 @@ public class ExperimentDriver {
 				DataStream<Tuple3<Double, Double, Long>> source2 = env1.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
 				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenario[i]);
-				SumAggregation.applyOn(source2, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-								List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
-								List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(periodicPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
-								new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationFramework.AGGREGATION_STRATEGY.EAGER,
+				SumAggregation.applyOn(source2, new Tuple3<>(periodicPolicyGroups, new LinkedList<>(),
+								new LinkedList<>()), AggregationFramework.AGGREGATION_STRATEGY.EAGER,
 						AggregationFramework.DISCRETIZATION_TYPE.PAIRS)
 						.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
@@ -386,10 +376,8 @@ public class ExperimentDriver {
 				DataStream<Tuple3<Double, Double, Long>> source3 = env7.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
 				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> randomWalkPolicyGroups = makeRandomWalkPolicyGroups(randomScenario[i]);
-				SumAggregation.applyOn(source3, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-								List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
-								List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(randomWalkPolicyGroups, new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>(),
-								new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>()), AggregationFramework.AGGREGATION_STRATEGY.EAGER,
+				SumAggregation.applyOn(source3, new Tuple3<>(randomWalkPolicyGroups, new LinkedList<>(),
+								new LinkedList<>()), AggregationFramework.AGGREGATION_STRATEGY.EAGER,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B)
 						.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
@@ -408,9 +396,7 @@ public class ExperimentDriver {
 				StreamExecutionEnvironment env4 = StreamExecutionEnvironment.createLocalEnvironment(1);
 				DataStream<Tuple3<Double, Double, Long>> source4 = env4.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
-				SumAggregation.applyOn(source4, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-								List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
-								List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>(), makeNDRandomWalkTrigger(randomScenario[i]),
+				SumAggregation.applyOn(source4, new Tuple3<>(new LinkedList<>(), makeNDRandomWalkTrigger(randomScenario[i]),
 								makeNDRandomWalkEviction(randomScenario[i])), AggregationFramework.AGGREGATION_STRATEGY.EAGER,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B)
 						.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
@@ -430,9 +416,7 @@ public class ExperimentDriver {
 				StreamExecutionEnvironment env5 = StreamExecutionEnvironment.createLocalEnvironment(1);
 				DataStream<Tuple3<Double, Double, Long>> source4 = env5.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
-				SumAggregation.applyOn(source4, new Tuple3<List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>,
-								List<TriggerPolicy<Tuple3<Double, Double, Long>>>,
-								List<EvictionPolicy<Tuple3<Double, Double, Long>>>>(new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>(), makeNDPeriodicTrigger(scenario[i]),
+				SumAggregation.applyOn(source4, new Tuple3<>(new LinkedList<>(), makeNDPeriodicTrigger(scenario[i]),
 								makeNDPeriodicEviction(scenario[i])), AggregationFramework.AGGREGATION_STRATEGY.EAGER,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B)
 						.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
@@ -460,18 +444,18 @@ public class ExperimentDriver {
 	@SuppressWarnings("unchecked")
 	public static List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> makePeriodicPolicyGroups(LinkedList<Tuple3<String, Double, Double>> settings) {
 
-		List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> policyGroups = new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>();
+		List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> policyGroups = new LinkedList<>();
 		for (Tuple3<String, Double, Double> setting : settings) {
 			DeterministicTriggerPolicy<Tuple3<Double, Double, Long>> trigger;
 			DeterministicEvictionPolicy<Tuple3<Double, Double, Long>> eviction;
 			if (setting.f0.equals("COUNT")) {
-				trigger = new DeterministicCountTriggerPolicy<Tuple3<Double, Double, Long>>(setting.f2.intValue());
-				eviction = new DeterministicCountEvictionPolicy<Tuple3<Double, Double, Long>>(setting.f1.intValue());
-				policyGroups.add(new DeterministicPolicyGroup<Tuple3<Double, Double, Long>>(trigger, eviction, countExtractor));
+				trigger = new DeterministicCountTriggerPolicy<>(setting.f2.intValue());
+				eviction = new DeterministicCountEvictionPolicy<>(setting.f1.intValue());
+				policyGroups.add(new DeterministicPolicyGroup<>(trigger, eviction, countExtractor));
 			} else {
-				trigger = new DeterministicTimeTriggerPolicy<Tuple3<Double, Double, Long>>(setting.f2.intValue(), timestampWrapper);
-				eviction = new DeterministicTimeEvictionPolicy<Tuple3<Double, Double, Long>>(setting.f1.intValue(), timestampWrapper);
-				policyGroups.add(new DeterministicPolicyGroup<Tuple3<Double, Double, Long>>(trigger, eviction, timeExtractor));
+				trigger = new DeterministicTimeTriggerPolicy<>(setting.f2.intValue(), timestampWrapper);
+				eviction = new DeterministicTimeEvictionPolicy<>(setting.f1.intValue(), timestampWrapper);
+				policyGroups.add(new DeterministicPolicyGroup<>(trigger, eviction, timeExtractor));
 			}
 		}
 
@@ -481,18 +465,18 @@ public class ExperimentDriver {
 	@SuppressWarnings("unchecked")
 	public static List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> makeRandomWalkPolicyGroups(List<Tuple3<String, Double, Double[]>> settings) {
 
-		List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> policyGroups = new LinkedList<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>>();
+		List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> policyGroups = new LinkedList<>();
 		for (Tuple3<String, Double, Double[]> setting : settings) {
 			DeterministicTriggerPolicy<Tuple3<Double, Double, Long>> trigger;
 			DeterministicEvictionPolicy<Tuple3<Double, Double, Long>> eviction;
 			if (setting.f0.equals("COUNT")) {
-				trigger = new DeterministicRandomWalkTriggerPolicy<Tuple3<Double, Double, Long>>(setting.f2, countExtractor);
-				eviction = new DeterministicCountEvictionPolicy<Tuple3<Double, Double, Long>>(setting.f1.intValue());
-				policyGroups.add(new DeterministicPolicyGroup<Tuple3<Double, Double, Long>>(trigger, eviction, countExtractor));
+				trigger = new DeterministicRandomWalkTriggerPolicy<>(setting.f2, countExtractor);
+				eviction = new DeterministicCountEvictionPolicy<>(setting.f1.intValue());
+				policyGroups.add(new DeterministicPolicyGroup<>(trigger, eviction, countExtractor));
 			} else {
-				trigger = new DeterministicRandomWalkTriggerPolicy<Tuple3<Double, Double, Long>>(setting.f2, timeExtractor);
-				eviction = new DeterministicTimeEvictionPolicy<Tuple3<Double, Double, Long>>(setting.f1.intValue(), timestampWrapper);
-				policyGroups.add(new DeterministicPolicyGroup<Tuple3<Double, Double, Long>>(trigger, eviction, timeExtractor));
+				trigger = new DeterministicRandomWalkTriggerPolicy<>(setting.f2, timeExtractor);
+				eviction = new DeterministicTimeEvictionPolicy<>(setting.f1.intValue(), timestampWrapper);
+				policyGroups.add(new DeterministicPolicyGroup<>(trigger, eviction, timeExtractor));
 			}
 		}
 
@@ -500,12 +484,12 @@ public class ExperimentDriver {
 	}
 
 	public static List<TriggerPolicy<Tuple3<Double, Double, Long>>> makeNDRandomWalkTrigger(List<Tuple3<String, Double, Double[]>> settings) {
-		List<TriggerPolicy<Tuple3<Double, Double, Long>>> trigger = new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>();
+		List<TriggerPolicy<Tuple3<Double, Double, Long>>> trigger = new LinkedList<>();
 		for (Tuple3<String, Double, Double[]> setting : settings) {
 			if (setting.f0.equals("COUNT")) {
-				trigger.add(new RandomWalkTriggerPolicy<Tuple3<Double, Double, Long>>(setting.f2, countExtractor));
+				trigger.add(new RandomWalkTriggerPolicy<>(setting.f2, countExtractor));
 			} else {
-				trigger.add(new RandomWalkTriggerPolicy<Tuple3<Double, Double, Long>>(setting.f2, timeExtractor));
+				trigger.add(new RandomWalkTriggerPolicy<>(setting.f2, timeExtractor));
 			}
 		}
 		return trigger;
@@ -513,12 +497,12 @@ public class ExperimentDriver {
 
 	@SuppressWarnings("unchecked")
 	public static List<EvictionPolicy<Tuple3<Double, Double, Long>>> makeNDRandomWalkEviction(List<Tuple3<String, Double, Double[]>> settings) {
-		List<EvictionPolicy<Tuple3<Double, Double, Long>>> eviction = new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>();
+		List<EvictionPolicy<Tuple3<Double, Double, Long>>> eviction = new LinkedList<>();
 		for (Tuple3<String, Double, Double[]> setting : settings) {
 			if (setting.f0.equals("COUNT")) {
-				eviction.add(new CountEvictionPolicy<Tuple3<Double, Double, Long>>(setting.f1.intValue()));
+				eviction.add(new CountEvictionPolicy<>(setting.f1.intValue()));
 			} else {
-				eviction.add(new TimeEvictionPolicy<Tuple3<Double, Double, Long>>(setting.f1.intValue(), timestampWrapper));
+				eviction.add(new TimeEvictionPolicy<>(setting.f1.intValue(), timestampWrapper));
 			}
 		}
 		return eviction;
@@ -526,12 +510,12 @@ public class ExperimentDriver {
 
 	@SuppressWarnings("unchecked")
 	public static List<TriggerPolicy<Tuple3<Double, Double, Long>>> makeNDPeriodicTrigger(List<Tuple3<String, Double, Double>> settings) {
-		List<TriggerPolicy<Tuple3<Double, Double, Long>>> trigger = new LinkedList<TriggerPolicy<Tuple3<Double, Double, Long>>>();
+		List<TriggerPolicy<Tuple3<Double, Double, Long>>> trigger = new LinkedList<>();
 		for (Tuple3<String, Double, Double> setting : settings) {
 			if (setting.f0.equals("COUNT")) {
-				trigger.add(new CountTriggerPolicy<Tuple3<Double, Double, Long>>(setting.f2.intValue()));
+				trigger.add(new CountTriggerPolicy<>(setting.f2.intValue()));
 			} else {
-				trigger.add(new TimeTriggerPolicy<Tuple3<Double, Double, Long>>(setting.f2.intValue(), timestampWrapper));
+				trigger.add(new TimeTriggerPolicy<>(setting.f2.intValue(), timestampWrapper));
 			}
 		}
 		return trigger;
@@ -539,12 +523,12 @@ public class ExperimentDriver {
 
 	@SuppressWarnings("unchecked")
 	public static List<EvictionPolicy<Tuple3<Double, Double, Long>>> makeNDPeriodicEviction(List<Tuple3<String, Double, Double>> settings) {
-		List<EvictionPolicy<Tuple3<Double, Double, Long>>> eviction = new LinkedList<EvictionPolicy<Tuple3<Double, Double, Long>>>();
+		List<EvictionPolicy<Tuple3<Double, Double, Long>>> eviction = new LinkedList<>();
 		for (Tuple3<String, Double, Double> setting : settings) {
 			if (setting.f0.equals("COUNT")) {
-				eviction.add(new DeterministicCountEvictionPolicy<Tuple3<Double, Double, Long>>(setting.f1.intValue()));
+				eviction.add(new DeterministicCountEvictionPolicy<>(setting.f1.intValue()));
 			} else {
-				eviction.add(new DeterministicTimeEvictionPolicy<Tuple3<Double, Double, Long>>(setting.f1.intValue(), timestampWrapper));
+				eviction.add(new DeterministicTimeEvictionPolicy<>(setting.f1.intValue(), timestampWrapper));
 			}
 		}
 		return eviction;
@@ -558,34 +542,19 @@ public class ExperimentDriver {
 	public static void runWarmUpTask() throws Exception {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment(1);
 		DataStream<Tuple3<Double, Double, Long>> source = env.addSource(new DataGenerator(10, 10));
-		source.map(new MapFunction<Tuple3<Double, Double, Long>, Long>() {
-			@Override
-			public Long map(Tuple3<Double, Double, Long> value) throws Exception {
-				return value.f2;
-			}
-		}).print();
+		source.map((MapFunction<Tuple3<Double, Double, Long>, Long>) value -> value.f2).print();
 		env.execute();
 	}
 
 	/**
 	 * Extracts the current tuple count from the input tuple
 	 */
-	static Extractor<Tuple3<Double, Double, Long>, Double> countExtractor = new Extractor<Tuple3<Double, Double, Long>, Double>() {
-		@Override
-		public Double extract(Tuple3<Double, Double, Long> in) {
-			return in.f1;
-		}
-	};
+	static Extractor<Tuple3<Double, Double, Long>, Double> countExtractor = (Extractor<Tuple3<Double, Double, Long>, Double>) in -> in.f1;
 
 	/**
 	 * Extracts the timestamp from the input tuple (not the system timestamp)
 	 */
-	static Extractor<Tuple3<Double, Double, Long>, Double> timeExtractor = new Extractor<Tuple3<Double, Double, Long>, Double>() {
-		@Override
-		public Double extract(Tuple3<Double, Double, Long> in) {
-			return in.f2.doubleValue();
-		}
-	};
+	static Extractor<Tuple3<Double, Double, Long>, Double> timeExtractor = (Extractor<Tuple3<Double, Double, Long>, Double>) in -> in.f2.doubleValue();
 
 	@SuppressWarnings("unchecked")
 	static TimestampWrapper timestampWrapper = new TimestampWrapper(new Timestamp<Tuple3<Double, Double, Long>>() {
