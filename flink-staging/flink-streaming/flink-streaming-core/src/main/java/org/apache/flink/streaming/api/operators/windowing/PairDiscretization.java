@@ -93,12 +93,12 @@ public class PairDiscretization {
         }
 
         //then we compute all derivative window sequences
-        List<Deque<Long>> subsequences = new ArrayList<Deque<Long>>();
+        List<Deque<Long>> subsequences = new ArrayList<>();
         for (PairPolicyGroup wrapper : policies) {
             int multiples = lcm.divide(BigInteger.valueOf(wrapper.getPart1() + wrapper.getPart2())).intValue();
             int subPanes = multiples * 2;
             LOG.error("Allocating "+subPanes+" pairs");
-            Deque<Long> periods = new ArrayDeque<Long>();
+            Deque<Long> periods = new ArrayDeque<>();
             int pair = 1;
             for (int i = 0; i < subPanes; i++) {
                 periods.addFirst(wrapper.getPart(pair));
@@ -108,16 +108,16 @@ public class PairDiscretization {
         }
 
         //and then we make a proper uber-pane sequence out of its derivatives
-        List<Long> sequence = new ArrayList<Long>();
+        List<Long> sequence = new ArrayList<>();
 
         while (!subsequences.isEmpty()) {
-            List<Long> nextPairs = new ArrayList<Long>(subsequences.size());
+            List<Long> nextPairs = new ArrayList<>(subsequences.size());
             for (Deque<Long> pairStack : subsequences) {
                 nextPairs.add(pairStack.peekFirst());
             }
             long min = Collections.min(nextPairs);
             sequence.add(min);
-            List<Deque<Long>> toRemove = new ArrayList<Deque<Long>>();
+            List<Deque<Long>> toRemove = new ArrayList<>();
             for (Deque<Long> pairStack : subsequences) {
                 long next = pairStack.removeFirst();
                 if (next > min) {
@@ -139,8 +139,8 @@ public class PairDiscretization {
     private static <DATA> DeterministicPolicyGroup<DATA> getPairSequence(PairPolicyGroup<DATA> group,
                                                                             List<Long> sequence){
         if (group.getEviction() instanceof DeterministicCountEvictionPolicy) {
-            return new DeterministicPolicyGroup<DATA>(new DeterministicCountSequenceTrigger<DATA>(sequence),
-                    new DeterministicCountSequenceEviction<DATA>(sequence), group.getFieldExtractor());
+            return new DeterministicPolicyGroup<>(new DeterministicCountSequenceTrigger<>(sequence),
+					new DeterministicCountSequenceEviction<>(sequence), group.getFieldExtractor());
         } else
             throw new IllegalArgumentException("Onlycount based policies are currently supported for pairs ");
     }

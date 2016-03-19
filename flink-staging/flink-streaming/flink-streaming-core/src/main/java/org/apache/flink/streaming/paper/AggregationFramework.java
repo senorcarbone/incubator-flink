@@ -71,7 +71,9 @@ public class AggregationFramework {
 					input.getType(), aggTypeInfo);
 			TypeInformation<Tuple2<Integer, Agg>> combinedType = new TupleTypeInfo<>(
 					BasicTypeInfo.INT_TYPE_INFO, lowerRetType);
-
+			TypeInformation<Out> outTypeInfo = TypeExtractor.getMapReturnTypes(lift, aggTypeInfo);
+			TypeInformation<Tuple2<Integer, Out>>  outputType = new TupleTypeInfo<>(
+					BasicTypeInfo.INT_TYPE_INFO, outTypeInfo);
 			DataStream<Tuple2<In, Agg>> lower = input.map(new Lower<>(this.lower)).startNewChain()
 					.returns(lowerRetType);
 			DataStream<Tuple2<Integer, Agg>> combinedWithID = null;
@@ -100,7 +102,7 @@ public class AggregationFramework {
 									aggTypeInfo.createSerializer(null), aggType));
 			}
 
-			return combinedWithID.map(new Lift(this.lift));
+			return (DataStream<Tuple2<Integer, Out>>) combinedWithID.map(new Lift(this.lift)).returns(outputType);
 		}
 	}
 	

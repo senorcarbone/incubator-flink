@@ -24,7 +24,7 @@ import java.io.Serializable;
 import java.util.LinkedList;
 
 /**
- * A policy group wraps around several deterministig windowing policies which
+ * A policy group wraps around several deterministic windowing policies which
  * operate on the same field of the input tuples.
  * 
  * @param <DATA>
@@ -47,11 +47,11 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 	/**
 	 * The look ahead for window begins the future
 	 */
-	private LinkedList<Double> windowStartLookahead = new LinkedList<Double>();
+	private LinkedList<Double> windowStartLookahead = new LinkedList<>();
 	/**
 	 * The look ahead for window ends in the future
 	 */
-	private LinkedList<Double> windowEndLookahead = new LinkedList<Double>();
+	private LinkedList<Double> windowEndLookahead = new LinkedList<>();
 	/**
 	 * The position of the latest trigger in the lookahead
 	 */
@@ -236,10 +236,6 @@ public class DeterministicPolicyGroup<DATA> implements Serializable {
 
 		// Combine and return counter
 		return (windowBeginCounter << 16) + windowEndCounter;
-	}
-
-	public boolean isContinuousAggregation(){
-		return this.isContinuousAggregation;
 	}
 
 	public DeterministicEvictionPolicy<DATA> getEviction() {

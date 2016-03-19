@@ -16,16 +16,27 @@
  */
 package org.apache.flink.streaming.paper.experiments;
 
+import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple4;
+import org.apache.flink.core.fs.FileSystem;
+import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
+import org.apache.flink.streaming.api.windowing.policy.DeterministicTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TumblingPolicyGroup;
 import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
 import org.apache.flink.streaming.paper.AggregationFramework;
+import org.apache.flink.streaming.paper.PaperExperiment;
 
+import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -35,11 +46,17 @@ import java.text.SimpleDateFormat;
 public class DEBSExpDriver {
 
 
+	private static String RESULT_PATH = "test-result.txt";
+
 	public static AggregationFramework.WindowAggregation<Tuple2<Long, Long>, Tuple4<Long, Long, Long, Integer>, Double>
 			AvgAggregation = new AggregationFramework.WindowAggregation<>(
-			sumCount -> (double) sumCount.f0 / sumCount.f1,
+			new MapFunction<Tuple2<Long, Long>, Double>() {
+				@Override
+				public Double map(Tuple2<Long, Long> sumCount) throws Exception {
+					return sumCount.f1 != 0 ? (double) sumCount.f0 / sumCount.f1 : 0d;
+				}
+			},
 			new ReduceFunction<Tuple2<Long, Long>>() {
-				private static final long serialVersionUID = 1L;
 				private AggregationStats stats = AggregationStats.getInstance();
 
 				@Override
@@ -48,7 +65,12 @@ public class DEBSExpDriver {
 					stats.registerReduce();
 					return new Tuple2<>(t1.f0 + t2.f0, t1.f1 + t1.f1);
 				}
-			}, debs -> new Tuple2<>(debs.f2, 1l), new Tuple2<>(0l, 0l));
+			}, new MapFunction<Tuple4<Long, Long, Long, Integer>, Tuple2<Long, Long>>() {
+		@Override
+		public Tuple2<Long, Long> map(Tuple4<Long, Long, Long, Integer> debs) throws Exception {
+			return new Tuple2<>(debs.f2, 1l);
+		}
+	}, new Tuple2<>(0l, 0l));
 
 	/**
 	 * Main program: Runs all the test cases and writed the results to the specified output files.
@@ -58,10 +80,75 @@ public class DEBSExpDriver {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment(1);
-		env.readTextFile(args[0]).map(new DEBSDataFormatter()).print();
+		AggregationStats stats = AggregationStats.getInstance();
 
+		PrintWriter resultWriter = new PrintWriter(RESULT_PATH, "UTF-8");
+
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment(1);
+		DataStream<Tuple4<Long, Long, Long, Integer>> sensorStream = env.readTextFile(args[0]).map(new DEBSDataFormatter());
+
+
+		DeterministicPolicyGroup<Tuple4<Long, Long, Long, Integer>> togglePolicy =
+				new TumblingPolicyGroup<>(new SensorTumblingWindow(5));
+		List<DeterministicPolicyGroup<Tuple4<Long, Long, Long, Integer>>> detPolicies =
+				new ArrayList<>();
+		detPolicies.add(togglePolicy);
+
+		AvgAggregation.applyOn(sensorStream,
+				new Tuple3<>
+						(detPolicies, new ArrayList<>(), new ArrayList<>()),
+				AggregationFramework.AGGREGATION_STRATEGY.EAGER,
+				AggregationFramework.DISCRETIZATION_TYPE.B2B)
+				.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-bla", FileSystem.WriteMode.OVERWRITE);
+
+		JobExecutionResult result = env.execute("Scanario foo Case bla");
+
+		finalizeExperiment(stats, resultWriter, result, 1, 1);
+
+		sensorStream.print();
 		env.execute();
+
+		//close writer
+		resultWriter.flush();
+		resultWriter.close();
+	}
+
+	private static void finalizeExperiment(AggregationStats stats, PrintWriter resultWriter, JobExecutionResult result, int scenarioId, int caseId) {
+		resultWriter.println(scenarioId + "\t" + caseId + "\t" + result.getNetRuntime() + "\t" + stats.getAggregateCount()
+				+ "\t" + stats.getReduceCount() + "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize()
+				+ "\t" + stats.getAverageUpdTime() + "\t" + stats.getTotalUpdateCount() + "\t" + stats.getAverageMergeTime() + "\t" + stats.getTotalMergeCount());
+		stats.reset();
+		resultWriter.flush();
+	}
+
+	protected static class SensorTumblingWindow implements DeterministicTriggerPolicy<Tuple4<Long, Long, Long, Integer>> {
+
+		private int bitmask;
+		private int currentState = -1; //initial state is -1 
+
+		public SensorTumblingWindow(int sensorIndex) {
+			this.bitmask = (int) Math.pow(2, sensorIndex);
+		}
+
+		@Override
+		public double getNextTriggerPosition(double previousPosition) {
+			//not used
+			return 0;
+		}
+
+		@Override
+		public boolean notifyTrigger(Tuple4<Long, Long, Long, Integer> datapoint) {
+			int sensorVal = datapoint.f3 & bitmask;
+			if (currentState == -1) {
+				currentState = sensorVal;
+				return false;
+			}
+
+			int tmp = currentState;
+			this.currentState = sensorVal;
+
+			return (currentState ^ tmp) == 1;
+		}
 	}
 
 	public static class DEBSDataFormatter implements MapFunction<String, Tuple4<Long, Long, Long, Integer>> {
@@ -84,6 +171,7 @@ public class DEBSExpDriver {
 			for (int i = 48; i < 51; i++) {
 				strBuilder.append(sensorVals[i]);
 			}
+			System.err.println(strBuilder.toString());
 			return new Tuple4<>(dfm.parse(sensorVals[0])
 					.getTime(), Long.valueOf(sensorVals[1]), measure, Integer.parseInt(strBuilder.toString(), 2));
 		}
