@@ -101,7 +101,7 @@ public class DEBSExpDriver {
 				AggregationFramework.DISCRETIZATION_TYPE.B2B)
 				.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-bla", FileSystem.WriteMode.OVERWRITE);
 
-		JobExecutionResult result = env.execute("Scanario foo Case bla");
+		JobExecutionResult result = env.execute("Scenario foo Case bla");
 
 		finalizeExperiment(stats, resultWriter, result, 1, 1);
 
@@ -124,9 +124,9 @@ public class DEBSExpDriver {
 	protected static class SensorTumblingWindow implements DeterministicTriggerPolicy<Tuple4<Long, Long, Long, Integer>> {
 
 		private int bitmask;
-		private int currentState = -1; //initial state is -1 
+		private int currentState = Integer.MAX_VALUE; //initial state is -1 
 
-		public SensorTumblingWindow(int sensorIndex) {
+		public 	SensorTumblingWindow(int sensorIndex) {
 			this.bitmask = (int) Math.pow(2, sensorIndex);
 		}
 
@@ -139,7 +139,7 @@ public class DEBSExpDriver {
 		@Override
 		public boolean notifyTrigger(Tuple4<Long, Long, Long, Integer> datapoint) {
 			int sensorVal = datapoint.f3 & bitmask;
-			if (currentState == -1) {
+			if (currentState == Integer.MAX_VALUE) {
 				currentState = sensorVal;
 				return false;
 			}
@@ -147,7 +147,11 @@ public class DEBSExpDriver {
 			int tmp = currentState;
 			this.currentState = sensorVal;
 
-			return (currentState ^ tmp) == 1;
+			boolean triggered = currentState != tmp;
+			if(triggered){
+				System.err.println("Triggered Window for sensor !!");
+			}
+			return triggered;
 		}
 	}
 
@@ -171,7 +175,6 @@ public class DEBSExpDriver {
 			for (int i = 48; i < 51; i++) {
 				strBuilder.append(sensorVals[i]);
 			}
-			System.err.println(strBuilder.toString());
 			return new Tuple4<>(dfm.parse(sensorVals[0])
 					.getTime(), Long.valueOf(sensorVals[1]), measure, Integer.parseInt(strBuilder.toString(), 2));
 		}

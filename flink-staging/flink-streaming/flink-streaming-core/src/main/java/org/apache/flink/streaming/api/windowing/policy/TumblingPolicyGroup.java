@@ -17,7 +17,8 @@ public class TumblingPolicyGroup<DATA> extends DeterministicPolicyGroup<DATA> {
 		}
 
 		if (!initiated) {
-			return 1;
+			initiated = true;
+			return ((short) 1) << 16;
 		}
 
 		return 0;
