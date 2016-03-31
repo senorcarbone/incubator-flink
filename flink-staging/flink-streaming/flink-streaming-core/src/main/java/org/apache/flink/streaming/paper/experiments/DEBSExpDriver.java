@@ -73,7 +73,7 @@ public class DEBSExpDriver {
 	}, new Tuple2<>(0l, 0l));
 
 	/**
-	 * Main program: Runs all the test cases and writed the results to the specified output files.
+	 * Main program: Runs all the test cases and writes the results to the specified output files.
 	 *
 	 * @param args not used,
 	 * @throws Exception Any exception which may occurs at the runtime.
@@ -145,13 +145,7 @@ public class DEBSExpDriver {
 			}
 
 			int tmp = currentState;
-			this.currentState = sensorVal;
-
-			boolean triggered = currentState != tmp;
-			if(triggered){
-				System.err.println("Triggered Window for sensor !!");
-			}
-			return triggered;
+			return (currentState = sensorVal) != tmp;
 		}
 	}
 

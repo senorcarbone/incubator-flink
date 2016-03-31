@@ -13,14 +13,14 @@ public class TumblingPolicyGroup<DATA> extends DeterministicPolicyGroup<DATA> {
 	public int getWindowEvents(DATA tuple) {
 		
 		if (getTrigger().notifyTrigger(tuple)) {
-			return (((short) 1) << 16) + (short) 1;
+			return 65537;  // window starts and ends
 		}
 
 		if (!initiated) {
 			initiated = true;
-			return ((short) 1) << 16;
+			return 65536;  // window starts
 		}
 
-		return 0;
+		return 0; // no starts or ends
 	}
 }

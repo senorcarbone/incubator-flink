@@ -91,7 +91,12 @@ public class ExperimentDriver {
 
 	public static WindowAggregation<Double, Tuple3<Double, Double, Long>, Double>
 			SumAggregation = new WindowAggregation<>(
-			t -> t, new ReduceFunction<Double>() {
+			new MapFunction<Double, Double>() {
+				@Override
+				public Double map(Double t) throws Exception {
+					return t;
+				}
+			}, new ReduceFunction<Double>() {
 		private static final long serialVersionUID = 1L;
 		private AggregationStats stats = AggregationStats.getInstance();
 
@@ -101,7 +106,12 @@ public class ExperimentDriver {
 			stats.registerReduce();
 			return value1 + value2;
 		}
-	}, value -> value.f0, 0d);
+	}, new MapFunction<Tuple3<Double, Double, Long>, Double>() {
+		@Override
+		public Double map(Tuple3<Double, Double, Long> value) throws Exception {
+			return value.f0;
+		}
+	}, 0d);
 
 
 	/**
@@ -542,19 +552,34 @@ public class ExperimentDriver {
 	public static void runWarmUpTask() throws Exception {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment(1);
 		DataStream<Tuple3<Double, Double, Long>> source = env.addSource(new DataGenerator(10, 10));
-		source.map((MapFunction<Tuple3<Double, Double, Long>, Long>) value -> value.f2).print();
+		source.map((MapFunction<Tuple3<Double, Double, Long>, Long>) new MapFunction<Tuple3<Double, Double, Long>, Long>() {
+			@Override
+			public Long map(Tuple3<Double, Double, Long> value) throws Exception {
+				return value.f2;
+			}
+		}).print();
 		env.execute();
 	}
 
 	/**
 	 * Extracts the current tuple count from the input tuple
 	 */
-	static Extractor<Tuple3<Double, Double, Long>, Double> countExtractor = (Extractor<Tuple3<Double, Double, Long>, Double>) in -> in.f1;
+	static Extractor<Tuple3<Double, Double, Long>, Double> countExtractor = (Extractor<Tuple3<Double, Double, Long>, Double>) new Extractor<Tuple3<Double, Double, Long>, Double>() {
+		@Override
+		public Double extract(Tuple3<Double, Double, Long> in) {
+			return in.f1;
+		}
+	};
 
 	/**
 	 * Extracts the timestamp from the input tuple (not the system timestamp)
 	 */
-	static Extractor<Tuple3<Double, Double, Long>, Double> timeExtractor = (Extractor<Tuple3<Double, Double, Long>, Double>) in -> in.f2.doubleValue();
+	static Extractor<Tuple3<Double, Double, Long>, Double> timeExtractor = (Extractor<Tuple3<Double, Double, Long>, Double>) new Extractor<Tuple3<Double, Double, Long>, Double>() {
+		@Override
+		public Double extract(Tuple3<Double, Double, Long> in) {
+			return in.f2.doubleValue();
+		}
+	};
 
 	@SuppressWarnings("unchecked")
 	static TimestampWrapper timestampWrapper = new TimestampWrapper(new Timestamp<Tuple3<Double, Double, Long>>() {
