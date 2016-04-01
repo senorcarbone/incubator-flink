@@ -133,7 +133,6 @@ public class B2BMultiDiscretizer<IN, AGG> extends
     @Override
     public void processElement(Tuple2<IN, AGG> tuple) throws Exception {
         // First handle the deterministic policies
-        LOG.info("Processing element " + tuple);
         boolean partialUpdated = false;
         for (int i = 0; i < policyGroups.size(); i++) {
             int windowEvents = policyGroups.get(i).getWindowEvents(tuple.f0);
@@ -224,7 +223,7 @@ public class B2BMultiDiscretizer<IN, AGG> extends
     private void collectAggregate(int queryId) throws Exception {
         Integer partial = queryBorders.get(queryId).getFirst();
         LOG.info("Q{} Emitting window from partial id: {}", queryId, partial);
-        output.collect(new Tuple2<>(queryId, reducer.reduce(serializer.copy(aggregator.aggregate(partial)),
+        output.collect(new Tuple2<Integer, AGG>(queryId, reducer.reduce(serializer.copy(aggregator.aggregate(partial)),
 				serializer.copy(currentPartial))));
         queryBorders.get(queryId).removeFirst();
         unregisterPartial(partial);

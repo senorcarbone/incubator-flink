@@ -21,6 +21,7 @@ import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.operators.translation.WrappingFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -69,11 +70,13 @@ public class AggregationFramework {
 			TypeInformation<Agg> aggTypeInfo = TypeExtractor.getMapReturnTypes(lower, input.getType());
 			TypeInformation<Tuple2<In, Agg>> lowerRetType = new TupleTypeInfo<>(
 					input.getType(), aggTypeInfo);
+			
 			TypeInformation<Tuple2<Integer, Agg>> combinedType = new TupleTypeInfo<>(
-					BasicTypeInfo.INT_TYPE_INFO, lowerRetType);
-			TypeInformation<Out> outTypeInfo = TypeExtractor.getMapReturnTypes(lift, aggTypeInfo);
+					BasicTypeInfo.INT_TYPE_INFO, aggTypeInfo);
 			TypeInformation<Tuple2<Integer, Out>>  outputType = new TupleTypeInfo<>(
-					BasicTypeInfo.INT_TYPE_INFO, outTypeInfo);
+					BasicTypeInfo.INT_TYPE_INFO, TypeExtractor.getMapReturnTypes(lift, aggTypeInfo));
+			
+			
 			DataStream<Tuple2<In, Agg>> lower = input.map(new Lower<>(this.lower)).startNewChain()
 					.returns(lowerRetType);
 			DataStream<Tuple2<Integer, Agg>> combinedWithID = null;
@@ -92,8 +95,7 @@ public class AggregationFramework {
 										policies.f1,
 										policies.f2,
 										combine,
-										aggTypeInfo.createSerializer(null), identityValue, aggType
-								));
+										aggTypeInfo.createSerializer(null), identityValue, aggType));
 					}
 					break;
 				case PAIRS:

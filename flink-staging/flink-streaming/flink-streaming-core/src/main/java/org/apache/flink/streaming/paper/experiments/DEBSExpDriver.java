@@ -63,14 +63,14 @@ public class DEBSExpDriver {
 				public Tuple2<Long, Long> reduce(Tuple2<Long, Long> t1, Tuple2<Long, Long> t2)
 						throws Exception {
 					stats.registerReduce();
-					return new Tuple2<>(t1.f0 + t2.f0, t1.f1 + t1.f1);
+					return new Tuple2<>(t1.f0 + t2.f0, t1.f1 + t2.f1);
 				}
 			}, new MapFunction<Tuple4<Long, Long, Long, Integer>, Tuple2<Long, Long>>() {
 		@Override
 		public Tuple2<Long, Long> map(Tuple4<Long, Long, Long, Integer> debs) throws Exception {
 			return new Tuple2<>(debs.f2, 1l);
 		}
-	}, new Tuple2<>(0l, 0l));
+	}, new Tuple2<>(0l, 1l));
 
 	/**
 	 * Main program: Runs all the test cases and writes the results to the specified output files.
@@ -89,7 +89,7 @@ public class DEBSExpDriver {
 
 
 		DeterministicPolicyGroup<Tuple4<Long, Long, Long, Integer>> togglePolicy =
-				new TumblingPolicyGroup<>(new SensorTumblingWindow(5));
+				new TumblingPolicyGroup<>(new SensorTumblingWindow(50));
 		List<DeterministicPolicyGroup<Tuple4<Long, Long, Long, Integer>>> detPolicies =
 				new ArrayList<>();
 		detPolicies.add(togglePolicy);
@@ -104,9 +104,6 @@ public class DEBSExpDriver {
 		JobExecutionResult result = env.execute("Scenario foo Case bla");
 
 		finalizeExperiment(stats, resultWriter, result, 1, 1);
-
-		sensorStream.print();
-		env.execute();
 
 		//close writer
 		resultWriter.flush();
