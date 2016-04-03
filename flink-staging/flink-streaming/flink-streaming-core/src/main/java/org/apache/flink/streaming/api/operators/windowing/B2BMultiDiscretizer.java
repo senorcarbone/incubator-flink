@@ -222,12 +222,16 @@ public class B2BMultiDiscretizer<IN, AGG extends Serializable> extends
      * @throws Exception
      */
     private void collectAggregate(int queryId) throws Exception {
-        Integer partial = queryBorders.get(queryId).getFirst();
-        LOG.debug("Q{} Emitting window from partial id: {}", queryId, partial);
-        output.collect(new Tuple2<>(queryId, reducer.reduce(serializer.copy(aggregator.aggregate(partial)),
-				serializer.copy(currentPartial))));
-        queryBorders.get(queryId).removeFirst();
-        unregisterPartial(partial);
+        try {
+			Integer partial = queryBorders.get(queryId).getFirst();
+			LOG.debug("Q{} Emitting window from partial id: {}", queryId, partial);
+			output.collect(new Tuple2<>(queryId, reducer.reduce(serializer.copy(aggregator.aggregate(partial)),
+					serializer.copy(currentPartial))));
+			queryBorders.get(queryId).removeFirst();
+			unregisterPartial(partial);
+		}catch(Exception ex){
+			LOG.error("FAILED TO AGGREGATE FOR QUERY : "+queryId);
+		}
     }
 
 }

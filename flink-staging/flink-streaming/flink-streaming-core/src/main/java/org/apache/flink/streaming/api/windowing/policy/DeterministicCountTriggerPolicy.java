@@ -35,6 +35,10 @@ public class DeterministicCountTriggerPolicy<IN> extends CountTriggerPolicy<IN>
 		this.startValue = 0;
 	}
 
+	public int getStartValue() {
+		return startValue;
+	}
+
 	@Override
 	public double getNextTriggerPosition(double previousTriggerPosition) {
 		if (previousTriggerPosition < 0) {

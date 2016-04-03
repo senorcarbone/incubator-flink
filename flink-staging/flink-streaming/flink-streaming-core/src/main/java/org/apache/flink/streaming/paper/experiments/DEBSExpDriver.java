@@ -16,6 +16,7 @@
  */
 package org.apache.flink.streaming.paper.experiments;
 
+import com.esotericsoftware.minlog.Log;
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
@@ -84,21 +85,20 @@ public class DEBSExpDriver extends ExperimentDriver {
 				continue;
 			}
 
+			Log.info("STARTING SCENARIO "+i);
+			
 			int testCase = 0;
 
 			if (RUN_PAIRS_LAZY) {
 				JobExecutionResult result = null;
 
 				AggregationFramework.AGGREGATION_STRATEGY strategy = AggregationFramework.AGGREGATION_STRATEGY.LAZY;
-				AggregationFramework.DISCRETIZATION_TYPE discr = AggregationFramework.DISCRETIZATION_TYPE.B2B;
+				AggregationFramework.DISCRETIZATION_TYPE discr = AggregationFramework.DISCRETIZATION_TYPE.PAIRS;
 				String resultPath = "result-bla";
 
 				result = deployAggregation(strategy, discr, i, resultPath);
-				finalizeExperiment(stats, resultWriter, result, 1, 1);
-
-				//close writer
-				resultWriter.flush();
-				resultWriter.close();
+				finalizeExperiment(stats, resultWriter, result, i, testCase);
+				
 			}
 
 			testCase++;

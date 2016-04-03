@@ -140,10 +140,11 @@ public class PairDiscretization {
     private static <DATA> DeterministicPolicyGroup<DATA> getPairSequence(PairPolicyGroup<DATA> group,
                                                                             List<Long> sequence){
         if (group.getEviction() instanceof DeterministicCountEvictionPolicy) {
-            return new DeterministicPolicyGroup<>(new DeterministicCountSequenceTrigger<>(sequence),
+            return new DeterministicPolicyGroup<>(new DeterministicCountSequenceTrigger<>(sequence, 
+					((DeterministicCountTriggerPolicy)group.getTrigger()).getStartValue()),
 					new DeterministicCountSequenceEviction<>(sequence), group.getFieldExtractor());
         } else
-            throw new IllegalArgumentException("Onlycount based policies are currently supported for pairs ");
+            throw new IllegalArgumentException("Only count based policies are currently supported for pairs ");
     }
 
 }
