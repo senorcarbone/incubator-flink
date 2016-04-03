@@ -68,9 +68,19 @@ public class PaperExperiment {
 
 	static LinkedList emptyList = new LinkedList();
 
-	static Extractor<Tuple3<Double, Double, Long>, Double> countExtractor = (Extractor<Tuple3<Double, Double, Long>, Double>) in -> in.f1;
+	static Extractor<Tuple3<Double, Double, Long>, Double> countExtractor = (Extractor<Tuple3<Double, Double, Long>, Double>) new Extractor<Tuple3<Double, Double, Long>, Double>() {
+		@Override
+		public Double extract(Tuple3<Double, Double, Long> in) {
+			return in.f1;
+		}
+	};
 	
-	static Extractor<Tuple3<Double, Double, Long>, Double> timeExtractor = (Extractor<Tuple3<Double, Double, Long>, Double>) in -> in.f2.doubleValue();
+	static Extractor<Tuple3<Double, Double, Long>, Double> timeExtractor = (Extractor<Tuple3<Double, Double, Long>, Double>) new Extractor<Tuple3<Double, Double, Long>, Double>() {
+		@Override
+		public Double extract(Tuple3<Double, Double, Long> in) {
+			return in.f2.doubleValue();
+		}
+	};
 
 	private static DeterministicPolicyGroup generateDeterministicPolicyGroup() {
 		DeterministicPolicyGroup<Tuple3<Double, Double, Long>> group;
@@ -154,7 +164,12 @@ public class PaperExperiment {
 
 	public static AggregationFramework.WindowAggregation<Double, Tuple3<Double, Double, Long>, Double>
 			SumAggregation = new AggregationFramework.WindowAggregation<>(
-			t -> t, new ReduceFunction<Double>() {
+			new MapFunction<Double, Double>() {
+				@Override
+				public Double map(Double t) throws Exception {
+					return t;
+				}
+			}, new ReduceFunction<Double>() {
 		private static final long serialVersionUID = 1L;
 		private AggregationStats stats = AggregationStats.getInstance();
 
@@ -164,6 +179,11 @@ public class PaperExperiment {
 			stats.registerReduce();
 			return value1 + value2;
 		}
-	}, value -> value.f0, 0d);
+	}, new MapFunction<Tuple3<Double, Double, Long>, Double>() {
+		@Override
+		public Double map(Tuple3<Double, Double, Long> value) throws Exception {
+			return value.f0;
+		}
+	}, 0d);
 
 }

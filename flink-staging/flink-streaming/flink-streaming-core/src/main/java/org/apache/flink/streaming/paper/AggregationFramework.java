@@ -21,7 +21,6 @@ import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.operators.translation.WrappingFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -35,6 +34,7 @@ import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
 import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 
+import java.io.Serializable;
 import java.util.List;
 
 @SuppressWarnings("serial")
@@ -44,7 +44,7 @@ public class AggregationFramework {
 
 	public enum DISCRETIZATION_TYPE {B2B, PAIRS}
 
-	public static class WindowAggregation<Agg, In, Out> {
+	public static class WindowAggregation<Agg extends Serializable, In, Out> {
 
 		private final MapFunction<Agg, Out> lift;
 		private final ReduceFunction<Agg> combine;
@@ -70,13 +70,13 @@ public class AggregationFramework {
 			TypeInformation<Agg> aggTypeInfo = TypeExtractor.getMapReturnTypes(lower, input.getType());
 			TypeInformation<Tuple2<In, Agg>> lowerRetType = new TupleTypeInfo<>(
 					input.getType(), aggTypeInfo);
-			
+
 			TypeInformation<Tuple2<Integer, Agg>> combinedType = new TupleTypeInfo<>(
 					BasicTypeInfo.INT_TYPE_INFO, aggTypeInfo);
-			TypeInformation<Tuple2<Integer, Out>>  outputType = new TupleTypeInfo<>(
+			TypeInformation<Tuple2<Integer, Out>> outputType = new TupleTypeInfo<>(
 					BasicTypeInfo.INT_TYPE_INFO, TypeExtractor.getMapReturnTypes(lift, aggTypeInfo));
-			
-			
+
+
 			DataStream<Tuple2<In, Agg>> lower = input.map(new Lower<>(this.lower)).startNewChain()
 					.returns(lowerRetType);
 			DataStream<Tuple2<Integer, Agg>> combinedWithID = null;
@@ -100,15 +100,15 @@ public class AggregationFramework {
 					break;
 				case PAIRS:
 					combinedWithID = lower.transform("WindowAggregation", combinedType,
-							PairDiscretization.create(policies.f0, combine, identityValue, 4, 
+							PairDiscretization.create(policies.f0, combine, identityValue, 4,
 									aggTypeInfo.createSerializer(null), aggType));
 			}
 
 			return (DataStream<Tuple2<Integer, Out>>) combinedWithID.map(new Lift(this.lift)).returns(outputType);
 		}
 	}
-	
-	public static class Lower<IN, AGG> extends WrappingFunction<MapFunction<IN, AGG>> 
+
+	public static class Lower<IN, AGG> extends WrappingFunction<MapFunction<IN, AGG>>
 			implements MapFunction<IN, Tuple2<IN, AGG>> {
 
 		public Lower(MapFunction<IN, AGG> lower) {
@@ -121,17 +121,17 @@ public class AggregationFramework {
 		}
 	}
 
-    public static class Lift<Agg,Out> extends WrappingFunction<MapFunction<Agg,Out>> 
-			implements MapFunction<Tuple2<Integer, Agg>, Tuple2<Integer, Out>>{
+	public static class Lift<Agg, Out> extends WrappingFunction<MapFunction<Agg, Out>>
+			implements MapFunction<Tuple2<Integer, Agg>, Tuple2<Integer, Out>> {
 
-        public Lift(MapFunction<Agg, Out> lift) {
-            super(lift);
-        }
-		
-        @Override
-        public Tuple2<Integer, Out> map(Tuple2<Integer, Agg> value)
-                throws Exception {
-            return new Tuple2<>(value.f0, wrappedFunction.map(value.f1));
-        }
-    }
+		public Lift(MapFunction<Agg, Out> lift) {
+			super(lift);
+		}
+
+		@Override
+		public Tuple2<Integer, Out> map(Tuple2<Integer, Agg> value)
+				throws Exception {
+			return new Tuple2<>(value.f0, wrappedFunction.map(value.f1));
+		}
+	}
 }

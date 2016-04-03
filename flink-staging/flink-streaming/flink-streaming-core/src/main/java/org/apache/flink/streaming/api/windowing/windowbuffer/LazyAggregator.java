@@ -168,7 +168,7 @@ public class LazyAggregator<T> implements WindowAggregator<T>, Serializable {
 
     private int currentCapacity() {
         int capacity = partialSpace - partialMappings.size();
-        LOG.info("CURRENT CAPACITY : {} ", capacity);
+        LOG.debug("CURRENT CAPACITY : {} ", capacity);
         return capacity;
     }
 

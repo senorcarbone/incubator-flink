@@ -366,7 +366,7 @@ public class EagerHeapAggregator<T> implements WindowAggregator<T> {
      */
     private int currentCapacity() {
         int capacity = numLeaves - leafIndex.size();
-        LOG.info("CURRENT CAPACITY : {}", capacity);
+        LOG.debug("CURRENT CAPACITY : {}", capacity);
         return capacity;
     }
 

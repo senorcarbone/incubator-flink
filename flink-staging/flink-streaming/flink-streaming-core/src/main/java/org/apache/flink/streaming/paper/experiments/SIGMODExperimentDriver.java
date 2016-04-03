@@ -17,7 +17,7 @@
 
 package org.apache.flink.streaming.paper.experiments;
 
-public class MultiExperimentDriver {
+public class SIGMODExperimentDriver {
 
     private static final String[] SETUP_PATHS={
             "setups/test-setup-10c10t-0.txt",
@@ -114,7 +114,7 @@ public class MultiExperimentDriver {
             System.out.println("************************************************");
 
             String[] expPaths={SETUP_PATHS[i],RESULT_PATHS[i]};
-            ExperimentDriver.main(expPaths);
+            SimExperimentDriver.main(expPaths);
 
             System.out.println("****************END EXPERIMENT****************");
         }

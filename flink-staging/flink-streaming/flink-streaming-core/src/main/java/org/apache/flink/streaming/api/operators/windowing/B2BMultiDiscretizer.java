@@ -31,10 +31,11 @@ import org.apache.flink.streaming.paper.AggregationFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.util.*;
 
 @SuppressWarnings("unused")
-public class B2BMultiDiscretizer<IN, AGG> extends
+public class B2BMultiDiscretizer<IN, AGG extends Serializable> extends
         AbstractStreamOperator<Tuple2<Integer, AGG>> implements
         OneInputStreamOperator<Tuple2<IN, AGG>, Tuple2<Integer, AGG>> {
 
@@ -147,7 +148,7 @@ public class B2BMultiDiscretizer<IN, AGG> extends
                 if ((windowEvents >> 16) > 0 && !partialUpdated) {
                     stats.registerStartUpdate();
                     if (partialIdx != 0) {
-                        LOG.info("ADDING PARTIAL {} with value {} ", partialIdx, currentPartial);
+                        LOG.debug("ADDING PARTIAL {} with value {} ", partialIdx, currentPartial);
                         aggregator.add(partialIdx, currentPartial);
                     }
                     partialIdx++;
@@ -187,7 +188,7 @@ public class B2BMultiDiscretizer<IN, AGG> extends
             int gcIndx = partialGC;
             while (next == 0 && gcIndx < partialIdx) {
                 gcBag.add(gcIndx);
-                LOG.info("REMOVING PARTIAL {}", gcIndx);
+                LOG.debug("REMOVING PARTIAL {}", gcIndx);
                 partialDependencies.remove(gcIndx++);
                 next = partialDependencies.get(gcIndx);
             }
@@ -222,8 +223,8 @@ public class B2BMultiDiscretizer<IN, AGG> extends
      */
     private void collectAggregate(int queryId) throws Exception {
         Integer partial = queryBorders.get(queryId).getFirst();
-        LOG.info("Q{} Emitting window from partial id: {}", queryId, partial);
-        output.collect(new Tuple2<Integer, AGG>(queryId, reducer.reduce(serializer.copy(aggregator.aggregate(partial)),
+        LOG.debug("Q{} Emitting window from partial id: {}", queryId, partial);
+        output.collect(new Tuple2<>(queryId, reducer.reduce(serializer.copy(aggregator.aggregate(partial)),
 				serializer.copy(currentPartial))));
         queryBorders.get(queryId).removeFirst();
         unregisterPartial(partial);

@@ -8,6 +8,7 @@ import org.apache.flink.streaming.paper.AggregationFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.*;
 
@@ -26,9 +27,9 @@ public class PairDiscretization {
      * @param <IN>
      * @return
      */
-    public static <IN, AGG> B2BMultiDiscretizer<IN, AGG> create(List<DeterministicPolicyGroup<IN>> policyGroups, ReduceFunction<AGG> reduceFunction,
-													  AGG identityValue, int capacity, TypeSerializer<AGG> serializer,
-													  AggregationFramework.AGGREGATION_STRATEGY aggregationType) {
+    public static <IN, AGG extends Serializable> B2BMultiDiscretizer<IN, AGG> create(List<DeterministicPolicyGroup<IN>> policyGroups, ReduceFunction<AGG> reduceFunction,
+																					 AGG identityValue, int capacity, TypeSerializer<AGG> serializer,
+																					 AggregationFramework.AGGREGATION_STRATEGY aggregationType) {
         ensureCompatibility(policyGroups);
 
         List<DeterministicPolicyGroup<IN>> groups = new ArrayList<>(policyGroups.size() + 1);
