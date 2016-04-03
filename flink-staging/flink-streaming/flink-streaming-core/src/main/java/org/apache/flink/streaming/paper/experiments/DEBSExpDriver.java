@@ -55,6 +55,8 @@ public class DEBSExpDriver extends ExperimentDriver {
 
 	private final String dataPath;
 	
+	private boolean enableAggLog = true;
+	
 	public DEBSExpDriver(String dataPath, String setupPath, String resultPath) {
 		super(setupPath, resultPath);
 		this.dataPath = dataPath;
@@ -135,9 +137,11 @@ public class DEBSExpDriver extends ExperimentDriver {
 								  List<DeterministicPolicyGroup> detPolicies,
 								  AggregationFramework.AGGREGATION_STRATEGY strategy,
 								  AggregationFramework.DISCRETIZATION_TYPE discr, String resultPath) {
-		AvgAggregation.applyOn(sensorStream,
-				new Tuple3(detPolicies, new ArrayList<>(), new ArrayList<>()), strategy, discr)
-				.map(new PaperExperiment.Prefix("SUM")).writeAsText(resultPath, FileSystem.WriteMode.OVERWRITE);
+		DataStream<Tuple2<Integer, Double>> aggStream = AvgAggregation.applyOn(sensorStream,
+				new Tuple3(detPolicies, new ArrayList<>(), new ArrayList<>()), strategy, discr);
+		if(enableAggLog){
+			aggStream.map(new PaperExperiment.Prefix("SUM")).writeAsText(resultPath, FileSystem.WriteMode.OVERWRITE);
+		}
 	}
 
 	protected static class SensorTumblingWindow implements DeterministicTriggerPolicy<Tuple4<Long, Long, Long, Integer>> {
