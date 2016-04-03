@@ -48,14 +48,17 @@ import java.util.List;
  */
 public class DEBSExpDriver extends ExperimentDriver {
 
+
 	{
 		RUN_PAIRS_LAZY = true;
 		RUN_PAIRS_EAGER = true;
 	}
 
 	private final String dataPath;
-	
-	private boolean enableAggLog = true;
+
+	private int countStart = 2556001;
+
+	private boolean enableAggLog = false;
 	
 	public DEBSExpDriver(String dataPath, String setupPath, String resultPath) {
 		super(setupPath, resultPath);
@@ -94,8 +97,8 @@ public class DEBSExpDriver extends ExperimentDriver {
 			if (RUN_PAIRS_LAZY) {
 				JobExecutionResult result = null;
 
-				AggregationFramework.AGGREGATION_STRATEGY strategy = AggregationFramework.AGGREGATION_STRATEGY.LAZY;
-				AggregationFramework.DISCRETIZATION_TYPE discr = AggregationFramework.DISCRETIZATION_TYPE.PAIRS;
+				AggregationFramework.AGGREGATION_STRATEGY strategy = AggregationFramework.AGGREGATION_STRATEGY.EAGER;
+				AggregationFramework.DISCRETIZATION_TYPE discr = AggregationFramework.DISCRETIZATION_TYPE.B2B;
 				String resultPath = "result-bla";
 
 				result = deployAggregation(strategy, discr, i, resultPath);
@@ -110,7 +113,7 @@ public class DEBSExpDriver extends ExperimentDriver {
 
 	@Override
 	public int getStartCount() {
-		return 2556001;
+		return countStart;
 	}
 
 	private JobExecutionResult deployAggregation(AggregationFramework.AGGREGATION_STRATEGY strategy,
