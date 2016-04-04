@@ -25,11 +25,9 @@ import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicCountEvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicCountTriggerPolicy;
-import org.apache.flink.streaming.api.windowing.policy.DeterministicEvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicTimeEvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicTimeTriggerPolicy;
-import org.apache.flink.streaming.api.windowing.policy.DeterministicTriggerPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TumblingPolicyGroup;
 import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
 
@@ -68,7 +66,7 @@ public abstract class ExperimentDriver {
 	protected
 	@SuppressWarnings("unchecked")
 	LinkedList<Tuple3<String, Double, Double[]>>[] randomScenario;
-	
+
 	/**
 	 * Specify the output file for the experiment results
 	 */

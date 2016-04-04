@@ -8,7 +8,8 @@ import org.aeonbits.owner.Config;
  * source files you can check the following: http://owner.aeonbits.org/docs/loading-strategies/
  */
 @Config.LoadPolicy(Config.LoadType.FIRST)
-@Config.Sources({"classpath:new-pairs.1c.properties",
+@Config.Sources({"classpath:default.10p.properties",
+		"classpath:new-pairs.1c.properties",
 		"classpath:default.properties",
         "classpath:pairs.properties",
         "classpath:default.10c10t.properties",
@@ -40,6 +41,12 @@ public interface ExperimentConfig extends Config{
      */
     @DefaultValue("100")
     int numCountQueries();
+
+	/**
+	 * The number of punctuation based queries to be generated
+	 */
+	@DefaultValue("0")
+	int numPunctQueries();
 
     /**
      * The number of tuples which will be processed in the experiment.

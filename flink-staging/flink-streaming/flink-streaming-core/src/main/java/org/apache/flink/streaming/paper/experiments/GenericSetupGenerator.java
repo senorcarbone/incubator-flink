@@ -73,7 +73,7 @@ public class GenericSetupGenerator {
                 cfg.regularTimeMinRange() * cfg.scaleFactor(), cfg.regularTimeMaxRange() * cfg.scaleFactor(),
                 cfg.lowerTimeMinRange() * cfg.scaleFactor(), cfg.lowerTimeMaxRange() * cfg.scaleFactor(),
                 cfg.upperTimeMinRange() * cfg.scaleFactor(), cfg.upperTimeMaxRange() * cfg.scaleFactor(),
-                cfg.numTimeQueries(), cfg.numCountQueries(), cfg.scenarioRegularSlideRegularRange(),
+                cfg.numTimeQueries(), cfg.numCountQueries(), cfg.numPunctQueries(), cfg.scenarioRegularSlideRegularRange(),
                 cfg.scenarioSmallSlideRegularRange(), cfg.scenarioHighSlideRegularRange(),
                 cfg.scenarioRegularSlideSmallRange(), cfg.scenarioRegularSlideHighRange(),
                 cfg.scenarioSmallSlideHighRange(), cfg.scenarioHighSlideHighRange(),
@@ -118,7 +118,7 @@ public class GenericSetupGenerator {
                                   double regularCountMinRange, double regularCountMaxRange, double lowerCountMinRange, double lowerCountMaxRange, double upperCountMinRange, double upperCountMaxRange,
                                   double regularTimeMinSlide, double regularTimeMaxSlide, double lowerTimeMinSlide, double lowerTimeMaxSlide, double upperTimeMinSlide, double upperTimeMaxSlide,
                                   double regularTimeMinRange, double regularTimeMaxRange, double lowerTimeMinRange, double lowerTimeMaxRange, double upperTimeMinRange, double upperTimeMaxRange,
-                                  int numTimeQueries, int numCountQueries, boolean scenarioRegularSlideRegularRange, boolean scenarioSmallSlideRegularRange, boolean scenarioHighSlideRegularRange,
+                                  int numTimeQueries, int numCountQueries, int numPunctQueries, boolean scenarioRegularSlideRegularRange, boolean scenarioSmallSlideRegularRange, boolean scenarioHighSlideRegularRange,
                                   boolean scenarioRegularSlideSmallRange, boolean scenarioRegularSlideHighRange, boolean scenarioSmallSlideHighRange, boolean scenarioHighSlideHighRange,
                                   boolean scenarioSmallSlideSmallRange, boolean scenarioHighSlideSmallRange, boolean generateRandomWalk) throws FileNotFoundException, UnsupportedEncodingException {
 
@@ -170,7 +170,8 @@ public class GenericSetupGenerator {
             for (int i = 0; i < numTimeQueries; i++) {
                 writer.println("\t\tTIME\t" + regularTimeWindowRangeDefs[i] + "\t" + regularTimeWindowSlideDefs[i] + "\t" + (10000 / regularTimeWindowSlideDefs[i]));
             }
-        }
+			writePunctuationQueries(numPunctQueries, writer);
+		}
 
         //Slide Regular, Range low
         if (scenarioRegularSlideSmallRange){
@@ -183,6 +184,7 @@ public class GenericSetupGenerator {
             for (int i = 0; i < numTimeQueries; i++) {
                 writer.println("\t\tTIME\t" + lowerTimeWindowRangeDefs[i] + "\t" + regularTimeWindowSlideDefs[i] + "\t" + (10000 / regularTimeWindowSlideDefs[i]));
             }
+			writePunctuationQueries(numPunctQueries, writer);
         }
 
         //Slide Regular, High range
@@ -196,6 +198,7 @@ public class GenericSetupGenerator {
             for (int i = 0; i < numTimeQueries; i++) {
                 writer.println("\t\tTIME\t" + upperTimeWindowRangeDefs[i] + "\t" + regularTimeWindowSlideDefs[i] + "\t" + (10000 / regularTimeWindowSlideDefs[i]));
             }
+			writePunctuationQueries(numPunctQueries, writer);
         }
 
         //Slide low, Range regular
@@ -209,6 +212,7 @@ public class GenericSetupGenerator {
             for (int i = 0; i < numTimeQueries; i++) {
                 writer.println("\t\tTIME\t" + regularTimeWindowRangeDefs[i] + "\t" + lowerTimeWindowSlideDefs[i] + "\t" + (10000 / regularTimeWindowSlideDefs[i]));
             }
+			writePunctuationQueries(numPunctQueries, writer);
         }
 
         //Slide high, Range regular
@@ -222,6 +226,7 @@ public class GenericSetupGenerator {
             for (int i = 0; i < numTimeQueries; i++) {
                 writer.println("\t\tTIME\t" + regularTimeWindowRangeDefs[i] + "\t" + upperTimeWindowSlideDefs[i] + "\t" + (10000 / regularTimeWindowSlideDefs[i]));
             }
+			writePunctuationQueries(numPunctQueries, writer);
         }
 
         if (scenarioHighSlideHighRange){
@@ -234,6 +239,7 @@ public class GenericSetupGenerator {
             for (int i = 0; i < numTimeQueries; i++) {
                 writer.println("\t\tTIME\t" + upperTimeWindowRangeDefs[i] + "\t" + upperTimeWindowSlideDefs[i] + "\t" + (10000 / upperTimeWindowSlideDefs[i]));
             }
+			writePunctuationQueries(numPunctQueries, writer);
         }
 
         if (scenarioHighSlideSmallRange){
@@ -246,6 +252,7 @@ public class GenericSetupGenerator {
             for (int i = 0; i < numTimeQueries; i++) {
                 writer.println("\t\tTIME\t" + lowerTimeWindowRangeDefs[i] + "\t" + upperTimeWindowSlideDefs[i] + "\t" + (10000 / upperTimeWindowSlideDefs[i]));
             }
+			writePunctuationQueries(numPunctQueries, writer);
         }
 
         if (scenarioSmallSlideSmallRange){
@@ -258,6 +265,7 @@ public class GenericSetupGenerator {
             for (int i = 0; i < numTimeQueries; i++) {
                 writer.println("\t\tTIME\t" + lowerTimeWindowRangeDefs[i] + "\t" + lowerTimeWindowSlideDefs[i] + "\t" + (10000 / lowerTimeWindowSlideDefs[i]));
             }
+			writePunctuationQueries(numPunctQueries, writer);
         }
 
         if (scenarioSmallSlideHighRange){
@@ -270,6 +278,7 @@ public class GenericSetupGenerator {
             for (int i = 0; i < numTimeQueries; i++) {
                 writer.println("\t\tTIME\t" + upperTimeWindowRangeDefs[i] + "\t" + lowerTimeWindowSlideDefs[i] + "\t" + (10000 / lowerTimeWindowSlideDefs[i]));
             }
+			writePunctuationQueries(numPunctQueries, writer);
         }
 
 
@@ -461,7 +470,13 @@ public class GenericSetupGenerator {
         plotWriter1.close();
     }
 
-    /**
+	private static void writePunctuationQueries(int numPunctQueries, PrintWriter writer) {
+		for(int i=0; i<numPunctQueries; i++){
+			writer.println("\t\tPUNCT\t" + i + "\t 0 \t 0");
+		}
+	}
+
+	/**
      * Creates an ordered list of random values reaching from 0 to maxValue.
      * Exactly maxValue/slideSize random values are generated.
      *
