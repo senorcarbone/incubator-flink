@@ -30,6 +30,7 @@ import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicTimeEvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicTimeTriggerPolicy;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TumblingPolicyGroup;
 import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
 
 import java.io.BufferedReader;
@@ -131,25 +132,23 @@ public abstract class ExperimentDriver {
 
 		List<DeterministicPolicyGroup> policyGroups = new ArrayList<>();
 		for (Tuple3<String, Double, Double> setting : settings) {
-			DeterministicTriggerPolicy trigger = null;
-			DeterministicEvictionPolicy eviction = null;
-			Extractor extractor = null;
-
 			switch (setting.f0) {
 				case "COUNT":
-					trigger = new DeterministicCountTriggerPolicy<>(setting.f2.intValue(), getStartCount());
-					eviction = new DeterministicCountEvictionPolicy<>(setting.f1.intValue());
-					extractor = getCountExtractor();
+					policyGroups.add(new DeterministicPolicyGroup(
+							new DeterministicCountTriggerPolicy<>(setting.f2.intValue(), getStartCount()),
+							new DeterministicCountEvictionPolicy<>(setting.f1.intValue()),
+							getCountExtractor()));
 					break;
 				case "TIME":
-					trigger = new DeterministicTimeTriggerPolicy<>(setting.f2.intValue(), getTimeWrapper());
-					eviction = new DeterministicTimeEvictionPolicy<>(setting.f1.intValue(), getTimeWrapper());
-					extractor = getTimeExtractor();
+					policyGroups.add(new DeterministicPolicyGroup(
+							new DeterministicTimeTriggerPolicy<>(setting.f2.intValue(), getTimeWrapper()),
+							new DeterministicTimeEvictionPolicy<>(setting.f1.intValue(), getTimeWrapper()),
+							getTimeExtractor()
+					));
 					break;
+				case "PUNCT":
+					policyGroups.add(new TumblingPolicyGroup<>(new DEBSExpDriver.SensorTumblingWindow(setting.f1.intValue())));
 			}
-
-			policyGroups.add(new DeterministicPolicyGroup(trigger, eviction, extractor));
-
 		}
 
 		return policyGroups;

@@ -124,10 +124,6 @@ public class DEBSExpDriver extends ExperimentDriver {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment(1);
 		DataStream<Tuple4<Long, Long, Long, Integer>> sensorStream = env.readTextFile(dataPath).map(new DEBSDataFormatter());
 
-//		DeterministicPolicyGroup<Tuple4<Long, Long, Long, Integer>> togglePolicy = new TumblingPolicyGroup<>(new SensorTumblingWindow(50));
-//		List<DeterministicPolicyGroup> detPolicies = new ArrayList<>();
-//		detPolicies.add(togglePolicy);
-
 		List<DeterministicPolicyGroup> detPolicies = makeDeterministicQueries(scenario[scIndex]);
 
 		setupAggregation(sensorStream, detPolicies, strategy, discr, resultPath);
