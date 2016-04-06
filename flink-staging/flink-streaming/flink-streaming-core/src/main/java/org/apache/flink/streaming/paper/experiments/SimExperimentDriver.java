@@ -37,9 +37,9 @@ import java.util.Random;
 public class SimExperimentDriver extends ExperimentDriver {
 
 	{
-		RUN_PERIODIC = true;
-		RUN_B2B_NOT_PERIODIC = true;
-		RUN_GENERAL_NOT_PERIODIC = true;
+		RUN_B2B_LAZY = true;
+		RUN_B2B_EAGER = true;
+		RUN_GENERAL_LAZY = true;
 		RUN_PERIODIC_NO_PREAGG = true;
 		RUN_PERIODIC_EAGER = true;
 		RUN_B2B_NOT_PERIODIC_EAGER = true;
@@ -158,12 +158,12 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 				result = env0.execute("Scanario " + i + " Case " + testCase);
 
-				finalizeExperiment(stats, resultWriter, result, i, testCase);
+				setupExperiment(stats, resultWriter, result, i, testCase);
 			}
 
 			testCase++;
 
-			if (RUN_PERIODIC) {
+			if (RUN_B2B_LAZY) {
 
                 /*
 				 * Case 1
@@ -180,12 +180,12 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 				result = env2.execute("Scanario " + i + " Case " + testCase);
 
-				finalizeExperiment(stats, resultWriter, result, i, testCase);
+				setupExperiment(stats, resultWriter, result, i, testCase);
 			}
 
 			testCase++;
 
-			if (RUN_B2B_NOT_PERIODIC && randomScenario[i] != null && randomScenario[i].size() > 0) {
+			if (RUN_B2B_EAGER && randomScenario[i] != null && randomScenario[i].size() > 0) {
 				/*
 				 * Evaluate with deterministic policy groups (not periodic)  (case 2)
                  */
@@ -201,13 +201,13 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 				result = env3.execute();
 
-				finalizeExperiment(stats, resultWriter, result, i, testCase);
+				setupExperiment(stats, resultWriter, result, i, testCase);
 			}
 
 			testCase++;
 
 
-			if (RUN_GENERAL_NOT_PERIODIC && randomScenario[i] != null && randomScenario[i].size() > 0) {
+			if (RUN_GENERAL_LAZY && randomScenario[i] != null && randomScenario[i].size() > 0) {
                 /*
                  *Evaluate not deterministic version  (case 3)
                  */
@@ -222,7 +222,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 				result = env4.execute();
 
-				finalizeExperiment(stats, resultWriter, result, i, testCase);
+				setupExperiment(stats, resultWriter, result, i, testCase);
 			}
 
 			testCase++;
@@ -241,7 +241,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 				result = env5.execute();
 
-				finalizeExperiment(stats, resultWriter, result, i, testCase);
+				setupExperiment(stats, resultWriter, result, i, testCase);
 			}
 
 			testCase++;
@@ -262,7 +262,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 				result = env1.execute("Scanario " + i + " Case " + testCase);
 
-				finalizeExperiment(stats, resultWriter, result, i, testCase);
+				setupExperiment(stats, resultWriter, result, i, testCase);
 			}
 
 			testCase++;
@@ -283,7 +283,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 				result = env6.execute("Scanario " + i + " Case " + testCase);
 
-				finalizeExperiment(stats, resultWriter, result, i, testCase);
+				setupExperiment(stats, resultWriter, result, i, testCase);
 			}
 
 			testCase++;
@@ -304,7 +304,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 				result = env7.execute();
 
-				finalizeExperiment(stats, resultWriter, result, i, testCase);
+				setupExperiment(stats, resultWriter, result, i, testCase);
 			}
 
 			testCase++;
@@ -324,7 +324,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 				result = env4.execute();
 
-				finalizeExperiment(stats, resultWriter, result, i, testCase);
+				setupExperiment(stats, resultWriter, result, i, testCase);
 			}
 
 			testCase++;
@@ -344,7 +344,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 				result = env5.execute();
 
-				finalizeExperiment(stats, resultWriter, result, i, testCase);
+				setupExperiment(stats, resultWriter, result, i, testCase);
 			}
 
 		}

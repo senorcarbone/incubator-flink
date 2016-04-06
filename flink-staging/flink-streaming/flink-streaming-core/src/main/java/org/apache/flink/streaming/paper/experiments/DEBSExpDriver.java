@@ -52,14 +52,19 @@ public class DEBSExpDriver extends ExperimentDriver {
 	{
 		RUN_PAIRS_LAZY = true;
 		RUN_PAIRS_EAGER = true;
+		RUN_B2B_LAZY = true;
+		RUN_B2B_EAGER = true;
+		RUN_GENERAL_LAZY = true;
+		RUN_GENERAL_EAGER = true;
 	}
+
+	private boolean enableLogOutput = false;
+	
+	private int countStart = 2556001;
 
 	private final String dataPath;
 
-	private int countStart = 2556001;
 
-	private boolean enableAggLog = false;
-	
 	public DEBSExpDriver(String dataPath, String setupPath, String resultPath) {
 		super(setupPath, resultPath);
 		this.dataPath = dataPath;
@@ -84,30 +89,52 @@ public class DEBSExpDriver extends ExperimentDriver {
 	@Override
 	protected void runExperiments(AggregationStats stats, PrintWriter resultWriter) throws Exception {
 
-		for (int i = 0; i < 9; i++) {
-			//check if the scenario is present in the setup file, otherwise skip this iterations
-			if (scenario[i] == null || scenario[i].size() == 0) {
-				continue;
-			}
+		for (int i = 0; i < scenario.length; i++) {
 
-			Log.info("STARTING SCENARIO "+i);
-			
+			Log.info("STARTING SCENARIO " + i);
+
 			int testCase = 0;
 
 			if (RUN_PAIRS_LAZY) {
-				JobExecutionResult result = null;
+				String resultPath = "output-" + scenario + "-" + testCase;
+				setupExperiment(stats, resultWriter, makeDeterministicAggregation(
+						AggregationFramework.AGGREGATION_STRATEGY.LAZY,
+						AggregationFramework.DISCRETIZATION_TYPE.PAIRS, i, resultPath), i, testCase);
 
-				AggregationFramework.AGGREGATION_STRATEGY strategy = AggregationFramework.AGGREGATION_STRATEGY.EAGER;
-				AggregationFramework.DISCRETIZATION_TYPE discr = AggregationFramework.DISCRETIZATION_TYPE.B2B;
-				String resultPath = "result-bla";
-
-				result = deployAggregation(strategy, discr, i, resultPath);
-				finalizeExperiment(stats, resultWriter, result, i, testCase);
-				
 			}
-
 			testCase++;
+			if (RUN_PAIRS_EAGER) {
+				String resultPath = "output-" + scenario + "-" + testCase;
+				setupExperiment(stats, resultWriter, makeDeterministicAggregation(
+						AggregationFramework.AGGREGATION_STRATEGY.EAGER,
+						AggregationFramework.DISCRETIZATION_TYPE.PAIRS, i, resultPath), i, testCase);
 
+			}
+			testCase++;
+			if (RUN_B2B_LAZY) {
+				String resultPath = "output-" + scenario + "-" + testCase;
+				setupExperiment(stats, resultWriter, makeDeterministicAggregation(
+						AggregationFramework.AGGREGATION_STRATEGY.LAZY,
+						AggregationFramework.DISCRETIZATION_TYPE.B2B, i, resultPath), i, testCase);
+
+			}
+			testCase++;
+			if (RUN_B2B_EAGER) {
+				String resultPath = "output-" + scenario + "-" + testCase;
+				setupExperiment(stats, resultWriter, makeDeterministicAggregation(
+						AggregationFramework.AGGREGATION_STRATEGY.EAGER,
+						AggregationFramework.DISCRETIZATION_TYPE.B2B, i, resultPath), i, testCase);
+
+			}
+			testCase++;
+			if (RUN_GENERAL_LAZY) {
+				//TODO
+			}
+			testCase++;
+			if (RUN_GENERAL_EAGER) {
+				//TODO
+			}
+			testCase++;
 		}
 	}
 
@@ -116,15 +143,15 @@ public class DEBSExpDriver extends ExperimentDriver {
 		return countStart;
 	}
 
-	private JobExecutionResult deployAggregation(AggregationFramework.AGGREGATION_STRATEGY strategy,
-												 AggregationFramework.DISCRETIZATION_TYPE discr,
-												 int scIndex,
-												 String resultPath) throws Exception {
+	private JobExecutionResult makeDeterministicAggregation(AggregationFramework.AGGREGATION_STRATEGY strategy,
+															AggregationFramework.DISCRETIZATION_TYPE discr,
+															int scIndex,
+															String resultPath) throws Exception {
 		JobExecutionResult result;
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment(1);
 		DataStream<Tuple4<Long, Long, Long, Integer>> sensorStream = env.readTextFile(dataPath).map(new DEBSDataFormatter());
 
-		List<DeterministicPolicyGroup> detPolicies = makeDeterministicQueries(scenario[scIndex]);
+		List<DeterministicPolicyGroup> detPolicies = makeDeterministicPolicies(scenario[scIndex]);
 
 		setupAggregation(sensorStream, detPolicies, strategy, discr, resultPath);
 
@@ -138,7 +165,7 @@ public class DEBSExpDriver extends ExperimentDriver {
 								  AggregationFramework.DISCRETIZATION_TYPE discr, String resultPath) {
 		DataStream<Tuple2<Integer, Double>> aggStream = AvgAggregation.applyOn(sensorStream,
 				new Tuple3(detPolicies, new ArrayList<>(), new ArrayList<>()), strategy, discr);
-		if(enableAggLog){
+		if (enableLogOutput) {
 			aggStream.map(new PaperExperiment.Prefix("SUM")).writeAsText(resultPath, FileSystem.WriteMode.OVERWRITE);
 		}
 	}

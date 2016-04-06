@@ -28,7 +28,7 @@ import org.apache.flink.streaming.api.windowing.policy.DeterministicCountTrigger
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicTimeEvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicTimeTriggerPolicy;
-import org.apache.flink.streaming.api.windowing.policy.TumblingPolicyGroup;
+import org.apache.flink.streaming.api.windowing.policy.TumblingSensorPolicyGroup;
 import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
 
 import java.io.BufferedReader;
@@ -50,9 +50,10 @@ public abstract class ExperimentDriver {
 	 */
 	protected static boolean RUN_PAIRS_LAZY = false;
 	protected static boolean RUN_PAIRS_EAGER = false;
-	protected static boolean RUN_PERIODIC = false;
-	protected static boolean RUN_B2B_NOT_PERIODIC = false;
-	protected static boolean RUN_GENERAL_NOT_PERIODIC = false;
+	protected static boolean RUN_B2B_LAZY = false;
+	protected static boolean RUN_B2B_EAGER = false;
+	protected static boolean RUN_GENERAL_LAZY = false;
+	protected static boolean RUN_GENERAL_EAGER= false;
 	protected static boolean RUN_PERIODIC_NO_PREAGG = false;
 	protected static boolean RUN_PERIODIC_EAGER = false;
 	protected static boolean RUN_B2B_NOT_PERIODIC_EAGER = false;
@@ -126,7 +127,7 @@ public abstract class ExperimentDriver {
 
 
 	@SuppressWarnings("unchecked")
-	List<DeterministicPolicyGroup> makeDeterministicQueries(List<Tuple3<String, Double, Double>> settings) {
+	List<DeterministicPolicyGroup> makeDeterministicPolicies(List<Tuple3<String, Double, Double>> settings) {
 
 		List<DeterministicPolicyGroup> policyGroups = new ArrayList<>();
 		for (Tuple3<String, Double, Double> setting : settings) {
@@ -145,7 +146,7 @@ public abstract class ExperimentDriver {
 					));
 					break;
 				case "PUNCT":
-					policyGroups.add(new TumblingPolicyGroup<>(new DEBSExpDriver.SensorTumblingWindow(setting.f1.intValue())));
+					policyGroups.add(new TumblingSensorPolicyGroup<>(new DEBSExpDriver.SensorTumblingWindow(setting.f1.intValue())));
 			}
 		}
 
@@ -155,7 +156,7 @@ public abstract class ExperimentDriver {
 
 	protected abstract void runExperiments(AggregationStats stats, PrintWriter resultWriter) throws Exception;
 
-	void finalizeExperiment(AggregationStats stats, PrintWriter resultWriter, JobExecutionResult result, int scenarioId, int caseId) {
+	void setupExperiment(AggregationStats stats, PrintWriter resultWriter, JobExecutionResult result, int scenarioId, int caseId) {
 		resultWriter.println(scenarioId + "\t" + caseId + "\t" + result.getNetRuntime() + "\t" + stats.getAggregateCount()
 				+ "\t" + stats.getReduceCount() + "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize()
 				+ "\t" + stats.getAverageUpdTime() + "\t" + stats.getTotalUpdateCount() + "\t" + stats.getAverageMergeTime() + "\t" + stats.getTotalMergeCount());

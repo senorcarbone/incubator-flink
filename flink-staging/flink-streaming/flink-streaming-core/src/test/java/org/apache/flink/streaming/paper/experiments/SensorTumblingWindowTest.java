@@ -6,11 +6,10 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicTriggerPolicy;
-import org.apache.flink.streaming.api.windowing.policy.TumblingPolicyGroup;
+import org.apache.flink.streaming.api.windowing.policy.TumblingSensorPolicyGroup;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 public class SensorTumblingWindowTest extends TestCase {
@@ -53,10 +52,10 @@ public class SensorTumblingWindowTest extends TestCase {
 
 		//prepare policies
 		DeterministicTriggerPolicy<Tuple4<Long, Long, Long, Integer>> policy = new DEBSExpDriver.SensorTumblingWindow(5);
-		TumblingPolicyGroup<Tuple4<Long, Long, Long, Integer>> pgroup = new TumblingPolicyGroup<>(policy);
+		TumblingSensorPolicyGroup<Tuple4<Long, Long, Long, Integer>> pgroup = new TumblingSensorPolicyGroup<>(policy);
 
 		DeterministicTriggerPolicy<Tuple4<Long, Long, Long, Integer>> policy2 = new DEBSExpDriver.SensorTumblingWindow(2);
-		TumblingPolicyGroup<Tuple4<Long, Long, Long, Integer>> pgroup2 = new TumblingPolicyGroup<>(policy2);
+		TumblingSensorPolicyGroup<Tuple4<Long, Long, Long, Integer>> pgroup2 = new TumblingSensorPolicyGroup<>(policy2);
 
 		assertEquals(expected, sumEvents(getTumblingEvents(scenario, pgroup), getTumblingEvents(scenario, pgroup2)));
 	}

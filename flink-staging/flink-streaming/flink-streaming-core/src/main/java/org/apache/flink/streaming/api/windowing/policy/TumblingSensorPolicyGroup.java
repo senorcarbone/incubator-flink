@@ -1,11 +1,11 @@
 package org.apache.flink.streaming.api.windowing.policy;
 
 
-public class TumblingPolicyGroup<DATA> extends DeterministicPolicyGroup<DATA> {
+public class TumblingSensorPolicyGroup<DATA> extends DeterministicPolicyGroup<DATA> {
 
 	private boolean initiated = false;
 
-	public TumblingPolicyGroup(DeterministicTriggerPolicy<DATA> trigger) {
+	public TumblingSensorPolicyGroup(DeterministicTriggerPolicy<DATA> trigger) {
 		super(trigger, new DeterministicTumblingEvictionPolicy<>(0));
 	}
 
