@@ -76,19 +76,12 @@ public class SimExperimentDriver extends ExperimentDriver {
 			return in.f2.doubleValue();
 		}
 	}
-
-	private static class TimeWrapper extends TimestampWrapper<Tuple3<Double, Double, Long>> {
-
-		public TimeWrapper() {
-			super(new Timestamp<Tuple3<Double, Double, Long>>() {
-
-				@Override
-				public long getTimestamp(Tuple3<Double, Double, Long> value) {
-					return value.f2;
-				}
-			}, 0l);
+	
+	private static class SimTimestamp implements Timestamp<Tuple3<Double, Double, Long>> {
+		@Override
+		public long getTimestamp(Tuple3<Double, Double, Long> value) {
+			return value.f2;
 		}
-
 	}
 
 	@Override
@@ -98,7 +91,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 	@Override
 	public TimestampWrapper getTimeWrapper() {
-		return new TimeWrapper();
+		return new TimestampWrapper(new SimTimestamp(), 0l);
 	}
 
 	@Override

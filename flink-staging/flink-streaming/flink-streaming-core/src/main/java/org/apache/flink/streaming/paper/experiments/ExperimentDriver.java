@@ -18,16 +18,23 @@ package org.apache.flink.streaming.paper.experiments;
 
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
+import org.apache.flink.streaming.api.windowing.policy.CountEvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.CountTriggerPolicy;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicCountEvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicCountTriggerPolicy;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicTimeEvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicTimeTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TimeEvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TimeTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TumblingSensorPolicyGroup;
 import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
 
@@ -146,11 +153,37 @@ public abstract class ExperimentDriver {
 					));
 					break;
 				case "PUNCT":
-					policyGroups.add(new TumblingSensorPolicyGroup<>(new DEBSExpDriver.SensorTumblingWindow(setting.f1.intValue())));
+					policyGroups.add(new TumblingSensorPolicyGroup<>(new SensorPunctuationWindowDet(setting.f1.intValue())));
+					break;
 			}
 		}
 
 		return policyGroups;
+	}
+
+	@SuppressWarnings("unchecked")
+	Tuple2<List<TriggerPolicy>, List<EvictionPolicy>> makeNonDeterministicPolicies(List<Tuple3<String, Double, Double>> settings) {
+
+		List<TriggerPolicy> triggers = new ArrayList<>();
+		List<EvictionPolicy> evictions = new ArrayList<>();
+		
+		for (Tuple3<String, Double, Double> setting : settings) {
+			switch (setting.f0) {
+				case "COUNT":
+					triggers.add(new CountTriggerPolicy(setting.f2.intValue(), getStartCount()));
+					evictions.add(new CountEvictionPolicy(setting.f1.intValue()));
+					break;
+				case "TIME":
+					triggers.add(new TimeTriggerPolicy<>(setting.f2.intValue(), getTimeWrapper()));
+					evictions.add(new TimeEvictionPolicy<>(setting.f1.intValue(), getTimeWrapper()));
+					break;
+				case "PUNCT":
+					triggers.add(new SensorPunctuationWindowGen(setting.f1.intValue()));
+					evictions.add(new SensorPunctuationWindowGen(setting.f1.intValue()));
+			}
+		}
+
+		return new Tuple2<>(triggers,evictions);
 	}
 
 

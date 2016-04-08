@@ -30,7 +30,8 @@ import org.apache.flink.streaming.api.windowing.extractor.Extractor;
 import org.apache.flink.streaming.api.windowing.helper.Timestamp;
 import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
-import org.apache.flink.streaming.api.windowing.policy.DeterministicTriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
 import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
 import org.apache.flink.streaming.paper.AggregationFramework;
 import org.apache.flink.streaming.paper.PaperExperiment;
@@ -50,8 +51,8 @@ public class DEBSExpDriver extends ExperimentDriver {
 
 
 	{
-		RUN_PAIRS_LAZY = true;
-		RUN_PAIRS_EAGER = true;
+//		RUN_PAIRS_LAZY = true;
+//		RUN_PAIRS_EAGER = true;
 		RUN_B2B_LAZY = true;
 		RUN_B2B_EAGER = true;
 		RUN_GENERAL_LAZY = true;
@@ -59,7 +60,7 @@ public class DEBSExpDriver extends ExperimentDriver {
 	}
 
 	private boolean enableLogOutput = false;
-	
+
 	private int countStart = 2556001;
 
 	private final String dataPath;
@@ -97,42 +98,48 @@ public class DEBSExpDriver extends ExperimentDriver {
 
 			if (RUN_PAIRS_LAZY) {
 				String resultPath = "output-" + scenario + "-" + testCase;
-				setupExperiment(stats, resultWriter, makeDeterministicAggregation(
+				setupExperiment(stats, resultWriter, runAggregation(
 						AggregationFramework.AGGREGATION_STRATEGY.LAZY,
-						AggregationFramework.DISCRETIZATION_TYPE.PAIRS, i, resultPath), i, testCase);
+						AggregationFramework.DISCRETIZATION_TYPE.PAIRS, i, resultPath, true), i, testCase);
 
 			}
 			testCase++;
 			if (RUN_PAIRS_EAGER) {
 				String resultPath = "output-" + scenario + "-" + testCase;
-				setupExperiment(stats, resultWriter, makeDeterministicAggregation(
+				setupExperiment(stats, resultWriter, runAggregation(
 						AggregationFramework.AGGREGATION_STRATEGY.EAGER,
-						AggregationFramework.DISCRETIZATION_TYPE.PAIRS, i, resultPath), i, testCase);
+						AggregationFramework.DISCRETIZATION_TYPE.PAIRS, i, resultPath, true), i, testCase);
 
 			}
 			testCase++;
 			if (RUN_B2B_LAZY) {
 				String resultPath = "output-" + scenario + "-" + testCase;
-				setupExperiment(stats, resultWriter, makeDeterministicAggregation(
+				setupExperiment(stats, resultWriter, runAggregation(
 						AggregationFramework.AGGREGATION_STRATEGY.LAZY,
-						AggregationFramework.DISCRETIZATION_TYPE.B2B, i, resultPath), i, testCase);
+						AggregationFramework.DISCRETIZATION_TYPE.B2B, i, resultPath, true), i, testCase);
 
 			}
 			testCase++;
 			if (RUN_B2B_EAGER) {
 				String resultPath = "output-" + scenario + "-" + testCase;
-				setupExperiment(stats, resultWriter, makeDeterministicAggregation(
+				setupExperiment(stats, resultWriter, runAggregation(
 						AggregationFramework.AGGREGATION_STRATEGY.EAGER,
-						AggregationFramework.DISCRETIZATION_TYPE.B2B, i, resultPath), i, testCase);
+						AggregationFramework.DISCRETIZATION_TYPE.B2B, i, resultPath, true), i, testCase);
 
 			}
 			testCase++;
 			if (RUN_GENERAL_LAZY) {
-				//TODO
+				String resultPath = "output-" + scenario + "-" + testCase;
+				setupExperiment(stats, resultWriter, runAggregation(
+						AggregationFramework.AGGREGATION_STRATEGY.LAZY,
+						AggregationFramework.DISCRETIZATION_TYPE.B2B, i, resultPath, false), i, testCase);
 			}
 			testCase++;
 			if (RUN_GENERAL_EAGER) {
-				//TODO
+				String resultPath = "output-" + scenario + "-" + testCase;
+				setupExperiment(stats, resultWriter, runAggregation(
+						AggregationFramework.AGGREGATION_STRATEGY.EAGER,
+						AggregationFramework.DISCRETIZATION_TYPE.B2B, i, resultPath, false), i, testCase);
 			}
 			testCase++;
 		}
@@ -143,58 +150,38 @@ public class DEBSExpDriver extends ExperimentDriver {
 		return countStart;
 	}
 
-	private JobExecutionResult makeDeterministicAggregation(AggregationFramework.AGGREGATION_STRATEGY strategy,
-															AggregationFramework.DISCRETIZATION_TYPE discr,
-															int scIndex,
-															String resultPath) throws Exception {
+	private JobExecutionResult runAggregation(AggregationFramework.AGGREGATION_STRATEGY strategy,
+											  AggregationFramework.DISCRETIZATION_TYPE discr,
+											  int scIndex,
+											  String resultPath,
+											  boolean deterministic) throws Exception {
 		JobExecutionResult result;
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment(1);
 		DataStream<Tuple4<Long, Long, Long, Integer>> sensorStream = env.readTextFile(dataPath).map(new DEBSDataFormatter());
 
-		List<DeterministicPolicyGroup> detPolicies = makeDeterministicPolicies(scenario[scIndex]);
-
-		setupAggregation(sensorStream, detPolicies, strategy, discr, resultPath);
+		if (deterministic) {
+			configureAggregation(sensorStream, makeDeterministicPolicies(scenario[scIndex]),
+					new ArrayList<>(), new ArrayList<>(), strategy, discr, resultPath);
+		} else {
+			Tuple2<List<TriggerPolicy>, List<EvictionPolicy>> policies = makeNonDeterministicPolicies(scenario[scIndex]);
+			configureAggregation(sensorStream, new ArrayList<>(), policies.f0, policies.f1, strategy, discr, resultPath);
+		}
 
 		result = env.execute("Scenario foo Case bla");
 		return result;
 	}
 
-	private void setupAggregation(DataStream<Tuple4<Long, Long, Long, Integer>> sensorStream,
-								  List<DeterministicPolicyGroup> detPolicies,
-								  AggregationFramework.AGGREGATION_STRATEGY strategy,
-								  AggregationFramework.DISCRETIZATION_TYPE discr, String resultPath) {
+	private void configureAggregation(DataStream<Tuple4<Long, Long, Long, Integer>> sensorStream,
+									  List<DeterministicPolicyGroup> detPolicies,
+									  List<TriggerPolicy> triggerPolicies,
+									  List<EvictionPolicy> evictionPolicies,
+									  AggregationFramework.AGGREGATION_STRATEGY strategy,
+									  AggregationFramework.DISCRETIZATION_TYPE discr,
+									  String resultPath) {
 		DataStream<Tuple2<Integer, Double>> aggStream = AvgAggregation.applyOn(sensorStream,
-				new Tuple3(detPolicies, new ArrayList<>(), new ArrayList<>()), strategy, discr);
+				new Tuple3(detPolicies, triggerPolicies, evictionPolicies), strategy, discr);
 		if (enableLogOutput) {
 			aggStream.map(new PaperExperiment.Prefix("SUM")).writeAsText(resultPath, FileSystem.WriteMode.OVERWRITE);
-		}
-	}
-
-	protected static class SensorTumblingWindow implements DeterministicTriggerPolicy<Tuple4<Long, Long, Long, Integer>> {
-
-		private int bitmask;
-		private int currentState = Integer.MAX_VALUE; //initial state is -1 
-
-		public SensorTumblingWindow(int sensorIndex) {
-			this.bitmask = (int) Math.pow(2, sensorIndex);
-		}
-
-		@Override
-		public double getNextTriggerPosition(double previousPosition) {
-			//not used
-			return 0;
-		}
-
-		@Override
-		public boolean notifyTrigger(Tuple4<Long, Long, Long, Integer> datapoint) {
-			int sensorVal = datapoint.f3 & bitmask;
-			if (currentState == Integer.MAX_VALUE) {
-				currentState = sensorVal;
-				return false;
-			}
-
-			int tmp = currentState;
-			return (currentState = sensorVal) != tmp;
 		}
 	}
 
@@ -205,10 +192,17 @@ public class DEBSExpDriver extends ExperimentDriver {
 		}
 	}
 
-	private static class TimeExtractor implements Extractor<Tuple4<Long, Long, Long, Integer>, Long> {
+	private static class TimeExtractor implements Extractor<Tuple4<Long, Long, Long, Integer>, Double> {
 		@Override
-		public Long extract(Tuple4<Long, Long, Long, Integer> in) {
-			return in.f1;
+		public Double extract(Tuple4<Long, Long, Long, Integer> in) {
+			return in.f1.doubleValue();
+		}
+	}
+
+	private static class DEBSTimestamp implements Timestamp<Tuple4<Long, Long, Long, Integer>> {
+		@Override
+		public long getTimestamp(Tuple4<Long, Long, Long, Integer> value) {
+			return value.f0;
 		}
 	}
 
@@ -219,12 +213,7 @@ public class DEBSExpDriver extends ExperimentDriver {
 
 	@Override
 	public TimestampWrapper getTimeWrapper() {
-		return new TimestampWrapper(new Timestamp<Tuple4<Long, Long, Long, Integer>>() {
-			@Override
-			public long getTimestamp(Tuple4<Long, Long, Long, Integer> value) {
-				return value.f0;
-			}
-		}, 0l);
+		return new TimestampWrapper(new DEBSTimestamp(), 0l);
 	}
 
 	@Override

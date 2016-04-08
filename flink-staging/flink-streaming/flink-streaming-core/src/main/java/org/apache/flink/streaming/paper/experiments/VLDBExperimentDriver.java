@@ -27,12 +27,14 @@ public class VLDBExperimentDriver {
 	 */
 	
     private static final String[] SETUP_PATHS={
+//			"setups/testtime.txt"
 			"setups/test-setup-10p-0.txt",
-            "setups/test-setup-1c0t-0.txt"
+//            "setups/test-setup-1c0t-0.txt"
     };
     private static final String[] RESULT_PATHS={
+//			"setups/testtime-results.txt"
 			"setups/test-result-10p-0.txt",
-			"setups/test-result-1c0t-0.txt"
+//			"setups/test-result-1c0t-0.txt"
     };
 
     public static void main(String args[]) throws Exception {

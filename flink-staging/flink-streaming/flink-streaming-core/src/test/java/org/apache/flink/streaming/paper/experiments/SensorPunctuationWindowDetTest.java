@@ -12,7 +12,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SensorTumblingWindowTest extends TestCase {
+public class SensorPunctuationWindowDetTest extends TestCase {
 
 	/*********************************************
 	 * Data                                      *
@@ -51,10 +51,10 @@ public class SensorTumblingWindowTest extends TestCase {
 	public void testMultiDiscretizerDeterministic() {
 
 		//prepare policies
-		DeterministicTriggerPolicy<Tuple4<Long, Long, Long, Integer>> policy = new DEBSExpDriver.SensorTumblingWindow(5);
+		DeterministicTriggerPolicy<Tuple4<Long, Long, Long, Integer>> policy = new SensorPunctuationWindowDet(5);
 		TumblingSensorPolicyGroup<Tuple4<Long, Long, Long, Integer>> pgroup = new TumblingSensorPolicyGroup<>(policy);
 
-		DeterministicTriggerPolicy<Tuple4<Long, Long, Long, Integer>> policy2 = new DEBSExpDriver.SensorTumblingWindow(2);
+		DeterministicTriggerPolicy<Tuple4<Long, Long, Long, Integer>> policy2 = new SensorPunctuationWindowDet(2);
 		TumblingSensorPolicyGroup<Tuple4<Long, Long, Long, Integer>> pgroup2 = new TumblingSensorPolicyGroup<>(policy2);
 
 		assertEquals(expected, sumEvents(getTumblingEvents(scenario, pgroup), getTumblingEvents(scenario, pgroup2)));

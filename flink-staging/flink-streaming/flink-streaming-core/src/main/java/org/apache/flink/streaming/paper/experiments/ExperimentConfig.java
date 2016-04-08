@@ -8,7 +8,8 @@ import org.aeonbits.owner.Config;
  * source files you can check the following: http://owner.aeonbits.org/docs/loading-strategies/
  */
 @Config.LoadPolicy(Config.LoadType.FIRST)
-@Config.Sources({"classpath:default.10p.properties",
+@Config.Sources({"classpath:new-pairs.1t.properties",
+		"classpath:default.10p.properties",
 		"classpath:new-pairs.1c.properties",
 		"classpath:default.properties",
         "classpath:pairs.properties",
