@@ -51,12 +51,12 @@ public class DEBSExpDriver extends ExperimentDriver {
 
 
 	{
-//		RUN_PAIRS_LAZY = true;
+		RUN_PAIRS_LAZY = true;
 //		RUN_PAIRS_EAGER = true;
-		RUN_B2B_LAZY = true;
-		RUN_B2B_EAGER = true;
-		RUN_GENERAL_LAZY = true;
-		RUN_GENERAL_EAGER = true;
+//		RUN_B2B_LAZY = true;
+//		RUN_B2B_EAGER = true;
+//		RUN_GENERAL_LAZY = true;
+//		RUN_GENERAL_EAGER = true;
 	}
 
 	private boolean enableLogOutput = false;
@@ -90,14 +90,14 @@ public class DEBSExpDriver extends ExperimentDriver {
 	@Override
 	protected void runExperiments(AggregationStats stats, PrintWriter resultWriter) throws Exception {
 
-		for (int i = 0; i < scenario.length; i++) {
+		for (int i = 0; i < scenarios.size(); i++) {
 
 			Log.info("STARTING SCENARIO " + i);
 
 			int testCase = 0;
 
 			if (RUN_PAIRS_LAZY) {
-				String resultPath = "output-" + scenario + "-" + testCase;
+				String resultPath = "output-" + i + "-" + testCase;
 				setupExperiment(stats, resultWriter, runAggregation(
 						AggregationFramework.AGGREGATION_STRATEGY.LAZY,
 						AggregationFramework.DISCRETIZATION_TYPE.PAIRS, i, resultPath, true), i, testCase);
@@ -105,7 +105,7 @@ public class DEBSExpDriver extends ExperimentDriver {
 			}
 			testCase++;
 			if (RUN_PAIRS_EAGER) {
-				String resultPath = "output-" + scenario + "-" + testCase;
+				String resultPath = "output-" + i + "-" + testCase;
 				setupExperiment(stats, resultWriter, runAggregation(
 						AggregationFramework.AGGREGATION_STRATEGY.EAGER,
 						AggregationFramework.DISCRETIZATION_TYPE.PAIRS, i, resultPath, true), i, testCase);
@@ -113,7 +113,7 @@ public class DEBSExpDriver extends ExperimentDriver {
 			}
 			testCase++;
 			if (RUN_B2B_LAZY) {
-				String resultPath = "output-" + scenario + "-" + testCase;
+				String resultPath = "output-" + i + "-" + testCase;
 				setupExperiment(stats, resultWriter, runAggregation(
 						AggregationFramework.AGGREGATION_STRATEGY.LAZY,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B, i, resultPath, true), i, testCase);
@@ -121,7 +121,7 @@ public class DEBSExpDriver extends ExperimentDriver {
 			}
 			testCase++;
 			if (RUN_B2B_EAGER) {
-				String resultPath = "output-" + scenario + "-" + testCase;
+				String resultPath = "output-" + i + "-" + testCase;
 				setupExperiment(stats, resultWriter, runAggregation(
 						AggregationFramework.AGGREGATION_STRATEGY.EAGER,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B, i, resultPath, true), i, testCase);
@@ -129,14 +129,14 @@ public class DEBSExpDriver extends ExperimentDriver {
 			}
 			testCase++;
 			if (RUN_GENERAL_LAZY) {
-				String resultPath = "output-" + scenario + "-" + testCase;
+				String resultPath = "output-" + i + "-" + testCase;
 				setupExperiment(stats, resultWriter, runAggregation(
 						AggregationFramework.AGGREGATION_STRATEGY.LAZY,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B, i, resultPath, false), i, testCase);
 			}
 			testCase++;
 			if (RUN_GENERAL_EAGER) {
-				String resultPath = "output-" + scenario + "-" + testCase;
+				String resultPath = "output-" + i + "-" + testCase;
 				setupExperiment(stats, resultWriter, runAggregation(
 						AggregationFramework.AGGREGATION_STRATEGY.EAGER,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B, i, resultPath, false), i, testCase);
@@ -160,10 +160,10 @@ public class DEBSExpDriver extends ExperimentDriver {
 		DataStream<Tuple4<Long, Long, Long, Integer>> sensorStream = env.readTextFile(dataPath).map(new DEBSDataFormatter());
 
 		if (deterministic) {
-			configureAggregation(sensorStream, makeDeterministicPolicies(scenario[scIndex]),
+			configureAggregation(sensorStream, makeDeterministicPolicies(scenarios.get(scIndex)),
 					new ArrayList<>(), new ArrayList<>(), strategy, discr, resultPath);
 		} else {
-			Tuple2<List<TriggerPolicy>, List<EvictionPolicy>> policies = makeNonDeterministicPolicies(scenario[scIndex]);
+			Tuple2<List<TriggerPolicy>, List<EvictionPolicy>> policies = makeNonDeterministicPolicies(scenarios.get(scIndex));
 			configureAggregation(sensorStream, new ArrayList<>(), policies.f0, policies.f1, strategy, discr, resultPath);
 		}
 

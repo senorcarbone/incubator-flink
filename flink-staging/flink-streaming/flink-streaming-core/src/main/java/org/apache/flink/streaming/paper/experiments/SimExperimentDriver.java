@@ -127,8 +127,8 @@ public class SimExperimentDriver extends ExperimentDriver {
 		// CASE 8: Same as case 3 but EAGER
 		// CASE 9: Same as case 4 but EAGER
 		for (int i = 0; i < 9; i++) {
-			//check if the scenario is present in the setup file, otherwise skip this iterations
-			if (scenario[i] == null || scenario[i].size() == 0) {
+			//check if the scenarios is present in the setup file, otherwise skip this iterations
+			if (scenarios.get(i) == null || scenarios.get(i).size() == 0) {
 				continue;
 			}
 
@@ -143,7 +143,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 				StreamExecutionEnvironment env0 = StreamExecutionEnvironment.createLocalEnvironment(1);
 				DataStream<Tuple3<Double, Double, Long>> source2 = env0.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
-				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenario[i]);
+				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenarios.get(i));
 				SumAggregation.applyOn(source2, new Tuple3<>(periodicPolicyGroups, new LinkedList<>(),
 								new LinkedList<>()), AggregationFramework.AGGREGATION_STRATEGY.LAZY,
 						AggregationFramework.DISCRETIZATION_TYPE.PAIRS)
@@ -165,7 +165,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 				StreamExecutionEnvironment env2 = StreamExecutionEnvironment.createLocalEnvironment(1);
 				DataStream<Tuple3<Double, Double, Long>> source2 = env2.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
-				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenario[i]);
+				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenarios.get(i));
 				SumAggregation.applyOn(source2, new Tuple3<>(periodicPolicyGroups, new LinkedList<>(),
 								new LinkedList<>()), AggregationFramework.AGGREGATION_STRATEGY.LAZY,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B)
@@ -178,7 +178,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 			testCase++;
 
-			if (RUN_B2B_EAGER && randomScenario[i] != null && randomScenario[i].size() > 0) {
+			if (RUN_B2B_EAGER && randomScenarios.get(i) != null && randomScenarios.get(i).size() > 0) {
 				/*
 				 * Evaluate with deterministic policy groups (not periodic)  (case 2)
                  */
@@ -186,7 +186,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 				StreamExecutionEnvironment env3 = StreamExecutionEnvironment.createLocalEnvironment(1);
 				DataStream<Tuple3<Double, Double, Long>> source3 = env3.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
-				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> randomWalkPolicyGroups = makeRandomWalkPolicyGroups(randomScenario[i]);
+				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> randomWalkPolicyGroups = makeRandomWalkPolicyGroups(randomScenarios.get(i));
 				SumAggregation.applyOn(source3, new Tuple3<>(randomWalkPolicyGroups, new LinkedList<>(),
 								new LinkedList<>()), AggregationFramework.AGGREGATION_STRATEGY.LAZY,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B)
@@ -200,7 +200,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 			testCase++;
 
 
-			if (RUN_GENERAL_LAZY && randomScenario[i] != null && randomScenario[i].size() > 0) {
+			if (RUN_GENERAL_LAZY && randomScenarios.get(i) != null && randomScenarios.get(i).size() > 0) {
                 /*
                  *Evaluate not deterministic version  (case 3)
                  */
@@ -208,8 +208,8 @@ public class SimExperimentDriver extends ExperimentDriver {
 				StreamExecutionEnvironment env4 = StreamExecutionEnvironment.createLocalEnvironment(1);
 				DataStream<Tuple3<Double, Double, Long>> source4 = env4.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
-				SumAggregation.applyOn(source4, new Tuple3<>(new LinkedList<>(), makeNDRandomWalkTrigger(randomScenario[i]),
-								makeNDRandomWalkEviction(randomScenario[i])), AggregationFramework.AGGREGATION_STRATEGY.LAZY,
+				SumAggregation.applyOn(source4, new Tuple3<>(new LinkedList<>(), makeNDRandomWalkTrigger(randomScenarios.get(i)),
+								makeNDRandomWalkEviction(randomScenarios.get(i))), AggregationFramework.AGGREGATION_STRATEGY.LAZY,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B)
 						.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
@@ -228,8 +228,8 @@ public class SimExperimentDriver extends ExperimentDriver {
 				StreamExecutionEnvironment env5 = StreamExecutionEnvironment.createLocalEnvironment(1);
 				DataStream<Tuple3<Double, Double, Long>> source4 = env5.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
-				SumAggregation.applyOn(source4, new Tuple3<>(new LinkedList<>(), makeNDPeriodicTrigger(scenario[i]),
-						makeNDPeriodicEviction(scenario[i])), AggregationFramework.AGGREGATION_STRATEGY.LAZY, AggregationFramework.DISCRETIZATION_TYPE.B2B)
+				SumAggregation.applyOn(source4, new Tuple3<>(new LinkedList<>(), makeNDPeriodicTrigger(scenarios.get(i)),
+						makeNDPeriodicEviction(scenarios.get(i))), AggregationFramework.AGGREGATION_STRATEGY.LAZY, AggregationFramework.DISCRETIZATION_TYPE.B2B)
 						.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
 				result = env5.execute();
@@ -247,7 +247,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 				StreamExecutionEnvironment env1 = StreamExecutionEnvironment.createLocalEnvironment(1);
 				DataStream<Tuple3<Double, Double, Long>> source2 = env1.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
-				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenario[i]);
+				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenarios.get(i));
 				SumAggregation.applyOn(source2, new Tuple3<>(periodicPolicyGroups, new LinkedList<>(),
 								new LinkedList<>()), AggregationFramework.AGGREGATION_STRATEGY.EAGER,
 						AggregationFramework.DISCRETIZATION_TYPE.PAIRS)
@@ -268,7 +268,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 				StreamExecutionEnvironment env6 = StreamExecutionEnvironment.createLocalEnvironment(1);
 				DataStream<Tuple3<Double, Double, Long>> source2 = env6.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
-				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenario[i]);
+				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> periodicPolicyGroups = makePeriodicPolicyGroups(scenarios.get(i));
 				SumAggregation.applyOn(source2, new Tuple3<>(periodicPolicyGroups, new LinkedList<>(),
 								new LinkedList<>()), AggregationFramework.AGGREGATION_STRATEGY.EAGER,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B)
@@ -281,7 +281,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 			testCase++;
 
-			if (RUN_B2B_NOT_PERIODIC_EAGER && randomScenario[i] != null && randomScenario[i].size() > 0) {
+			if (RUN_B2B_NOT_PERIODIC_EAGER && randomScenarios.get(i) != null && randomScenarios.get(i).size() > 0) {
                 /*
                  * Evaluate with deterministic policy groups (not periodic) EAGER version (case 7)
                  */
@@ -289,7 +289,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 				StreamExecutionEnvironment env7 = StreamExecutionEnvironment.createLocalEnvironment(1);
 				DataStream<Tuple3<Double, Double, Long>> source3 = env7.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
-				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> randomWalkPolicyGroups = makeRandomWalkPolicyGroups(randomScenario[i]);
+				List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> randomWalkPolicyGroups = makeRandomWalkPolicyGroups(randomScenarios.get(i));
 				SumAggregation.applyOn(source3, new Tuple3<>(randomWalkPolicyGroups, new LinkedList<>(),
 								new LinkedList<>()), AggregationFramework.AGGREGATION_STRATEGY.EAGER,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B)
@@ -302,7 +302,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 			testCase++;
 
-			if (RUN_GENERAL_NOT_PERIODIC_EAGER && randomScenario[i] != null && randomScenario[i].size() > 0) {
+			if (RUN_GENERAL_NOT_PERIODIC_EAGER && randomScenarios.get(i) != null && randomScenarios.get(i).size() > 0) {
                 /*
                  *Evaluate not deterministic version  (case 8)
                  */
@@ -310,8 +310,8 @@ public class SimExperimentDriver extends ExperimentDriver {
 				StreamExecutionEnvironment env4 = StreamExecutionEnvironment.createLocalEnvironment(1);
 				DataStream<Tuple3<Double, Double, Long>> source4 = env4.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
-				SumAggregation.applyOn(source4, new Tuple3<>(new LinkedList<>(), makeNDRandomWalkTrigger(randomScenario[i]),
-								makeNDRandomWalkEviction(randomScenario[i])), AggregationFramework.AGGREGATION_STRATEGY.EAGER,
+				SumAggregation.applyOn(source4, new Tuple3<>(new LinkedList<>(), makeNDRandomWalkTrigger(randomScenarios.get(i)),
+								makeNDRandomWalkEviction(randomScenarios.get(i))), AggregationFramework.AGGREGATION_STRATEGY.EAGER,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B)
 						.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
@@ -330,8 +330,8 @@ public class SimExperimentDriver extends ExperimentDriver {
 				StreamExecutionEnvironment env5 = StreamExecutionEnvironment.createLocalEnvironment(1);
 				DataStream<Tuple3<Double, Double, Long>> source4 = env5.addSource(new DataGenerator(SOURCE_SLEEP, NUM_TUPLES));
 
-				SumAggregation.applyOn(source4, new Tuple3<>(new LinkedList<>(), makeNDPeriodicTrigger(scenario[i]),
-								makeNDPeriodicEviction(scenario[i])), AggregationFramework.AGGREGATION_STRATEGY.EAGER,
+				SumAggregation.applyOn(source4, new Tuple3<>(new LinkedList<>(), makeNDPeriodicTrigger(scenarios.get(i)),
+								makeNDPeriodicEviction(scenarios.get(i))), AggregationFramework.AGGREGATION_STRATEGY.EAGER,
 						AggregationFramework.DISCRETIZATION_TYPE.B2B)
 						.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
@@ -350,7 +350,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 
 	@SuppressWarnings("unchecked")
-	List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> makePeriodicPolicyGroups(LinkedList<Tuple3<String, Double, Double>> settings) {
+	List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> makePeriodicPolicyGroups(List<Tuple3<String, Double, Double>> settings) {
 
 		List<DeterministicPolicyGroup<Tuple3<Double, Double, Long>>> policyGroups = new LinkedList<>();
 		for (Tuple3<String, Double, Double> setting : settings) {

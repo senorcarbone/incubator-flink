@@ -84,30 +84,30 @@ public class GenericSetupGenerator {
     /**
      * Creates the queries setup (all required random values) and writes them to an output file.
      *
-     * @param regularCountMinSlide The minimal slide step for count-based queries in the regular scenario
-     * @param regularCountMaxSlide The maximal slide step for count-based queries in the regular scenario
-     * @param lowerCountMinSlide   The minimal slide step for count-based queries in the low-slide scenario
-     * @param lowerCountMaxSlide   The maximal slide step for count-based queries in the low-slide scenario
-     * @param upperCountMinSlide   The minimal slide step for count-based queries in the high-slide scenario
-     * @param upperCountMaxSlide   The maximal slide step for count-based queries in the high-slide scenario
-     * @param regularCountMinRange The minimal range for count-based queries in the regular scenario
-     * @param regularCountMaxRange The maximal range for count-based queries in the regular scenario
-     * @param lowerCountMinRange   The minimal range for count-based queries in the low-range scenario
-     * @param lowerCountMaxRange   The maximal range for count-based queries in the low-range scenario
-     * @param upperCountMinRange   The minimal range for count-based queries in the high-range scenario
-     * @param upperCountMaxRange   The maximal range for count-based queries in the high-range scenario
-     * @param regularTimeMinSlide  The minimal slide step for time-based queries in the regular scenario
-     * @param regularTimeMaxSlide  The maximal slide step for time-based queries in the regular scenario
-     * @param lowerTimeMinSlide    The minimal slide step for time-based queries in the low-slide scenario
-     * @param lowerTimeMaxSlide    The maximal slide step for time-based queries in the low-slide scenario
-     * @param upperTimeMinSlide    The minimal slide step for time-based queries in the high-slide scenario
-     * @param upperTimeMaxSlide    The maximal slide step for time-based queries in the high-slide scenario
-     * @param regularTimeMinRange  The minimal range for time-based queries in the regular scenario
-     * @param regularTimeMaxRange  The maximal range for time-based queries in the regular scenario
-     * @param lowerTimeMinRange    The minimal range for time-based queries in the low-range scenario
-     * @param lowerTimeMaxRange    The maximal range for time-based queries in the low-range scenario
-     * @param upperTimeMinRange    The minimal range for time-based queries in the high-range scenario
-     * @param upperTimeMaxRange    The maximal range for time-based queries in the high-range scenario
+     * @param regularCountMinSlide The minimal slide step for count-based queries in the regular scenarios
+     * @param regularCountMaxSlide The maximal slide step for count-based queries in the regular scenarios
+     * @param lowerCountMinSlide   The minimal slide step for count-based queries in the low-slide scenarios
+     * @param lowerCountMaxSlide   The maximal slide step for count-based queries in the low-slide scenarios
+     * @param upperCountMinSlide   The minimal slide step for count-based queries in the high-slide scenarios
+     * @param upperCountMaxSlide   The maximal slide step for count-based queries in the high-slide scenarios
+     * @param regularCountMinRange The minimal range for count-based queries in the regular scenarios
+     * @param regularCountMaxRange The maximal range for count-based queries in the regular scenarios
+     * @param lowerCountMinRange   The minimal range for count-based queries in the low-range scenarios
+     * @param lowerCountMaxRange   The maximal range for count-based queries in the low-range scenarios
+     * @param upperCountMinRange   The minimal range for count-based queries in the high-range scenarios
+     * @param upperCountMaxRange   The maximal range for count-based queries in the high-range scenarios
+     * @param regularTimeMinSlide  The minimal slide step for time-based queries in the regular scenarios
+     * @param regularTimeMaxSlide  The maximal slide step for time-based queries in the regular scenarios
+     * @param lowerTimeMinSlide    The minimal slide step for time-based queries in the low-slide scenarios
+     * @param lowerTimeMaxSlide    The maximal slide step for time-based queries in the low-slide scenarios
+     * @param upperTimeMinSlide    The minimal slide step for time-based queries in the high-slide scenarios
+     * @param upperTimeMaxSlide    The maximal slide step for time-based queries in the high-slide scenarios
+     * @param regularTimeMinRange  The minimal range for time-based queries in the regular scenarios
+     * @param regularTimeMaxRange  The maximal range for time-based queries in the regular scenarios
+     * @param lowerTimeMinRange    The minimal range for time-based queries in the low-range scenarios
+     * @param lowerTimeMaxRange    The maximal range for time-based queries in the low-range scenarios
+     * @param upperTimeMinRange    The minimal range for time-based queries in the high-range scenarios
+     * @param upperTimeMaxRange    The maximal range for time-based queries in the high-range scenarios
      * @param numTimeQueries       Number of time-based queries
      * @param numCountQueries      Number of count-based queries
      * @throws FileNotFoundException        If the output file cannot be accessed.
@@ -159,7 +159,7 @@ public class GenericSetupGenerator {
         //Write out ranges and slides for plotting them
         PrintWriter plotWriter1 = new PrintWriter(plotDataOutputPath, "UTF-8");
 
-        //Regular scenario
+        //Regular scenarios
         if (scenarioRegularSlideRegularRange){
             writer.println("SCENARIO 1: REGULAR RANGE; REGULAR SLIDE");
             writer.println("\tDETERMINISTIC AND PERIODIC");
@@ -286,7 +286,7 @@ public class GenericSetupGenerator {
         if (generateRandomWalk){
             //Random Walk cases:
             //Generate randomly places window ends per query:
-            //Regular scenario
+            //Regular scenarios
             if (scenarioRegularSlideRegularRange){
                 writer.println("SCENARIO 1: REGULAR RANGE; REGULAR SLIDE");
                 writer.println("\tRANDOM WINDOW ENDS (DETERMINISTIC BUT NOT PERIODIC)");

@@ -17,7 +17,7 @@
 
 package org.apache.flink.streaming.paper.experiments;
 
-public class SIGMODExperimentDriver {
+public class SIGMODRunner {
 
     private static final String[] SETUP_PATHS={
             "setups/test-setup-10c10t-0.txt",

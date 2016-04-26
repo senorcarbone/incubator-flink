@@ -126,25 +126,25 @@ public interface ExperimentConfig extends Config{
     double regularCountMaxSlide();
 
     /**
-     * Minimum slide step for the scenario with small slides (COUNT)
+     * Minimum slide step for the scenarios with small slides (COUNT)
      */
     @DefaultValue("1")
     double lowerCountMinSlide();
 
     /**
-     * Maximum slide step for the scenario with small slides (COUNT)
+     * Maximum slide step for the scenarios with small slides (COUNT)
      */
     @DefaultValue("3")
     double lowerCountMaxSlide();
 
     /**
-     * Minimum slide step for the scenario with large slides (COUNT)
+     * Minimum slide step for the scenarios with large slides (COUNT)
      */
     @DefaultValue("7")
     double upperCountMinSlide();
 
     /**
-     * Maximum slide step for the scenario with large slides (COUNT)
+     * Maximum slide step for the scenarios with large slides (COUNT)
      */
     @DefaultValue("9")
     double upperCountMaxSlide();
@@ -162,25 +162,25 @@ public interface ExperimentConfig extends Config{
     double regularCountMaxRange();
 
     /**
-     * Minimum range for the scenario with small ranges (COUNT)
+     * Minimum range for the scenarios with small ranges (COUNT)
      */
     @DefaultValue("11")
     double lowerCountMinRange();
 
     /**
-     * Maximum range for the scenario with small ranges (COUNT)
+     * Maximum range for the scenarios with small ranges (COUNT)
      */
     @DefaultValue("13")
     double lowerCountMaxRange();
 
     /**
-     * Minimum range for the scenario with large ranges (COUNT)
+     * Minimum range for the scenarios with large ranges (COUNT)
      */
     @DefaultValue("17")
     double upperCountMinRange();
 
     /**
-     * Maximum range for the scenario with large ranges (COUNT)
+     * Maximum range for the scenarios with large ranges (COUNT)
      */
     @DefaultValue("19")
     double upperCountMaxRange();
@@ -203,25 +203,25 @@ public interface ExperimentConfig extends Config{
     double regularTimeMaxSlide();
 
     /**
-     * Minimum slide step for the scenario with small slides (TIME)
+     * Minimum slide step for the scenarios with small slides (TIME)
      */
     @DefaultValue("1")
     double lowerTimeMinSlide();
 
     /**
-     * Maximum slide step for the scenario with small slides (TIME)
+     * Maximum slide step for the scenarios with small slides (TIME)
      */
     @DefaultValue("3")
     double lowerTimeMaxSlide();
 
     /**
-     * Minimum slide step for the scenario with large slides (TIME)
+     * Minimum slide step for the scenarios with large slides (TIME)
      */
     @DefaultValue("7")
     double upperTimeMinSlide();
 
     /**
-     * Maximum slide step for the scenario with large slides (TIME)
+     * Maximum slide step for the scenarios with large slides (TIME)
      */
     @DefaultValue("9")
     double upperTimeMaxSlide();
@@ -239,25 +239,25 @@ public interface ExperimentConfig extends Config{
     double regularTimeMaxRange();
 
     /**
-     * Minimum range for the scenario with small ranges (TIME)
+     * Minimum range for the scenarios with small ranges (TIME)
      */
     @DefaultValue("11")
     double lowerTimeMinRange();
 
     /**
-     * Maximum range for the scenario with small ranges (TIME)
+     * Maximum range for the scenarios with small ranges (TIME)
      */
     @DefaultValue("13")
     double lowerTimeMaxRange();
 
     /**
-     * Minimum range for the scenario with large ranges (TIME)
+     * Minimum range for the scenarios with large ranges (TIME)
      */
     @DefaultValue("17")
     double upperTimeMinRange();
 
     /**
-     * Maximum range for the scenario with large ranges (TIME)
+     * Maximum range for the scenarios with large ranges (TIME)
      */
     @DefaultValue("19")
     double upperTimeMaxRange();

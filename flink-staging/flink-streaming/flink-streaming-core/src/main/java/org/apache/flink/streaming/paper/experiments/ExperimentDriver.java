@@ -70,10 +70,10 @@ public abstract class ExperimentDriver {
 
 	protected
 	@SuppressWarnings("unchecked")
-	LinkedList<Tuple3<String, Double, Double>>[] scenario;
+	List<List<Tuple3<String, Double, Double>>> scenarios;
 	protected
 	@SuppressWarnings("unchecked")
-	LinkedList<Tuple3<String, Double, Double[]>>[] randomScenario;
+	List<List<Tuple3<String, Double, Double[]>>> randomScenarios;
 
 	/**
 	 * Specify the output file for the experiment results
@@ -202,40 +202,43 @@ public abstract class ExperimentDriver {
 		//Read the setup
 		BufferedReader br = new BufferedReader(new FileReader(SETUP_PATH));
 		String line;
-
 		//Read the periodic setups
-		scenario = new LinkedList[9];
+		scenarios = new ArrayList();
 		line = br.readLine();
-		for (int i = 0; i < 9; i++) {
-			scenario[i] = new LinkedList<>();
+		int scenarioID=0;
+		while(line != null) {
+			List next = new ArrayList<>();
 			//Skip separation lines between scenarios
-			while (line != null && (!line.startsWith("SCENARIO " + (i + 1)))) {
-				i++;
-				scenario[i] = new LinkedList<>();
-			}
+//			while (line != null && (!line.startsWith("SCENARIO " + (scenarioID + 1)))) {
+//				scenarioID++;
+//				scenarios.add(new ArrayList<>());
+//			}
 			do {
 				line = br.readLine();
 			} while (!line.startsWith("\t\t"));
 			//parse data rows
 			do {
 				String[] fields = line.split("\t");
-				scenario[i].add(new Tuple3<>(fields[2], Double.parseDouble(fields[3]), Double.parseDouble(fields[4])));
+				next.add(new Tuple3<>(fields[2], Double.parseDouble(fields[3]), Double.parseDouble(fields[4])));
 				line = br.readLine();
 			} while (line != null && line.startsWith("\t\t"));
+			scenarios.add(next);
 		}
 
 		//Read the random walk setup
-		randomScenario = new LinkedList[9];
+		randomScenarios = new ArrayList<>();
+		scenarioID = 0;
+		
 		if (line == null) {
 			line = br.readLine();
 		}
-		for (int i = 0; i < 9; i++) {
-			randomScenario[i] = new LinkedList<>();
+		while (line != null) {
+			List nextRandom = new ArrayList<>();
 			//Skip separation lines between scenarios
-			while (line != null && (!line.startsWith("SCENARIO " + (i + 1)))) {
-				i++;
-				randomScenario[i] = new LinkedList<>();
-			}
+//			while (line != null && (!line.startsWith("SCENARIO " + (scenarioID + 1)))) {
+//				scenarioID++;
+//				randomScenarios.add(new LinkedList<>());
+//			}
 
 			//Stop loop if eof is reached (happens if there is no random walk setup present)
 			if (line == null) {
@@ -253,9 +256,10 @@ public abstract class ExperimentDriver {
 				for (int j = 0; j < windowEndsString.length; j++) {
 					windowEnds[j] = Double.parseDouble(windowEndsString[j]);
 				}
-				randomScenario[i].add(new Tuple3<>(fields[2], Double.parseDouble(fields[3]), windowEnds));
+				nextRandom.add(new Tuple3<>(fields[2], Double.parseDouble(fields[3]), windowEnds));
 				line = br.readLine();
 			} while (line != null && line.startsWith("\t\t"));
+			randomScenarios.add(nextRandom);
 		}
 	}
 
