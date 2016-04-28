@@ -17,6 +17,7 @@ public class AggregationStats implements Serializable {
     private long sum_upd_time = 0l;
     private long totalMergeCount = 1l;
     private long sum_merge_time = 0l;
+	private long num_partials = 0l;
     
     private long upd_timestamp;
     private long merge_timestamp;
@@ -57,6 +58,10 @@ public class AggregationStats implements Serializable {
     public void registerAggregate() {
         aggregate_count++;
     }
+	
+	public void registerPartial(){
+		num_partials++;
+	}
 
     public void registerReduce() {
         reduce_count++;
@@ -88,6 +93,8 @@ public class AggregationStats implements Serializable {
         return reduce_count;
     }
 
+	public long getPartialCount(){return num_partials;}
+	
     public void reset() {
         update_count = 0l;
         aggregate_count = 0l;
@@ -101,6 +108,7 @@ public class AggregationStats implements Serializable {
         sum_merge_time = 0l;
         upd_timestamp = 0l;
         merge_timestamp = 0l;
+		num_partials = 0l;
     }
 
     protected Object readResolve() {

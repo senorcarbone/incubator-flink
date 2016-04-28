@@ -53,7 +53,7 @@ public class DEBSExpDriver extends ExperimentDriver {
 	{
 		RUN_PAIRS_LAZY = true;
 //		RUN_PAIRS_EAGER = true;
-//		RUN_B2B_LAZY = true;
+		RUN_B2B_LAZY = true;
 //		RUN_B2B_EAGER = true;
 //		RUN_GENERAL_LAZY = true;
 //		RUN_GENERAL_EAGER = true;

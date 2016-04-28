@@ -23,6 +23,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
+import org.apache.flink.streaming.api.windowing.policy.TempPolicyGroup;
 import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
 import org.apache.flink.streaming.api.windowing.windowbuffer.EagerHeapAggregator;
 import org.apache.flink.streaming.api.windowing.windowbuffer.LazyAggregator;
@@ -146,6 +147,7 @@ public class B2BMultiDiscretizer<IN, AGG extends Serializable> extends
                 //    can reuse the current partial on-the-fly (no need to pre-aggregate that)!
 
                 if ((windowEvents >> 16) > 0 && !partialUpdated) {
+					stats.registerPartial();
                     stats.registerStartUpdate();
                     if (partialIdx != 0) {
                         LOG.debug("ADDING PARTIAL {} with value {} ", partialIdx, currentPartial);
@@ -153,7 +155,7 @@ public class B2BMultiDiscretizer<IN, AGG extends Serializable> extends
                     }
                     partialIdx++;
                     currentPartial = identityValue;
-                    stats.registerEndUpdate();
+                    stats.registerEndUpdate();                                                                                               	
                     partialUpdated = true;
                 }
 
@@ -162,10 +164,17 @@ public class B2BMultiDiscretizer<IN, AGG extends Serializable> extends
                     updatePartial(partialIdx, true);
                 }
                 for (int j = 0; j < (windowEvents & 0xFFFF); j++) {
-                    stats.registerStartMerge();
-                    collectAggregate(i);
-                    stats.registerEndMerge();
-                }
+					if(policyGroups.get(i) instanceof TempPolicyGroup){
+						//avoid additional merges in the case of pairs
+						Integer partial = queryBorders.get(i).pollFirst();
+						unregisterPartial(partial);
+					}
+					else {
+						stats.registerStartMerge();
+						collectAggregate(i);
+						stats.registerEndMerge();
+					}
+				}
             }
         }
         stats.registerStartUpdate();

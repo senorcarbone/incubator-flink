@@ -43,7 +43,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -95,7 +94,7 @@ public abstract class ExperimentDriver {
 
 		//Writer for the results
 		PrintWriter resultWriter = new PrintWriter(RESULT_PATH, "UTF-8");
-		resultWriter.println("SCEN\tCASE\tTIME\tAGG\tRED\tUPD\tMAXB\tAVGB\tUPD_AVG\tUPD_CNT\tMERGE_AVG\tMERGE_CNT");
+		resultWriter.println("SCEN\tCASE\tTIME\tAGG\tRED\tUPD\tMAXB\tAVGB\tUPD_AVG\tUPD_CNT\tMERGE_AVG\tWINDOW_CNT\tPARTIAL_CNT");
 
 		//run simple program to warm up (The first start up takes more time...)
 		runWarmUpTask();
@@ -192,7 +191,8 @@ public abstract class ExperimentDriver {
 	void setupExperiment(AggregationStats stats, PrintWriter resultWriter, JobExecutionResult result, int scenarioId, int caseId) {
 		resultWriter.println(scenarioId + "\t" + caseId + "\t" + result.getNetRuntime() + "\t" + stats.getAggregateCount()
 				+ "\t" + stats.getReduceCount() + "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize()
-				+ "\t" + stats.getAverageUpdTime() + "\t" + stats.getTotalUpdateCount() + "\t" + stats.getAverageMergeTime() + "\t" + stats.getTotalMergeCount());
+				+ "\t" + stats.getAverageUpdTime() + "\t" + stats.getTotalUpdateCount() + "\t" + stats.getAverageMergeTime() 
+				+ "\t" + stats.getTotalMergeCount() + "\t" + stats.getPartialCount());
 		stats.reset();
 		resultWriter.flush();
 	}

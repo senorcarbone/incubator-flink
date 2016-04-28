@@ -133,7 +133,8 @@ public class GeneralMultiDiscretizer<IN, AGG> extends
         if (++recordCounter == Integer.MAX_VALUE) {  //FIXME handle this properly
             throw new RuntimeException("The sequence id reached the limit given by the type long!");
         }
-        aggregator.add(recordCounter, tuple);
+		stats.registerPartial();
+		aggregator.add(recordCounter, tuple);
     }
 
     private void emitWindow(int queryId) throws Exception {

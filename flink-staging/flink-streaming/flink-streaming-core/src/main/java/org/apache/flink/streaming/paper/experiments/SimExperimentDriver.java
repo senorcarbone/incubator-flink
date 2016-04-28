@@ -230,7 +230,7 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 				SumAggregation.applyOn(source4, new Tuple3<>(new LinkedList<>(), makeNDPeriodicTrigger(scenarios.get(i)),
 						makeNDPeriodicEviction(scenarios.get(i))), AggregationFramework.AGGREGATION_STRATEGY.LAZY, AggregationFramework.DISCRETIZATION_TYPE.B2B)
-						.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
+							.map(new PaperExperiment.Prefix("SUM")).writeAsText("result-" + i + "-" + testCase, FileSystem.WriteMode.OVERWRITE);
 
 				result = env5.execute();
 
