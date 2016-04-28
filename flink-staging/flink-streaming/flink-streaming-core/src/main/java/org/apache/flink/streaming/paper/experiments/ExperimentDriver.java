@@ -59,7 +59,7 @@ public abstract class ExperimentDriver {
 	protected static boolean RUN_B2B_LAZY = false;
 	protected static boolean RUN_B2B_EAGER = false;
 	protected static boolean RUN_GENERAL_LAZY = false;
-	protected static boolean RUN_GENERAL_EAGER= false;
+	protected static boolean RUN_GENERAL_EAGER = false;
 	protected static boolean RUN_PERIODIC_NO_PREAGG = false;
 	protected static boolean RUN_PERIODIC_EAGER = false;
 	protected static boolean RUN_B2B_NOT_PERIODIC_EAGER = false;
@@ -94,7 +94,7 @@ public abstract class ExperimentDriver {
 
 		//Writer for the results
 		PrintWriter resultWriter = new PrintWriter(RESULT_PATH, "UTF-8");
-		resultWriter.println("SCEN\tCASE\tTIME\tAGG\tRED\tUPD\tMAXB\tAVGB\tUPD_AVG\tUPD_CNT\tMERGE_AVG\tWINDOW_CNT\tPARTIAL_CNT");
+		resultWriter.println("SCEN\tCASE\tTIME\tAGG\tRED\tUPD\tMAXB\tAVGB\tUPD_AVG\tMERGE_AVG\tWINDOW_CNT\tPARTIAL_CNT");
 
 		//run simple program to warm up (The first start up takes more time...)
 		runWarmUpTask();
@@ -139,8 +139,9 @@ public abstract class ExperimentDriver {
 		for (Tuple3<String, Double, Double> setting : settings) {
 			switch (setting.f0) {
 				case "COUNT":
+					int offset = (int) (setting.f2 - setting.f1);
 					policyGroups.add(new DeterministicPolicyGroup(
-							new DeterministicCountTriggerPolicy<>(setting.f2.intValue(), getStartCount()),
+							new DeterministicCountTriggerPolicy<>(setting.f2.intValue(), getStartCount() - offset),
 							new DeterministicCountEvictionPolicy<>(setting.f1.intValue()),
 							getCountExtractor()));
 					break;
@@ -165,11 +166,12 @@ public abstract class ExperimentDriver {
 
 		List<TriggerPolicy> triggers = new ArrayList<>();
 		List<EvictionPolicy> evictions = new ArrayList<>();
-		
+
 		for (Tuple3<String, Double, Double> setting : settings) {
 			switch (setting.f0) {
 				case "COUNT":
-					triggers.add(new CountTriggerPolicy(setting.f2.intValue(), getStartCount()));
+					int offset = (int) (setting.f2 - setting.f1);
+					triggers.add(new CountTriggerPolicy(setting.f2.intValue(), offset));
 					evictions.add(new CountEvictionPolicy(setting.f1.intValue()));
 					break;
 				case "TIME":
@@ -182,7 +184,7 @@ public abstract class ExperimentDriver {
 			}
 		}
 
-		return new Tuple2<>(triggers,evictions);
+		return new Tuple2<>(triggers, evictions);
 	}
 
 
@@ -191,8 +193,8 @@ public abstract class ExperimentDriver {
 	void setupExperiment(AggregationStats stats, PrintWriter resultWriter, JobExecutionResult result, int scenarioId, int caseId) {
 		resultWriter.println(scenarioId + "\t" + caseId + "\t" + result.getNetRuntime() + "\t" + stats.getAggregateCount()
 				+ "\t" + stats.getReduceCount() + "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize()
-				+ "\t" + stats.getAverageUpdTime() + "\t" + stats.getTotalUpdateCount() + "\t" + stats.getAverageMergeTime() 
-				+ "\t" + stats.getTotalMergeCount() + "\t" + stats.getPartialCount());
+				+ "\t" + stats.getAverageUpdTime() + "\t" + stats.getAverageMergeTime()
+				+ "\t" + (stats.getTotalMergeCount()-1) + "\t" + stats.getPartialCount());
 		stats.reset();
 		resultWriter.flush();
 	}
@@ -205,8 +207,8 @@ public abstract class ExperimentDriver {
 		//Read the periodic setups
 		scenarios = new ArrayList();
 		line = br.readLine();
-		int scenarioID=0;
-		while(line != null) {
+		int scenarioID = 0;
+		while (line != null) {
 			List next = new ArrayList<>();
 			//Skip separation lines between scenarios
 //			while (line != null && (!line.startsWith("SCENARIO " + (scenarioID + 1)))) {
@@ -228,7 +230,7 @@ public abstract class ExperimentDriver {
 		//Read the random walk setup
 		randomScenarios = new ArrayList<>();
 		scenarioID = 0;
-		
+
 		if (line == null) {
 			line = br.readLine();
 		}

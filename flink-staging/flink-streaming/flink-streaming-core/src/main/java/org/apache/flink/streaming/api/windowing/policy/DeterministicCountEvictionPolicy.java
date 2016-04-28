@@ -35,4 +35,8 @@ public class DeterministicCountEvictionPolicy<IN> extends
 			return 0;
 		}
 	}
+
+	public int getRange() {
+		return maxElements;
+	}
 }

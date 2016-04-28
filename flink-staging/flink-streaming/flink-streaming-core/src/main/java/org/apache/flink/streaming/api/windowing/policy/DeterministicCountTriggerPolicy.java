@@ -39,6 +39,10 @@ public class DeterministicCountTriggerPolicy<IN> extends CountTriggerPolicy<IN>
 		return startValue;
 	}
 
+	public int getSlide() {
+		return max;
+	}
+
 	@Override
 	public double getNextTriggerPosition(double previousTriggerPosition) {
 		if (previousTriggerPosition < 0) {

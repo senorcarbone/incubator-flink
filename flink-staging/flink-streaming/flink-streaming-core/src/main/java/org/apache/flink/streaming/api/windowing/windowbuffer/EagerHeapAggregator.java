@@ -24,7 +24,13 @@ import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A full aggregator computes all pre-aggregates per partial result added. This implementation yields
@@ -49,325 +55,307 @@ import java.util.*;
  */
 public class EagerHeapAggregator<T> implements WindowAggregator<T> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(EagerHeapAggregator.class);
-    private final ReduceFunction<T> reduceFunction;
-    private final TypeSerializer<T> serializer;
-    private final T identityValue;
+	private static final Logger LOG = LoggerFactory.getLogger(EagerHeapAggregator.class);
+	private final ReduceFunction<T> reduceFunction;
+	private final TypeSerializer<T> serializer;
+	private final T identityValue;
 
 
-    private Map<Integer, Integer> leafIndex;
-    /**
-     * We use a fixed size list for the circular heap. We did not use an array due to the usual generics
-     * issue in Java. Performance should be comparably reasonable using an ArrayList implementation.
-     */
-    private List<T> circularHeap;
+	private Map<Integer, Integer> leafIndex;
+	/**
+	 * We use a fixed size list for the circular heap. We did not use an array due to the usual generics
+	 * issue in Java. Performance should be comparably reasonable using an ArrayList implementation.
+	 */
+	private List<T> circularHeap;
 
-    private int numLeaves;
-    private int back, front;
-    private final int ROOT = 0;
+	private int numLeaves;
+	private int back, front;
+	private final int ROOT = 0;
 
-    private AggregationStats stats = AggregationStats.getInstance();
+	private AggregationStats stats = AggregationStats.getInstance();
 
-    private enum AGG_STATE {UPDATING, AGGREGATING}
+	/**
+	 * @param reduceFunction
+	 * @param serializer
+	 * @param identityValue  as the identity value (i.e. where reduce(defVal, val) == reduce(val, defVal) == val)
+	 * @param capacity
+	 */
+	public EagerHeapAggregator(ReduceFunction<T> reduceFunction, TypeSerializer<T> serializer, T identityValue, int capacity) {
+		if (((capacity & -capacity) != capacity))
+			throw new IllegalArgumentException("Capacity should be a power of two");
+		this.reduceFunction = reduceFunction;
+		this.serializer = serializer;
+		this.identityValue = identityValue;
+		this.numLeaves = capacity;
+		this.back = capacity - 2;
+		this.front = capacity - 1;
+		this.leafIndex = new LinkedHashMap<Integer, Integer>(capacity);
 
-    private AGG_STATE currentState = AGG_STATE.UPDATING;
+		int fullCapacity = 2 * capacity - 1;
+		stats.registerBufferSize(fullCapacity);
+		this.circularHeap = new ArrayList<T>(Collections.nCopies(fullCapacity, identityValue));
+	}
 
+	@Override
+	public void add(int partialId, T partialVal) throws Exception {
+		add(partialId, partialVal, true);
+	}
 
-    /**
-     * @param reduceFunction
-     * @param serializer
-     * @param identityValue  as the identity value (i.e. where reduce(defVal, val) == reduce(val, defVal) == val)
-     * @param capacity
-     */
-    public EagerHeapAggregator(ReduceFunction<T> reduceFunction, TypeSerializer<T> serializer, T identityValue, int capacity) {
-        if (((capacity & -capacity) != capacity))
-            throw new IllegalArgumentException("Capacity should be a power of two");
-        this.reduceFunction = reduceFunction;
-        this.serializer = serializer;
-        this.identityValue = identityValue;
-        this.numLeaves = capacity;
-        this.back = capacity - 2;
-        this.front = capacity - 1;
-        this.leafIndex = new LinkedHashMap<Integer, Integer>(capacity);
+	/**
+	 * It adds the given value in the leaf space and if commit is set to true it materializes all partial pre-aggregates
+	 *
+	 * @param partialId
+	 * @param partialVal
+	 * @param commit
+	 * @throws Exception
+	 */
+	private int add(int partialId, T partialVal, boolean commit) throws Exception {
+		if (currentCapacity() == 0) {
+			resize(2 * numLeaves);
+		}
+		incrBack();
+		leafIndex.put(partialId, back);
+		circularHeap.set(back, serializer.copy(partialVal));
+		if (commit) {
+			update(back);
+		}
 
-        int fullCapacity = 2 * capacity - 1;
-        stats.registerBufferSize(fullCapacity);
-        this.circularHeap = new ArrayList<T>(Collections.nCopies(fullCapacity, identityValue));
-    }
+		return back;
+	}
 
-    @Override
-    public void add(int partialId, T partialVal) throws Exception {
-        add(partialId, partialVal, true);
-    }
+	/**
+	 * It reconstructs the heap with a new leaf space of size newCapacity
+	 *
+	 * @param newCapacity
+	 */
+	private void resize(int newCapacity) throws Exception {
+		LOG.info("RESIZING HEAP TO {}", newCapacity);
+		int fullCapacity = 2 * newCapacity - 1;
+		List<T> newHeap = new ArrayList<T>(Collections.nCopies(fullCapacity, identityValue));
+		Integer[] updated = new Integer[leafIndex.size()];
+		int indx = newCapacity - 2;
+		int updateCount = 0;
+		for (Map.Entry<Integer, Integer> entry : leafIndex.entrySet()) {
+			newHeap.set(++indx, circularHeap.get(entry.getValue()));
+			entry.setValue(indx);
+			updated[updateCount++] = indx;
+		}
+		this.numLeaves = newCapacity;
+		this.back = indx;
+		this.front = newCapacity - 1;
+		this.circularHeap = newHeap;
+		update(updated);
+		stats.registerBufferSize(fullCapacity);
+	}
 
-    /**
-     * It adds the given value in the leaf space and if commit is set to true it materializes all partial pre-aggregates
-     *
-     * @param partialId
-     * @param partialVal
-     * @param commit
-     * @throws Exception
-     */
-    private int add(int partialId, T partialVal, boolean commit) throws Exception {
-        currentState = AGG_STATE.UPDATING;
-        if (currentCapacity() == 0) {
-            resize(2 * numLeaves);
-        }
-        incrBack();
-        leafIndex.put(partialId, back);
-        circularHeap.set(back, serializer.copy(partialVal));
-        if (commit) {
-            update(back);
-        }
+	@Override
+	public void add(List<Integer> ids, List<T> vals) throws Exception {
+		if (ids.size() != vals.size()) throw new IllegalArgumentException("The ids and vals given do not match");
 
-        return back;
-    }
+		//if we have reached max capacity (numLeaves) resize so that i*numLeaves > usedSpace+newSpace
+		if (ids.size() > currentCapacity()) {
+			int newCapacity = numLeaves;
+			while (newCapacity < numLeaves - currentCapacity() + ids.size()) {
+				newCapacity = 2 * newCapacity;
+			}
+			resize(newCapacity);
+		}
 
-    /**
-     * It reconstructs the heap with a new leaf space of size newCapacity
-     *
-     * @param newCapacity
-     */
-    private void resize(int newCapacity) throws Exception {
-        LOG.info("RESIZING HEAP TO {}", newCapacity);
-        int fullCapacity = 2 * newCapacity - 1;
-        List<T> newHeap = new ArrayList<T>(Collections.nCopies(fullCapacity, identityValue));
-        Integer[] updated = new Integer[leafIndex.size()];
-        int indx = newCapacity - 2;
-        int updateCount = 0;
-        for (Map.Entry<Integer, Integer> entry : leafIndex.entrySet()) {
-            newHeap.set(++indx, circularHeap.get(entry.getValue()));
-            entry.setValue(indx);
-            updated[updateCount++] = indx;
-        }
-        this.numLeaves = newCapacity;
-        this.back = indx;
-        this.front = newCapacity - 1;
-        this.circularHeap = newHeap;
-        update(updated);
-        stats.registerBufferSize(fullCapacity);
-    }
+		//add all new leaf values and perform a bulk update
+		Integer[] updatedLeaves = new Integer[ids.size()];
+		for (int i = 0; i < ids.size(); i++) {
+			updatedLeaves[i] = add(ids.get(i), vals.get(i), false);
+		}
+		update(updatedLeaves);
+	}
 
-    @Override
-    public void add(List<Integer> ids, List<T> vals) throws Exception {
-        currentState = AGG_STATE.UPDATING;
-        if (ids.size() != vals.size()) throw new IllegalArgumentException("The ids and vals given do not match");
+	@Override
+	public void remove(Integer... partialList) throws Exception {
+		List<Integer> leafBag = new ArrayList<Integer>(partialList.length);
+		for (int partialId : partialList) {
+			if (!leafIndex.containsKey(partialId)) continue;
+			int leafID = leafIndex.get(partialId);
+			leafIndex.remove(partialId);
+			if (leafID != front) throw new IllegalArgumentException("Cannot evict out of order");
+			circularHeap.set(front, identityValue);
+			incrFront();
+			leafBag.add(leafID);
+		}
+		update(leafBag.toArray(new Integer[leafBag.size()]));
+		// shrink to half when the utilization is only one quarter
+		if (currentCapacity() > 3 * numLeaves / 4 && numLeaves >= 4) {
+			resize(numLeaves / 2);
+		}
+	}
 
-        //if we have reached max capacity (numLeaves) resize so that i*numLeaves > usedSpace+newSpace
-        if (ids.size() > currentCapacity()) {
-            int newCapacity = numLeaves;
-            while (newCapacity < numLeaves - currentCapacity() + ids.size()) {
-                newCapacity = 2 * newCapacity;
-            }
-            resize(newCapacity);
-        }
+	@Override
+	public void removeUpTo(int id) throws Exception {
+		List<Integer> toRemove = new ArrayList<Integer>();
+		if (leafIndex.containsKey(id)) {
+			for (Map.Entry<Integer, Integer> mapping : leafIndex.entrySet()) {
+				if (mapping.getKey() == id)
+					break;
+				toRemove.add(mapping.getKey());
+			}
+		}
+		remove(toRemove.toArray(new Integer[toRemove.size()]));
+	}
 
-        //add all new leaf values and perform a bulk update
-        Integer[] updatedLeaves = new Integer[ids.size()];
-        for (int i = 0; i < ids.size(); i++) {
-            updatedLeaves[i] = add(ids.get(i), vals.get(i), false);
-        }
-        update(updatedLeaves);
-    }
+	@Override
+	public T aggregate(int partialId) throws Exception {
+		if (leafIndex.containsKey(partialId)) {
+			return aggregateFrom(leafIndex.get(partialId));
+		}
+		// in case no partials are registered (can be true if we trigger in the very beginning) return the identity
+		return identityValue;
+	}
 
-    @Override
-    public void remove(Integer... partialList) throws Exception {
-        currentState = AGG_STATE.UPDATING;
-        List<Integer> leafBag = new ArrayList<Integer>(partialList.length);
-        for (int partialId : partialList) {
-            if (!leafIndex.containsKey(partialId)) continue;
-            int leafID = leafIndex.get(partialId);
-            leafIndex.remove(partialId);
-            if (leafID != front) throw new IllegalArgumentException("Cannot evict out of order");
-            circularHeap.set(front, identityValue);
-            incrFront();
-            leafBag.add(leafID);
-        }
-        update(leafBag.toArray(new Integer[leafBag.size()]));
-        // shrink to half when the utilization is only one quarter
-        if (currentCapacity() > 3 * numLeaves / 4 && numLeaves >= 4) {
-            resize(numLeaves / 2);
-        }
-    }
+	@Override
+	public T aggregate() throws Exception {
+		return aggregateFrom(front);
+	}
 
-    @Override
-    public void removeUpTo(int id) throws Exception {
-        currentState = AGG_STATE.UPDATING;
-        List<Integer> toRemove = new ArrayList<Integer>();
-        if (leafIndex.containsKey(id)) {
-            for (Map.Entry<Integer, Integer> mapping : leafIndex.entrySet()) {
-                if (mapping.getKey() == id)
-                    break;
-                toRemove.add(mapping.getKey());
-            }
-        }
-        remove(toRemove.toArray(new Integer[toRemove.size()]));
-    }
+	/**
+	 * Applies eager bulk pre-aggregation for all given mutated leafIDs. This works exactly as described in the RA paper
+	 */
+	private void update(Integer... leafIds) throws Exception {
+		Set<Integer> next = Sets.newHashSet(leafIds);
+		do {
+			Set<Integer> tmp = new HashSet<Integer>();
+			for (Integer nodeId : next) {
+				if (nodeId != ROOT) {
+					tmp.add(parent(nodeId));
+				}
+			}
+			for (Integer parent : tmp) {
+				circularHeap.set(parent, combine(circularHeap.get(left(parent)), circularHeap.get(right(parent))));
+			}
+			next = tmp;
+		} while (!next.isEmpty());
+	}
 
-    @Override
-    public T aggregate(int partialId) throws Exception {
-        currentState = AGG_STATE.AGGREGATING;
-        if (leafIndex.containsKey(partialId)) {
-            return aggregateFrom(leafIndex.get(partialId));
-        }
-        // in case no partials are registered (can be true if we trigger in the very beginning) return the identity
-        return identityValue;
-    }
+	/**
+	 * It invokes a reduce operation on copies of the given values
+	 *
+	 * @param val1
+	 * @param val2
+	 * @return
+	 * @throws Exception
+	 */
+	private T combine(T val1, T val2) throws Exception {
+		return reduceFunction.reduce(serializer.copy(val1), serializer.copy(val2));
+	}
 
-    @Override
-    public T aggregate() throws Exception {
-        return aggregateFrom(front);
-    }
+	/**
+	 * It collects an aggregated result starting from the leafID given until the back index of the circular heap
+	 *
+	 * @param leafID
+	 * @return
+	 * @throws Exception
+	 */
+	private T aggregateFrom(int leafID) throws Exception {
+		if (back < leafID) {
+			return combine(prefix(back), suffix(leafID));
+		}
 
-    /**
-     * Applies eager bulk pre-aggregation for all given mutated leafIDs. This works exactly as described in the RA paper
-     */
-    private void update(Integer... leafIds) throws Exception {
-        Set<Integer> next = Sets.newHashSet(leafIds);
-        do {
-            Set<Integer> tmp = new HashSet<Integer>();
-            for (Integer nodeId : next) {
-                if (nodeId != ROOT) {
-                    tmp.add(parent(nodeId));
-                }
-            }
-            for (Integer parent : tmp) {
-                circularHeap.set(parent, combine(circularHeap.get(left(parent)), circularHeap.get(right(parent))));
-            }
-            next = tmp;
-        } while (!next.isEmpty());
-    }
+		return (leafID == front) ? circularHeap.get(ROOT) : suffix(leafID);
+	}
 
-    /**
-     * It invokes a reduce operation on copies of the given values
-     *
-     * @param val1
-     * @param val2
-     * @return
-     * @throws Exception
-     */
-    private T combine(T val1, T val2) throws Exception {
-        switch (currentState) {
-            case UPDATING:
-                stats.registerUpdate();
-                break;
-            case AGGREGATING:
-                stats.registerAggregate();
-        }
-        return reduceFunction.reduce(serializer.copy(val1), serializer.copy(val2));
-    }
+	/**
+	 * it collects an aggregated result starting from the leafID given until the end of the leaf space
+	 *
+	 * @param leafID
+	 * @return
+	 * @throws Exception
+	 */
+	private T suffix(int leafID) throws Exception {
+		int next = leafID;
+		T agg = circularHeap.get(next);
+		while (next != ROOT) {
+			int p = parent(next);
+			if (next == left(p)) {
+				agg = combine(agg, circularHeap.get(right(p)));
+			}
 
-    /**
-     * It collects an aggregated result starting from the leafID given until the back index of the circular heap
-     *
-     * @param leafID
-     * @return
-     * @throws Exception
-     */
-    private T aggregateFrom(int leafID) throws Exception {
-        currentState = AGG_STATE.AGGREGATING;
-        if (back < leafID) {
-            return combine(prefix(back), suffix(leafID));
-        }
+			next = p;
+		}
 
-        return (leafID == front) ? circularHeap.get(ROOT) : suffix(leafID);
-    }
+		return agg;
+	}
 
-    /**
-     * it collects an aggregated result starting from the leafID given until the end of the leaf space
-     *
-     * @param leafID
-     * @return
-     * @throws Exception
-     */
-    private T suffix(int leafID) throws Exception {
-        int next = leafID;
-        T agg = circularHeap.get(next);
-        while (next != ROOT) {
-            int p = parent(next);
-            if (next == left(p)) {
-                agg = combine(agg, circularHeap.get(right(p)));
-            }
+	/**
+	 * it collects an aggregated result from the beginning of the leaf space to the leafID given
+	 *
+	 * @param leafId
+	 * @return
+	 * @throws Exception
+	 */
+	private T prefix(int leafId) throws Exception {
+		int next = leafId;
+		T agg = circularHeap.get(next);
+		while (next != ROOT) {
+			int p = parent(next);
+			if (next == right(p)) {
+				agg = combine(circularHeap.get(left(p)), agg);
+			}
 
-            next = p;
-        }
+			next = p;
+		}
 
-        return agg;
-    }
+		return agg;
+	}
 
-    /**
-     * it collects an aggregated result from the beginning of the leaf space to the leafID given
-     *
-     * @param leafId
-     * @return
-     * @throws Exception
-     */
-    private T prefix(int leafId) throws Exception {
-        int next = leafId;
-        T agg = circularHeap.get(next);
-        while (next != ROOT) {
-            int p = parent(next);
-            if (next == right(p)) {
-                agg = combine(circularHeap.get(left(p)), agg);
-            }
+	/**
+	 * It returns the parent of nodeID from the heap space
+	 *
+	 * @param nodeId
+	 * @return
+	 */
+	private int parent(int nodeId) {
+		return (nodeId - 1) / 2;
+	}
 
-            next = p;
-        }
+	/**
+	 * It returns the left child of the nodeID given
+	 *
+	 * @param nodeId
+	 * @return
+	 */
+	private int left(int nodeId) {
+		return 2 * nodeId + 1;
+	}
 
-        return agg;
-    }
+	/**
+	 * It returns the right child of the nodeID given
+	 *
+	 * @param nodeId
+	 * @return
+	 */
+	private int right(int nodeId) {
+		return 2 * nodeId + 2;
+	}
 
-    /**
-     * It returns the parent of nodeID from the heap space
-     *
-     * @param nodeId
-     * @return
-     */
-    private int parent(int nodeId) {
-        return (nodeId - 1) / 2;
-    }
+	/**
+	 * It moves the back pointer of the leaf space forward in the circular buffer
+	 */
+	private void incrBack() {
+		back = ((back - numLeaves + 2) % numLeaves) + numLeaves - 1;
+	}
 
-    /**
-     * It returns the left child of the nodeID given
-     *
-     * @param nodeId
-     * @return
-     */
-    private int left(int nodeId) {
-        return 2 * nodeId + 1;
-    }
+	/**
+	 * It moves the front pointer of the leaf space forward in the circular buffer
+	 */
+	private void incrFront() {
+		front = ((front - numLeaves + 2) % numLeaves) + numLeaves - 1;
+	}
 
-    /**
-     * It returns the right child of the nodeID given
-     *
-     * @param nodeId
-     * @return
-     */
-    private int right(int nodeId) {
-        return 2 * nodeId + 2;
-    }
-
-    /**
-     * It moves the back pointer of the leaf space forward in the circular buffer
-     */
-    private void incrBack() {
-        back = ((back - numLeaves + 2) % numLeaves) + numLeaves - 1;
-    }
-
-    /**
-     * It moves the front pointer of the leaf space forward in the circular buffer
-     */
-    private void incrFront() {
-        front = ((front - numLeaves + 2) % numLeaves) + numLeaves - 1;
-    }
-
-    /**
-     * @return the current number of free slots in the leaf space
-     */
-    private int currentCapacity() {
-        int capacity = numLeaves - leafIndex.size();
-        LOG.debug("CURRENT CAPACITY : {}", capacity);
-        return capacity;
-    }
+	/**
+	 * @return the current number of free slots in the leaf space
+	 */
+	private int currentCapacity() {
+		int capacity = numLeaves - leafIndex.size();
+		LOG.debug("CURRENT CAPACITY : {}", capacity);
+		return capacity;
+	}
 
 }

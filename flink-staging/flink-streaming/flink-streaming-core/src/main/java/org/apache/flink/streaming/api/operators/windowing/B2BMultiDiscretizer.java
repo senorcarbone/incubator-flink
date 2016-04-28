@@ -85,9 +85,10 @@ public class B2BMultiDiscretizer<IN, AGG extends Serializable> extends
      * The current inter-border aggregate
      */
     private AGG currentPartial;
+	private long cnt;
 
 
-    public B2BMultiDiscretizer(
+	public B2BMultiDiscretizer(
             List<DeterministicPolicyGroup<IN>> policyGroups,
             ReduceFunction<AGG> reduceFunction, AGG identityValue, int capacity, TypeSerializer<AGG> serializer,
             AggregationFramework.AGGREGATION_STRATEGY aggregationType) {
@@ -136,34 +137,42 @@ public class B2BMultiDiscretizer<IN, AGG extends Serializable> extends
     public void processElement(Tuple2<IN, AGG> tuple) throws Exception {
         // First handle the deterministic policies
         boolean partialUpdated = false;
+		++cnt;
+		StringBuilder strb = new StringBuilder();
+		strb.append(cnt);
         for (int i = 0; i < policyGroups.size(); i++) {
-            int windowEvents = policyGroups.get(i).getWindowEvents(tuple.f0);
-
+			stats.setAggregationMode(AggregationStats.AGGREGATION_MODE.UPDATES);
+			int windowEvents = policyGroups.get(i).getWindowEvents(tuple.f0);
+			
+			int starts = windowEvents >> 16;
+			int ends = windowEvents & 0xFFFF;
+			strb.append(":"+starts+"-"+ends);
+			
             if (windowEvents != 0) {
 
                 // **STRATEGY FOR REGISTERING PARTIALS**
                 // 1) first partial does not need to be added in the pre-aggregation buffer
                 // 2) we only need to add eviction borders in the pre-aggregation buffer - consecutive triggers
                 //    can reuse the current partial on-the-fly (no need to pre-aggregate that)!
-
-                if ((windowEvents >> 16) > 0 && !partialUpdated) {
+				
+				if (starts > 0 && !partialUpdated) {
 					stats.registerPartial();
-                    stats.registerStartUpdate();
                     if (partialIdx != 0) {
                         LOG.debug("ADDING PARTIAL {} with value {} ", partialIdx, currentPartial);
-                        aggregator.add(partialIdx, currentPartial);
-                    }
+						stats.registerStartUpdate();
+						aggregator.add(partialIdx, currentPartial);
+						stats.registerEndUpdate();
+					}
                     partialIdx++;
                     currentPartial = identityValue;
-                    stats.registerEndUpdate();                                                                                               	
                     partialUpdated = true;
                 }
 
-                for (int j = 0; j < (windowEvents >> 16); j++) {
+                for (int j = 0; j < starts; j++) {
                     queryBorders.get(i).addLast(partialIdx);
                     updatePartial(partialIdx, true);
                 }
-                for (int j = 0; j < (windowEvents & 0xFFFF); j++) {
+				for (int j = 0; j < ends; j++) {
 					if(policyGroups.get(i) instanceof TempPolicyGroup){
 						//avoid additional merges in the case of pairs
 						Integer partial = queryBorders.get(i).pollFirst();
@@ -171,13 +180,15 @@ public class B2BMultiDiscretizer<IN, AGG extends Serializable> extends
 					}
 					else {
 						stats.registerStartMerge();
+						stats.setAggregationMode(AggregationStats.AGGREGATION_MODE.AGGREGATES);
 						collectAggregate(i);
 						stats.registerEndMerge();
 					}
 				}
             }
         }
-        stats.registerStartUpdate();
+		System.err.println(strb);
+		stats.registerStartUpdate();
         currentPartial = reducer.reduce(serializer.copy(currentPartial), tuple.f1);
         stats.registerEndUpdate();
     }
@@ -237,6 +248,7 @@ public class B2BMultiDiscretizer<IN, AGG extends Serializable> extends
 			output.collect(new Tuple2<>(queryId, reducer.reduce(serializer.copy(aggregator.aggregate(partial)),
 					serializer.copy(currentPartial))));
 			queryBorders.get(queryId).removeFirst();
+			stats.setAggregationMode(AggregationStats.AGGREGATION_MODE.UPDATES);
 			unregisterPartial(partial);
 		}catch(Exception ex){
 			LOG.error("FAILED TO AGGREGATE FOR QUERY : "+queryId);

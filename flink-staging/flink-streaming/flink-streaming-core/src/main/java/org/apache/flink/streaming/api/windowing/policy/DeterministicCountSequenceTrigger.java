@@ -15,6 +15,7 @@ public class DeterministicCountSequenceTrigger<IN> implements CloneableTriggerPo
 	private int curIndex;
 	private long counter;
 	private int startValue;
+	private int posInSeq;
 
 	public DeterministicCountSequenceTrigger(List<Long> sequence, int startValue) {
 		this.sequence = sequence;
@@ -29,11 +30,21 @@ public class DeterministicCountSequenceTrigger<IN> implements CloneableTriggerPo
 
 	@Override
 	public double getNextTriggerPosition(double previousTriggerPosition) {
+		double ret = 0;
+
 		if (previousTriggerPosition < 0) {
-			return getCurrentMax() + startValue;
+			ret = getCurrentMax() + startValue;
 		} else {
-			return previousTriggerPosition + getCurrentMax();
+			ret = previousTriggerPosition + sequence.get(posInSeq);
 		}
+
+		posInSeq = (posInSeq + 1) % sequence.size();
+		return ret;
+//		if (previousTriggerPosition < 0) {
+//			return getCurrentMax() + startValue;
+//		} else {
+//			return previousTriggerPosition + getCurrentMax();
+//		}
 	}
 
 	@Override

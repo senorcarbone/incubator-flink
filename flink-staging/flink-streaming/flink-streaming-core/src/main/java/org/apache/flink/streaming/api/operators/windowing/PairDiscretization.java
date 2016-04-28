@@ -32,11 +32,12 @@ public class PairDiscretization {
 																					 AggregationFramework.AGGREGATION_STRATEGY aggregationType) {
         ensureCompatibility(policyGroups);
 
-        List<DeterministicPolicyGroup<IN>> groups = new ArrayList<>(policyGroups.size() + 1);
-        for (DeterministicPolicyGroup group : policyGroups) {
+        LinkedList<DeterministicPolicyGroup<IN>> groups = new LinkedList<>();
+		
+		for (DeterministicPolicyGroup group : policyGroups) {
             groups.add(new PairPolicyGroup<>(group));
         }
-        groups.add(getCommonPairPolicy((List<PairPolicyGroup<IN>>) (List) groups));
+		groups.addFirst(getCommonPairPolicy((List<PairPolicyGroup<IN>>) (List) groups));
 
         return new B2BMultiDiscretizer<>(groups, reduceFunction, identityValue, capacity, serializer, aggregationType);
 
@@ -70,8 +71,8 @@ public class PairDiscretization {
      */
     public static long[] computePairs(long range, long slide) {
         long[] pairs = new long[2];
-        pairs[1] = range % slide;
-        pairs[0] = slide - pairs[1];
+        pairs[0] = range % slide;
+        pairs[1] = slide - pairs[0];
         return pairs;
     }
 
@@ -140,8 +141,10 @@ public class PairDiscretization {
     private static <DATA> DeterministicPolicyGroup<DATA> getPairSequence(PairPolicyGroup<DATA> group,
                                                                             List<Long> sequence){
         if (group.getEviction() instanceof DeterministicCountEvictionPolicy) {
+			int offset = ((DeterministicCountTriggerPolicy) group.getTrigger()).getSlide() 
+					- ((DeterministicCountEvictionPolicy) group.getEviction()).getRange();
             return new TempPolicyGroup<>(new DeterministicCountSequenceTrigger<>(sequence, 
-					((DeterministicCountTriggerPolicy)group.getTrigger()).getStartValue()),
+					((DeterministicCountTriggerPolicy)group.getTrigger()).getStartValue()+ offset) ,
 					new DeterministicCountSequenceEviction<>(sequence), group.getFieldExtractor());
         } else
             throw new IllegalArgumentException("Only count based policies are currently supported for pairs ");

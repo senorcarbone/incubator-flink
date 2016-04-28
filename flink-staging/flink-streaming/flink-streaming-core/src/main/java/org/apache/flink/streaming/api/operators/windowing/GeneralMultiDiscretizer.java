@@ -47,7 +47,7 @@ public class GeneralMultiDiscretizer<IN, AGG> extends
 
     private AggregationStats stats = AggregationStats.getInstance();
 
-    private static final int DEFAULT_CAPACITY = 32;
+    private static final int DEFAULT_CAPACITY = 16;
 
     private HashMap<Integer, LinkedList<Integer>> queryIdToWindowIds = new HashMap<Integer, LinkedList<Integer>>();
     private List<TriggerPolicy<IN>> triggerPolicies;
@@ -91,7 +91,7 @@ public class GeneralMultiDiscretizer<IN, AGG> extends
     public void processElement(Tuple2<IN, AGG> tuple) throws Exception {
         boolean hasEvicted = false;
         for (int i = 0; i < triggerPolicies.size(); i++) {
-
+			stats.setAggregationMode(AggregationStats.AGGREGATION_MODE.UPDATES);
             if (triggerPolicies.get(i) instanceof ActiveTriggerPolicy) {
                 Object[] preNotificationTuples = ((ActiveTriggerPolicy) triggerPolicies
                         .get(i)).preNotifyTrigger(tuple.f0);
@@ -120,6 +120,7 @@ public class GeneralMultiDiscretizer<IN, AGG> extends
             }
         }
         if (hasEvicted) {
+			stats.setAggregationMode(AggregationStats.AGGREGATION_MODE.UPDATES);
             aggregator.removeUpTo(Collections.min(queryBorders));
         }
         
@@ -130,6 +131,7 @@ public class GeneralMultiDiscretizer<IN, AGG> extends
 
 
     private void store(AGG tuple) throws Exception {
+		stats.setAggregationMode(AggregationStats.AGGREGATION_MODE.UPDATES);
         if (++recordCounter == Integer.MAX_VALUE) {  //FIXME handle this properly
             throw new RuntimeException("The sequence id reached the limit given by the type long!");
         }
@@ -138,6 +140,7 @@ public class GeneralMultiDiscretizer<IN, AGG> extends
     }
 
     private void emitWindow(int queryId) throws Exception {
+		stats.setAggregationMode(AggregationStats.AGGREGATION_MODE.AGGREGATES);
         LOG.info("Aggregation for Q{} from {}", queryId, queryBorders.get(queryId));
         output.collect(new Tuple2<>(queryId, aggregator.aggregate(queryBorders.get(queryId))));
     }

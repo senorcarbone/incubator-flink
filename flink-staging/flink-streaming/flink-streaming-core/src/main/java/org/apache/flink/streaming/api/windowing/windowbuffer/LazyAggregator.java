@@ -6,7 +6,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -18,180 +22,165 @@ import java.util.*;
  */
 public class LazyAggregator<T> implements WindowAggregator<T>, Serializable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(LazyAggregator.class);
+	private static final Logger LOG = LoggerFactory.getLogger(LazyAggregator.class);
 
-    private final ReduceFunction<T> reduceFunction;
-    private final TypeSerializer<T> serializer;
-    private final T identityValue;
+	private final ReduceFunction<T> reduceFunction;
+	private final TypeSerializer<T> serializer;
+	private final T identityValue;
 
-    private Map<Integer, Integer> partialMappings;
-    private List<T> buffer;
-    private int partialSpace;
+	private Map<Integer, Integer> partialMappings;
+	private List<T> buffer;
+	private int partialSpace;
 
-    private int back, front;
+	private int back, front;
 
-    private AggregationStats stats = AggregationStats.getInstance();
-
-    private enum AGG_STATE {UPDATING, AGGREGATING}
-
-    private AGG_STATE currentState;
+	private AggregationStats stats = AggregationStats.getInstance();
 
 
-    public LazyAggregator(ReduceFunction<T> reduceFunction, TypeSerializer<T> serializer, T identityValue, int initialCapacity) {
-        this.reduceFunction = reduceFunction;
-        this.serializer = serializer;
-        this.identityValue = identityValue;
-        this.partialSpace = initialCapacity;
 
-        partialMappings = new LinkedHashMap<Integer, Integer>(partialSpace);
-        buffer = new ArrayList<T>(Collections.nCopies(partialSpace, identityValue));
-        stats.registerBufferSize(partialSpace);
-        back = -1;
-        front = 0;
-    }
+	public LazyAggregator(ReduceFunction<T> reduceFunction, TypeSerializer<T> serializer, T identityValue, int initialCapacity) {
+		this.reduceFunction = reduceFunction;
+		this.serializer = serializer;
+		this.identityValue = identityValue;
+		this.partialSpace = initialCapacity;
 
-    private void resize(int newSpace) {
-        LOG.info("RESIZING BUFFER TO {}", newSpace);
-        List<T> newBuffer = new ArrayList<T>(Collections.nCopies(newSpace, identityValue));
-        int indx = -1;
-        for (Map.Entry<Integer, Integer> entry : partialMappings.entrySet()) {
-            newBuffer.set(++indx, buffer.get(entry.getValue()));
-            entry.setValue(indx);
-        }
-        this.front = 0;
-        this.back = partialMappings.size() - 1;
-        this.partialSpace = newSpace;
-        this.buffer = newBuffer;
-        stats.registerBufferSize(newSpace);
-    }
+		partialMappings = new LinkedHashMap<Integer, Integer>(partialSpace);
+		buffer = new ArrayList<T>(Collections.nCopies(partialSpace, identityValue));
+		stats.registerBufferSize(partialSpace);
+		back = -1;
+		front = 0;
+	}
 
-    @Override
-    public void add(int id, T val) throws Exception {
-        currentState = AGG_STATE.UPDATING;
-        if (currentCapacity() == 0) {
-            resize(2 * partialSpace);
-        }
+	private void resize(int newSpace) {
+		LOG.info("RESIZING BUFFER TO {}", newSpace);
+		List<T> newBuffer = new ArrayList<T>(Collections.nCopies(newSpace, identityValue));
+		int indx = -1;
+		for (Map.Entry<Integer, Integer> entry : partialMappings.entrySet()) {
+			newBuffer.set(++indx, buffer.get(entry.getValue()));
+			entry.setValue(indx);
+		}
+		this.front = 0;
+		this.back = partialMappings.size() - 1;
+		this.partialSpace = newSpace;
+		this.buffer = newBuffer;
+		stats.registerBufferSize(newSpace);
+	}
 
-        incrBack();
-        partialMappings.put(id, back);
-        buffer.set(back, val);
-    }
+	@Override
+	public void add(int id, T val) throws Exception {
+		if (currentCapacity() == 0) {
+			resize(2 * partialSpace);
+		}
 
-    @Override
-    public void add(List<Integer> ids, List<T> vals) throws Exception {
-        currentState = AGG_STATE.UPDATING;
-        if (ids.size() != vals.size()) throw new IllegalArgumentException("The ids and vals given do not match");
+		incrBack();
+		partialMappings.put(id, back);
+		buffer.set(back, val);
+	}
 
-        if (ids.size() > currentCapacity()) {
-            int newCapacity = partialSpace;
-            while (newCapacity < partialSpace - currentCapacity() + ids.size()) {
-                newCapacity = 2 * newCapacity;
-            }
-            resize(newCapacity);
-        }
+	@Override
+	public void add(List<Integer> ids, List<T> vals) throws Exception {
+		if (ids.size() != vals.size()) throw new IllegalArgumentException("The ids and vals given do not match");
 
-        for (int i = 0; i < ids.size(); i++) {
-            add(ids.get(i), vals.get(i));
-        }
-    }
+		if (ids.size() > currentCapacity()) {
+			int newCapacity = partialSpace;
+			while (newCapacity < partialSpace - currentCapacity() + ids.size()) {
+				newCapacity = 2 * newCapacity;
+			}
+			resize(newCapacity);
+		}
 
-    @Override
-    public void remove(Integer... ids) throws Exception {
-        currentState = AGG_STATE.UPDATING;
-        for (int partialId : ids) {
-            if (!partialMappings.containsKey(partialId)) continue;
-            int leafID = partialMappings.get(partialId);
-            partialMappings.remove(partialId);
-            if (leafID != front) throw new IllegalArgumentException("Cannot evict out of order");
-            buffer.set(front, identityValue);
-            incrFront();
-        }
-        if (currentCapacity() > 3 * partialSpace / 4 && partialSpace >= 4) {
-            resize(partialSpace / 2);
-        }
-    }
+		for (int i = 0; i < ids.size(); i++) {
+			add(ids.get(i), vals.get(i));
+		}
+	}
 
-    @Override
-    public T aggregate(int startid) throws Exception {
-        currentState = AGG_STATE.AGGREGATING;
-        if (partialMappings.containsKey(startid)) {
-            int startIndx = partialMappings.get(startid);
-            if (back < startIndx) {
-                return combine(suffix(startIndx), prefix(back));
-            } else {
-                return suffix(startIndx);
-            }
-        }
-        return identityValue;
-    }
+	@Override
+	public void remove(Integer... ids) throws Exception {
+		for (int partialId : ids) {
+			if (!partialMappings.containsKey(partialId)) continue;
+			int leafID = partialMappings.get(partialId);
+			partialMappings.remove(partialId);
+			if (leafID != front) throw new IllegalArgumentException("Cannot evict out of order");
+			buffer.set(front, identityValue);
+			incrFront();
+		}
+		if (currentCapacity() > 3 * partialSpace / 4 && partialSpace >= 4) {
+			resize(partialSpace / 2);
+		}
+	}
 
-    @Override
-    public T aggregate() throws Exception {
-        currentState = AGG_STATE.AGGREGATING;
-        return suffix(0);
-    }
+	@Override
+	public T aggregate(int startid) throws Exception {
+		if (partialMappings.containsKey(startid)) {
+			int startIndx = partialMappings.get(startid);
+			if (back < startIndx) {
+				return combine(suffix(startIndx), prefix(back));
+			} else {
+				return suffix(startIndx);
+			}
+		}
+		return identityValue;
+	}
 
-    private T suffix(int startId) throws Exception {
-        T partial = identityValue;
-        for (int i = startId; i < buffer.size(); i++) {
-            partial = combine(partial, buffer.get(i));
-        }
-        return partial;
-    }
+	@Override
+	public T aggregate() throws Exception {
+		return suffix(0);
+	}
 
-    private T prefix(int endId) throws Exception {
-        T partial = identityValue;
-        for (int i = 0; i <= endId; i++) {
-            partial = combine(partial, buffer.get(i));
-        }
-        return partial;
-    }
+	private T suffix(int startId) throws Exception {
+		T partial = identityValue;
+		for (int i = startId; i < buffer.size(); i++) {
+			partial = combine(partial, buffer.get(i));
+		}
+		return partial;
+	}
 
-    /**
-     * It invokes a reduce operation on copies of the given values
-     *
-     * @param val1
-     * @param val2
-     * @return
-     * @throws Exception
-     */
-    private T combine(T val1, T val2) throws Exception {
-        switch (currentState) {
-            case UPDATING:
-                stats.registerUpdate();
-                break;
-            case AGGREGATING:
-                stats.registerAggregate();
-        }
-        return reduceFunction.reduce(serializer.copy(val1), serializer.copy(val2));
-    }
+	private T prefix(int endId) throws Exception {
+		T partial = identityValue;
+		for (int i = 0; i <= endId; i++) {
+			partial = combine(partial, buffer.get(i));
+		}
+		return partial;
+	}
 
-    private int currentCapacity() {
-        int capacity = partialSpace - partialMappings.size();
-        LOG.debug("CURRENT CAPACITY : {} ", capacity);
-        return capacity;
-    }
+	/**
+	 * It invokes a reduce operation on copies of the given values
+	 *
+	 * @param val1
+	 * @param val2
+	 * @return
+	 * @throws Exception
+	 */
+	private T combine(T val1, T val2) throws Exception {
+		return reduceFunction.reduce(serializer.copy(val1), serializer.copy(val2));
+	}
 
-    private int incrBack() {
-        back = (back + 1) % partialSpace;
-        return back;
-    }
+	private int currentCapacity() {
+		int capacity = partialSpace - partialMappings.size();
+		LOG.debug("CURRENT CAPACITY : {} ", capacity);
+		return capacity;
+	}
 
-    private int incrFront() {
-        front = (front + 1) % partialSpace;
-        return front;
-    }
+	private int incrBack() {
+		back = (back + 1) % partialSpace;
+		return back;
+	}
 
-    @Override
-    public void removeUpTo(int id) throws Exception {
-        List<Integer> toRemove = new ArrayList<Integer>();
-        if (partialMappings.containsKey(id)) {
-            for (Map.Entry<Integer, Integer> mapping : partialMappings.entrySet()) {
-                if (mapping.getKey() == id)
-                    break;
-                toRemove.add(mapping.getKey());
-            }
-        }
-        remove(toRemove.toArray(new Integer[toRemove.size()]));
-    }
+	private int incrFront() {
+		front = (front + 1) % partialSpace;
+		return front;
+	}
+
+	@Override
+	public void removeUpTo(int id) throws Exception {
+		List<Integer> toRemove = new ArrayList<Integer>();
+		if (partialMappings.containsKey(id)) {
+			for (Map.Entry<Integer, Integer> mapping : partialMappings.entrySet()) {
+				if (mapping.getKey() == id)
+					break;
+				toRemove.add(mapping.getKey());
+			}
+		}
+		remove(toRemove.toArray(new Integer[toRemove.size()]));
+	}
 }

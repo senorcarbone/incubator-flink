@@ -21,6 +21,10 @@ public class AggregationStats implements Serializable {
     
     private long upd_timestamp;
     private long merge_timestamp;
+	
+	public enum AGGREGATION_MODE {UPDATES,AGGREGATES};
+	
+	public AGGREGATION_MODE state = AGGREGATION_MODE.UPDATES;
 
     public static AggregationStats getInstance() {
         if (ourInstance == null) {
@@ -45,6 +49,10 @@ public class AggregationStats implements Serializable {
         this.totalUpdateCount++;
         this.sum_upd_time += System.currentTimeMillis()-upd_timestamp;
     }
+	
+	public void setAggregationMode(AGGREGATION_MODE mode){
+		this.state = mode;
+	}
 
     public void registerStartMerge(){
         this.merge_timestamp = System.currentTimeMillis();
@@ -65,6 +73,12 @@ public class AggregationStats implements Serializable {
 
     public void registerReduce() {
         reduce_count++;
+		if(this.state == AGGREGATION_MODE.UPDATES){
+			registerUpdate();
+		}
+		else if(this.state == AGGREGATION_MODE.AGGREGATES){
+			registerAggregate();
+		}
     }
 
     public void registerBufferSize(int bufSize) {
