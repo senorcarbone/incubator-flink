@@ -22,3 +22,4 @@ build-target
 flink-staging/flink-avro/src/test/java/org/apache/flink/api/io/avro/generated/
 atlassian-ide-plugin.xml
 result-*-*
+*-checkpoint.ipynb

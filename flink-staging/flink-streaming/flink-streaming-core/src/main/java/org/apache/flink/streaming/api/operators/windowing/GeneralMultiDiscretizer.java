@@ -89,6 +89,7 @@ public class GeneralMultiDiscretizer<IN, AGG> extends
     @SuppressWarnings("unchecked")
     @Override
     public void processElement(Tuple2<IN, AGG> tuple) throws Exception {
+		stats.startRecord();
         boolean hasEvicted = false;
         for (int i = 0; i < triggerPolicies.size(); i++) {
 			stats.setAggregationMode(AggregationStats.AGGREGATION_MODE.UPDATES);
@@ -127,6 +128,7 @@ public class GeneralMultiDiscretizer<IN, AGG> extends
         stats.registerStartUpdate();
         store(tuple.f1);
         stats.registerEndUpdate();
+		stats.endRecord();
     }
 
 

@@ -53,15 +53,15 @@ public class DEBSExpDriver extends ExperimentDriver {
 	{
 //		RUN_PAIRS_LAZY = true;
 //		RUN_PAIRS_EAGER = true;
-//		RUN_B2B_LAZY = true;
-//		RUN_B2B_EAGER = true;
-//		RUN_GENERAL_LAZY = true;
+		RUN_B2B_LAZY = true;
+		RUN_B2B_EAGER = true;
+		RUN_GENERAL_LAZY = true;
 		RUN_GENERAL_EAGER = true;
 	}
 
-	private boolean enableLogOutput = true;
+	private boolean enableLogOutput = false;
 
-	private int countStart = 2556001;
+	private static int countStart = 2556001;
 
 	private final String dataPath;
 
@@ -225,7 +225,8 @@ public class DEBSExpDriver extends ExperimentDriver {
 	public static class DEBSDataFormatter implements MapFunction<String, Tuple4<Long, Long, Long, Integer>> {
 
 		DateFormat dfm = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSX");
-
+		long linecounter =  countStart;
+		
 		@Override
 		public Tuple4<Long, Long, Long, Integer> map(String line) throws Exception {
 			String[] sensorVals = line.split("\t");
@@ -236,14 +237,20 @@ public class DEBSExpDriver extends ExperimentDriver {
 			for (int i = 18; i < 27; i++) {
 				strBuilder.append(sensorVals[i]);
 			}
-			for (int i = 30; i < 39; i++) {
+			for (int i = 30; i < 32; i++) {
+				strBuilder.append(sensorVals[i]);
+			}
+			for (int i = 36; i < 39; i++) {
 				strBuilder.append(sensorVals[i]);
 			}
 			for (int i = 48; i < 51; i++) {
 				strBuilder.append(sensorVals[i]);
 			}
+			for (int i = 33; i < 36; i++) {
+				strBuilder.append(sensorVals[i]);
+			}
 			return new Tuple4<>(dfm.parse(sensorVals[0])
-					.getTime(), Long.valueOf(sensorVals[1]), measure, Integer.parseInt(strBuilder.toString(), 2));
+					.getTime(),linecounter++, measure, Integer.parseInt(strBuilder.reverse().toString(), 2));
 		}
 	}
 

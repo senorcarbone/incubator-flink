@@ -26,15 +26,23 @@ public class VLDBRunner {
 	 * "/Users/carbone/workspace/datasets/debs-sample.csv"
 	 */
 	
-    private static final String[] SETUP_PATHS={
-//			"setups/testtime.txt"
-//			"setups/test-setup-10p-0.txt",
-            "setups/test-setup-1c0t-0.txt"
+	private static final String[] SETUP_PATHS={
+			"setups/exp2-1p.txt",
+			"setups/exp2-10p.txt",
+			"setups/exp2-20p.txt"
+//			"setups/exp1-1c.txt",
+//			"setups/exp1-10c.txt",
+//			"setups/exp1-20c.txt",
+//			"setups/exp1-40c.txt"
     };
     private static final String[] RESULT_PATHS={
-//			"setups/testtime-results.txt"
-//			"setups/test-result-10p-0.txt",
-			"setups/test-result-1c0t-0.txt"
+			"setups/exp2-1p-results.txt",
+			"setups/exp2-10p-results.txt",
+			"setups/exp2-20p-results.txt"
+//			"setups/exp1-1c-results.txt",
+//			"setups/exp1-10c-results.txt",
+//			"setups/exp1-20c-results.txt"
+//			"setups/exp1-40c-results.txt"
     };
 
     public static void main(String args[]) throws Exception {

@@ -35,6 +35,7 @@ import org.apache.flink.streaming.api.windowing.policy.EvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TimeEvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TimeTriggerPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TriggerPolicy;
+import org.apache.flink.streaming.api.windowing.policy.TumblingEvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.TumblingSensorPolicyGroup;
 import org.apache.flink.streaming.api.windowing.windowbuffer.AggregationStats;
 
@@ -94,7 +95,8 @@ public abstract class ExperimentDriver {
 
 		//Writer for the results
 		PrintWriter resultWriter = new PrintWriter(RESULT_PATH, "UTF-8");
-		resultWriter.println("SCEN\tCASE\tTIME\tAGG\tRED\tUPD\tMAXB\tAVGB\tUPD_AVG\tMERGE_AVG\tWINDOW_CNT\tPARTIAL_CNT");
+		resultWriter.println("SCEN\tCASE\tTIME\tAGG\tRED\tUPD\tMAXB\tAVGB\tUPD_AVG\tMERGE_AVG\tWINDOW_CNT\tPARTIAL_CNT" +
+				"\tTOTAL_OP_TIME\tTOTAL_CPU_TIME\tAVG_OP_TIME\tAVG_CPU_TIME");
 
 		//run simple program to warm up (The first start up takes more time...)
 		runWarmUpTask();
@@ -180,7 +182,7 @@ public abstract class ExperimentDriver {
 					break;
 				case "PUNCT":
 					triggers.add(new SensorPunctuationWindowGen(setting.f1.intValue()));
-					evictions.add(new SensorPunctuationWindowGen(setting.f1.intValue()));
+					evictions.add(new TumblingEvictionPolicy<>());
 			}
 		}
 
@@ -194,7 +196,8 @@ public abstract class ExperimentDriver {
 		resultWriter.println(scenarioId + "\t" + caseId + "\t" + result.getNetRuntime() + "\t" + stats.getAggregateCount()
 				+ "\t" + stats.getReduceCount() + "\t" + stats.getUpdateCount() + "\t" + stats.getMaxBufferSize() + "\t" + stats.getAverageBufferSize()
 				+ "\t" + stats.getAverageUpdTime() + "\t" + stats.getAverageMergeTime()
-				+ "\t" + (stats.getTotalMergeCount()-1) + "\t" + stats.getPartialCount());
+				+ "\t" + (stats.getTotalMergeCount()-1) + "\t" + stats.getPartialCount() + "\t" + stats.getSumOperatorTime()
+				+ "\t" + stats.getSumOperatorCPUTime()+ "\t" + stats.getAvgOperatorTime()+ "\t" + stats.getAvgOperatorCPUTime());
 		stats.reset();
 		resultWriter.flush();
 	}
@@ -207,14 +210,8 @@ public abstract class ExperimentDriver {
 		//Read the periodic setups
 		scenarios = new ArrayList();
 		line = br.readLine();
-		int scenarioID = 0;
 		while (line != null) {
 			List next = new ArrayList<>();
-			//Skip separation lines between scenarios
-//			while (line != null && (!line.startsWith("SCENARIO " + (scenarioID + 1)))) {
-//				scenarioID++;
-//				scenarios.add(new ArrayList<>());
-//			}
 			do {
 				line = br.readLine();
 			} while (!line.startsWith("\t\t"));
@@ -229,20 +226,12 @@ public abstract class ExperimentDriver {
 
 		//Read the random walk setup
 		randomScenarios = new ArrayList<>();
-		scenarioID = 0;
 
 		if (line == null) {
 			line = br.readLine();
 		}
 		while (line != null) {
 			List nextRandom = new ArrayList<>();
-			//Skip separation lines between scenarios
-//			while (line != null && (!line.startsWith("SCENARIO " + (scenarioID + 1)))) {
-//				scenarioID++;
-//				randomScenarios.add(new LinkedList<>());
-//			}
-
-			//Stop loop if eof is reached (happens if there is no random walk setup present)
 			if (line == null) {
 				break;
 			}
