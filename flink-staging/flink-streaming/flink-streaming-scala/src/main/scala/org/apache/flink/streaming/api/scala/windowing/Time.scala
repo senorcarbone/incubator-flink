@@ -28,7 +28,7 @@ object Time {
 
   /**
    * Creates a helper representing a time trigger which triggers every given
-   * length (slide size) or a time eviction which evicts all elements older
+   * length (maxSlide size) or a time eviction which evicts all elements older
    * than length (window size) using System time.
    *
    */
@@ -37,7 +37,7 @@ object Time {
 
   /**
    * Creates a helper representing a time trigger which triggers every given
-   * length (slide size) or a time eviction which evicts all elements older
+   * length (maxSlide size) or a time eviction which evicts all elements older
    * than length (window size) using a user defined timestamp extractor.
    *
    */

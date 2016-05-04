@@ -36,6 +36,8 @@ public class GenericSetupGenerator {
 	 * An instance of the random class used to create gaussian distributed random values
 	 */
 	private static final Random rnd = new Random();
+	public static final String PLOT_RANGE_SLIDE1_TXT = "plot-range-slide1.txt";
+	public static final String TEST_SETUP_TXT = "test-setup.txt";
 	static Random rand = new Random();
 
 	/**
@@ -49,12 +51,15 @@ public class GenericSetupGenerator {
 		ExperimentConfig cfg = ConfigFactory.create(ExperimentConfig.class);
 		String setupOutputPath;
 		String plotDataOutputPath;
-		if (args.length == 2) {
+		if (args.length == 1) {
+			setupOutputPath = args[0];
+			plotDataOutputPath = PLOT_RANGE_SLIDE1_TXT;
+		} else if (args.length == 2) {
 			setupOutputPath = args[0];
 			plotDataOutputPath = args[1];
 		} else {
-			setupOutputPath = "test-setup.txt";
-			plotDataOutputPath = "plot-range-slide1.txt";
+			setupOutputPath = TEST_SETUP_TXT;
+			plotDataOutputPath = PLOT_RANGE_SLIDE1_TXT;
 		}
 
 		makeSetup(setupOutputPath, plotDataOutputPath,
@@ -67,8 +72,8 @@ public class GenericSetupGenerator {
 	/**
 	 * Creates the queries setup (all required random values) and writes them to an output file.
 	 *
-	 * @param regularCountMinSlide The minimal slide step for count-based queries in the regular scenarios
-	 * @param regularCountMaxSlide The maximal slide step for count-based queries in the regular scenarios
+	 * @param regularCountMinSlide The minimal maxSlide step for count-based queries in the regular scenarios
+	 * @param regularCountMaxSlide The maximal maxSlide step for count-based queries in the regular scenarios
 	 * @param regularCountMinRange The minimal range for count-based queries in the regular scenarios
 	 * @param regularCountMaxRange The maximal range for count-based queries in the regular scenarios
 	 * @param numCountQueries      Number of count-based queries

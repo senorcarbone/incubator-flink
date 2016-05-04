@@ -44,7 +44,7 @@ public class SlidingTimeGroupedPreReducer<T> extends SlidingGroupedPreReducer<T>
 			this.slideSize = slideSize;
 		} else {
 			throw new RuntimeException(
-					"Window size needs to be larger than slide size for the sliding pre-reducer");
+					"Window size needs to be larger than maxSlide size for the sliding pre-reducer");
 		}
 		this.timestampWrapper = timestampWrapper;
 		this.windowStartTime = timestampWrapper.getStartTime();

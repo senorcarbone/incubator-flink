@@ -84,24 +84,24 @@ public class SetupGenerator {
     /**
      * Creates the queries setup (all required random values) and writes them to an output file.
      *
-     * @param regularCountMinSlide The minimal slide step for count-based queries in the regular scenarios
-     * @param regularCountMaxSlide The maximal slide step for count-based queries in the regular scenarios
-     * @param lowerCountMinSlide   The minimal slide step for count-based queries in the low-slide scenarios
-     * @param lowerCountMaxSlide   The maximal slide step for count-based queries in the low-slide scenarios
-     * @param upperCountMinSlide   The minimal slide step for count-based queries in the high-slide scenarios
-     * @param upperCountMaxSlide   The maximal slide step for count-based queries in the high-slide scenarios
+     * @param regularCountMinSlide The minimal maxSlide step for count-based queries in the regular scenarios
+     * @param regularCountMaxSlide The maximal maxSlide step for count-based queries in the regular scenarios
+     * @param lowerCountMinSlide   The minimal maxSlide step for count-based queries in the low-maxSlide scenarios
+     * @param lowerCountMaxSlide   The maximal maxSlide step for count-based queries in the low-maxSlide scenarios
+     * @param upperCountMinSlide   The minimal maxSlide step for count-based queries in the high-maxSlide scenarios
+     * @param upperCountMaxSlide   The maximal maxSlide step for count-based queries in the high-maxSlide scenarios
      * @param regularCountMinRange The minimal range for count-based queries in the regular scenarios
      * @param regularCountMaxRange The maximal range for count-based queries in the regular scenarios
      * @param lowerCountMinRange   The minimal range for count-based queries in the low-range scenarios
      * @param lowerCountMaxRange   The maximal range for count-based queries in the low-range scenarios
      * @param upperCountMinRange   The minimal range for count-based queries in the high-range scenarios
      * @param upperCountMaxRange   The maximal range for count-based queries in the high-range scenarios
-     * @param regularTimeMinSlide  The minimal slide step for time-based queries in the regular scenarios
-     * @param regularTimeMaxSlide  The maximal slide step for time-based queries in the regular scenarios
-     * @param lowerTimeMinSlide    The minimal slide step for time-based queries in the low-slide scenarios
-     * @param lowerTimeMaxSlide    The maximal slide step for time-based queries in the low-slide scenarios
-     * @param upperTimeMinSlide    The minimal slide step for time-based queries in the high-slide scenarios
-     * @param upperTimeMaxSlide    The maximal slide step for time-based queries in the high-slide scenarios
+     * @param regularTimeMinSlide  The minimal maxSlide step for time-based queries in the regular scenarios
+     * @param regularTimeMaxSlide  The maximal maxSlide step for time-based queries in the regular scenarios
+     * @param lowerTimeMinSlide    The minimal maxSlide step for time-based queries in the low-maxSlide scenarios
+     * @param lowerTimeMaxSlide    The maximal maxSlide step for time-based queries in the low-maxSlide scenarios
+     * @param upperTimeMinSlide    The minimal maxSlide step for time-based queries in the high-maxSlide scenarios
+     * @param upperTimeMaxSlide    The maximal maxSlide step for time-based queries in the high-maxSlide scenarios
      * @param regularTimeMinRange  The minimal range for time-based queries in the regular scenarios
      * @param regularTimeMaxRange  The maximal range for time-based queries in the regular scenarios
      * @param lowerTimeMinRange    The minimal range for time-based queries in the low-range scenarios
@@ -466,7 +466,7 @@ public class SetupGenerator {
      * Exactly maxValue/slideSize random values are generated.
      *
      * @param maxValue  the maximal possible return window
-     * @param slideSize the slide size of the window (used to calculate the required number of random values)
+     * @param slideSize the maxSlide size of the window (used to calculate the required number of random values)
      * @return A ordered list of random values reaching from 0 to maxValue.
      */
     private static Double[] makeRandomValueList(int maxValue, double slideSize) {

@@ -36,11 +36,11 @@ import java.io.Serializable;
 import java.util.*;
 
 @SuppressWarnings("unused")
-public class B2BMultiDiscretizer<IN, AGG extends Serializable> extends
+public class Cutty<IN, AGG extends Serializable> extends
         AbstractStreamOperator<Tuple2<Integer, AGG>> implements
         OneInputStreamOperator<Tuple2<IN, AGG>, Tuple2<Integer, AGG>> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(B2BMultiDiscretizer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Cutty.class);
 
     private AggregationStats stats = AggregationStats.getInstance();
     
@@ -90,7 +90,7 @@ public class B2BMultiDiscretizer<IN, AGG extends Serializable> extends
 	private long cnt;
 
 
-	public B2BMultiDiscretizer(
+	public Cutty(
             List<DeterministicPolicyGroup<IN>> policyGroups,
             ReduceFunction<AGG> reduceFunction, AGG identityValue, int capacity, TypeSerializer<AGG> serializer,
             AggregationFramework.AGGREGATION_STRATEGY aggregationType) {
@@ -159,6 +159,7 @@ public class B2BMultiDiscretizer<IN, AGG extends Serializable> extends
                     if (partialIdx != 0) {
                         LOG.debug("ADDING PARTIAL {} with value {} ", partialIdx, currentPartial);
 						stats.registerStartUpdate();
+                        stats.setUpdateMode(AggregationStats.UPDATE_MODE.STORE);
 						aggregator.add(partialIdx, currentPartial);
 						stats.registerEndUpdate();
 					}
@@ -183,15 +184,13 @@ public class B2BMultiDiscretizer<IN, AGG extends Serializable> extends
 						}
 					}
 					else {
-						stats.registerStartMerge();
-						stats.setAggregationMode(AggregationStats.AGGREGATION_MODE.AGGREGATES);
 						collectAggregate(i);
-						stats.registerEndMerge();
 					}
 				}
             }
         }
 		stats.registerStartUpdate();
+        stats.setUpdateMode(AggregationStats.UPDATE_MODE.ACTIVE);
         currentPartial = reducer.reduce(serializer.copy(currentPartial), tuple.f1);
         stats.registerEndUpdate();
 		stats.endRecord();
@@ -247,14 +246,18 @@ public class B2BMultiDiscretizer<IN, AGG extends Serializable> extends
      */
     private void collectAggregate(int queryId) throws Exception {
         try {
+            stats.registerStartMerge();
+            stats.setAggregationMode(AggregationStats.AGGREGATION_MODE.AGGREGATES);
 			Integer partial = queryBorders.get(queryId).getFirst();
 			LOG.info("Q{} Emitting window from partial id: {}", queryId, partial);
 			output.collect(new Tuple2<>(queryId, reducer.reduce(serializer.copy(aggregator.aggregate(partial)),
 					serializer.copy(currentPartial))));
 			queryBorders.get(queryId).removeFirst();
 			stats.setAggregationMode(AggregationStats.AGGREGATION_MODE.UPDATES);
+            stats.setUpdateMode(AggregationStats.UPDATE_MODE.STORE);
 			unregisterPartial(partial);
-		}catch(Exception ex){
+            stats.registerEndMerge();
+        }catch(Exception ex){
 			LOG.error("FAILED TO AGGREGATE FOR QUERY : "+queryId);
 		}
     }

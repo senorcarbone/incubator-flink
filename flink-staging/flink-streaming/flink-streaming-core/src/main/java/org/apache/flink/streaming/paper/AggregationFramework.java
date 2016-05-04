@@ -27,7 +27,7 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.operators.windowing.B2BMultiDiscretizer;
+import org.apache.flink.streaming.api.operators.windowing.Cutty;
 import org.apache.flink.streaming.api.operators.windowing.GeneralMultiDiscretizer;
 import org.apache.flink.streaming.api.operators.windowing.PairDiscretization;
 import org.apache.flink.streaming.api.windowing.policy.DeterministicPolicyGroup;
@@ -85,7 +85,7 @@ public class AggregationFramework {
 				case B2B:
 					if ((policies.f1 == null || policies.f1.isEmpty()) && (policies.f2 == null || policies.f2.isEmpty())) {
 						combinedWithID = lower.transform("WindowAggregation", combinedType,
-								new B2BMultiDiscretizer<>(
+								new Cutty<>(
 										policies.f0,
 										combine,
 										identityValue, 4, aggTypeInfo.createSerializer(null), aggType));

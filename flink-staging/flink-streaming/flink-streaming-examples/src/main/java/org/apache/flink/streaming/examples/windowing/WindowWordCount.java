@@ -107,17 +107,17 @@ public class WindowWordCount {
 				if (args.length >= 3){
 					windowSize = Integer.parseInt(args[2]);
 
-					// if no slide size is specified use the
+					// if no maxSlide size is specified use the
 					slideSize = args.length == 3 ? windowSize : Integer.parseInt(args[2]);
 				}
 			} else {
-				System.err.println("Usage: WindowWordCount <text path> <result path> [<window size>] [<slide size>]");
+				System.err.println("Usage: WindowWordCount <text path> <result path> [<window size>] [<maxSlide size>]");
 				return false;
 			}
 		} else {
 			System.out.println("Executing WindowWordCount example with built-in default data.");
 			System.out.println("  Provide parameters to read input data from a file.");
-			System.out.println("  Usage: WindowWordCount <text path> <result path> [<window size>] [<slide size>]");
+			System.out.println("  Usage: WindowWordCount <text path> <result path> [<window size>] [<maxSlide size>]");
 		}
 		return true;
 	}

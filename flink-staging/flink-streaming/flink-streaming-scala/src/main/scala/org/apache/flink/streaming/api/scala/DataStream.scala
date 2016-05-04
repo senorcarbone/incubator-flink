@@ -623,7 +623,7 @@ class DataStream[T](javaStream: JavaStream[T]) {
    * preset chunks(windows) of the data stream. To define the windows a
    * WindowingHelper such as Time, Count and
    * Delta can be used.</br></br> When applied to a grouped data
-   * stream, the windows (evictions) and slide sizes (triggers) will be
+   * stream, the windows (evictions) and maxSlide sizes (triggers) will be
    * computed on a per group basis. </br></br> For more advanced control over
    * the trigger and eviction policies please use to
    * window(List(triggers), List(evicters))

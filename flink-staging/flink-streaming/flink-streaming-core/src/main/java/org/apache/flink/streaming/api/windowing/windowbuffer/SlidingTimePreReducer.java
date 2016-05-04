@@ -23,7 +23,7 @@ import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
 
 /**
  * Non-grouped pre-reducer for sliding time eviction policy
- * (the policies are based on time, and the slide size is smaller than the window size).
+ * (the policies are based on time, and the maxSlide size is smaller than the window size).
  */
 public class SlidingTimePreReducer<T> extends SlidingPreReducer<T> {
 
@@ -43,7 +43,7 @@ public class SlidingTimePreReducer<T> extends SlidingPreReducer<T> {
 			this.slideSize = slideSize;
 		} else {
 			throw new RuntimeException(
-					"Window size needs to be larger than slide size for the sliding pre-reducer");
+					"Window size needs to be larger than maxSlide size for the sliding pre-reducer");
 		}
 		this.timestampWrapper = timestampWrapper;
 		this.windowStartTime = timestampWrapper.getStartTime();

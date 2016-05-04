@@ -25,7 +25,7 @@ import org.apache.flink.util.Collector;
 
 /**
  * Non-grouped pre-reducer for jumping time eviction policy
- * (the policies are based on time, and the slide size is larger than the window size).
+ * (the policies are based on time, and the maxSlide size is larger than the window size).
  */
 public class JumpingTimePreReducer<T> extends TumblingPreReducer<T> {
 

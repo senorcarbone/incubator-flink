@@ -105,15 +105,15 @@ public class SimExperimentDriver extends ExperimentDriver {
 
 
 		JobExecutionResult result;//Run experiments for different scenarios
-		// Scenario 1 (i=0): regular range, regular slide
-		// Scenario 2 (i=1): low range, regular slide
-		// Scenario 3 (i=2): high range, regular slide
-		// Scenario 4 (i=3): regular range, low slide
-		// Scenario 5 (i=4): regular range, high slide
-		// Scenario 6 (i=5): high range, high slide
-		// Scenario 7 (i=6): low range, high slide
-		// Scenario 8 (i=7): low range, low slide
-		// Scenario 9 (i=8): high range, low slide
+		// Scenario 1 (i=0): regular range, regular maxSlide
+		// Scenario 2 (i=1): low range, regular maxSlide
+		// Scenario 3 (i=2): high range, regular maxSlide
+		// Scenario 4 (i=3): regular range, low maxSlide
+		// Scenario 5 (i=4): regular range, high maxSlide
+		// Scenario 6 (i=5): high range, high maxSlide
+		// Scenario 7 (i=6): low range, high maxSlide
+		// Scenario 8 (i=7): low range, low maxSlide
+		// Scenario 9 (i=8): high range, low maxSlide
 		//
 		//The differen Algorithms are the following
 		// CASE 0: Pairs LAZY - original

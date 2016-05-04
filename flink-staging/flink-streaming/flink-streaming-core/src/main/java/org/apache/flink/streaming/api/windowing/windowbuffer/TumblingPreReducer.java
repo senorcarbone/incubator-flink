@@ -23,7 +23,7 @@ import org.apache.flink.streaming.api.windowing.StreamWindow;
 import org.apache.flink.util.Collector;
 
 /**
- * Non-grouped pre-reducer for tumbling eviction policy (the slide size is the
+ * Non-grouped pre-reducer for tumbling eviction policy (the maxSlide size is the
  * same as the window size).
  */
 public class TumblingPreReducer<T> extends WindowBuffer<T> implements PreAggregator {

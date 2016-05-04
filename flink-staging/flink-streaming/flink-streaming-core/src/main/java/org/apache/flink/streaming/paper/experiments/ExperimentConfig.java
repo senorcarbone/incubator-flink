@@ -9,7 +9,7 @@ import org.aeonbits.owner.Config;
  */
 @Config.LoadPolicy(Config.LoadType.FIRST)
 @Config.Sources({
-		"classpath:exp2-20p.properties",
+		"classpath:exp1-100c.properties",
 		"classpath:exp1-40c.properties"})
 public interface ExperimentConfig extends Config{
 
@@ -97,37 +97,37 @@ public interface ExperimentConfig extends Config{
      *******************************************************/
 
     /**
-     * Minimum slide step for the regular case (COUNT)
+     * Minimum maxSlide step for the regular case (COUNT)
      */
     @DefaultValue("1")
     double regularCountMinSlide();
 
     /**
-     * Maximum slide step for the regular case (COUNT)
+     * Maximum maxSlide step for the regular case (COUNT)
      */
     @DefaultValue("9")
     double regularCountMaxSlide();
 
     /**
-     * Minimum slide step for the scenarios with small slides (COUNT)
+     * Minimum maxSlide step for the scenarios with small slides (COUNT)
      */
     @DefaultValue("1")
     double lowerCountMinSlide();
 
     /**
-     * Maximum slide step for the scenarios with small slides (COUNT)
+     * Maximum maxSlide step for the scenarios with small slides (COUNT)
      */
     @DefaultValue("3")
     double lowerCountMaxSlide();
 
     /**
-     * Minimum slide step for the scenarios with large slides (COUNT)
+     * Minimum maxSlide step for the scenarios with large slides (COUNT)
      */
     @DefaultValue("7")
     double upperCountMinSlide();
 
     /**
-     * Maximum slide step for the scenarios with large slides (COUNT)
+     * Maximum maxSlide step for the scenarios with large slides (COUNT)
      */
     @DefaultValue("9")
     double upperCountMaxSlide();
@@ -174,37 +174,37 @@ public interface ExperimentConfig extends Config{
      *******************************************************/
 
     /**
-     * Minimum slide step for the regular case (TIME)
+     * Minimum maxSlide step for the regular case (TIME)
      */
     @DefaultValue("1")
     double regularTimeMinSlide();
 
     /**
-     * Maximum slide step for the regular case (TIME)
+     * Maximum maxSlide step for the regular case (TIME)
      */
     @DefaultValue("9")
     double regularTimeMaxSlide();
 
     /**
-     * Minimum slide step for the scenarios with small slides (TIME)
+     * Minimum maxSlide step for the scenarios with small slides (TIME)
      */
     @DefaultValue("1")
     double lowerTimeMinSlide();
 
     /**
-     * Maximum slide step for the scenarios with small slides (TIME)
+     * Maximum maxSlide step for the scenarios with small slides (TIME)
      */
     @DefaultValue("3")
     double lowerTimeMaxSlide();
 
     /**
-     * Minimum slide step for the scenarios with large slides (TIME)
+     * Minimum maxSlide step for the scenarios with large slides (TIME)
      */
     @DefaultValue("7")
     double upperTimeMinSlide();
 
     /**
-     * Maximum slide step for the scenarios with large slides (TIME)
+     * Maximum maxSlide step for the scenarios with large slides (TIME)
      */
     @DefaultValue("9")
     double upperTimeMaxSlide();

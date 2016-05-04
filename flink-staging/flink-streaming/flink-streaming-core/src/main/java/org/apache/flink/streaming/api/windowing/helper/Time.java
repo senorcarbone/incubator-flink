@@ -94,7 +94,7 @@ public class Time<DATA> extends WindowingHelper<DATA> {
 
 	/**
 	 * Creates a helper representing a time trigger which triggers every given
-	 * length (slide size) or a time eviction which evicts all elements older
+	 * length (maxSlide size) or a time eviction which evicts all elements older
 	 * than length (window size) using System time.
 	 * 
 	 * @param length
@@ -114,7 +114,7 @@ public class Time<DATA> extends WindowingHelper<DATA> {
 
 	/**
 	 * Creates a helper representing a time trigger which triggers every given
-	 * length (slide size) or a time eviction which evicts all elements older
+	 * length (maxSlide size) or a time eviction which evicts all elements older
 	 * than length (window size) using a user defined timestamp extractor.
 	 * 
 	 * @param length
@@ -132,7 +132,7 @@ public class Time<DATA> extends WindowingHelper<DATA> {
 
 	/**
 	 * Creates a helper representing a time trigger which triggers every given
-	 * length (slide size) or a time eviction which evicts all elements older
+	 * length (maxSlide size) or a time eviction which evicts all elements older
 	 * than length (window size) using a user defined timestamp extractor. By
 	 * default the start time is set to 0.
 	 * 

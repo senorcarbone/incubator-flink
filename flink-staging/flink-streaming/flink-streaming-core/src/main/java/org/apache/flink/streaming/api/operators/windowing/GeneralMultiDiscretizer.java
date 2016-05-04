@@ -125,20 +125,21 @@ public class GeneralMultiDiscretizer<IN, AGG> extends
             aggregator.removeUpTo(Collections.min(queryBorders));
         }
         
-        stats.registerStartUpdate();
         store(tuple.f1);
-        stats.registerEndUpdate();
 		stats.endRecord();
     }
 
 
     private void store(AGG tuple) throws Exception {
-		stats.setAggregationMode(AggregationStats.AGGREGATION_MODE.UPDATES);
+        stats.registerStartUpdate();
+        stats.setAggregationMode(AggregationStats.AGGREGATION_MODE.UPDATES);
         if (++recordCounter == Integer.MAX_VALUE) {  //FIXME handle this properly
             throw new RuntimeException("The sequence id reached the limit given by the type long!");
         }
+        stats.setUpdateMode(AggregationStats.UPDATE_MODE.STORE);
 		stats.registerPartial();
 		aggregator.add(recordCounter, tuple);
+        stats.registerEndUpdate();
     }
 
     private void emitWindow(int queryId) throws Exception {

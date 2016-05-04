@@ -953,7 +953,7 @@ public class DataStream<OUT> {
 	 * chunks(windows) of the data stream. To define windows a
 	 * {@link WindowingHelper} such as {@link Time}, {@link Count},
 	 * {@link Delta} and {@link FullStream} can be used.</br></br> When applied
-	 * to a grouped data stream, the windows (evictions) and slide sizes
+	 * to a grouped data stream, the windows (evictions) and maxSlide sizes
 	 * (triggers) will be computed on a per group basis. </br></br> For more
 	 * advanced control over the trigger and eviction policies please refer to
 	 * {@link #window(TriggerPolicy, EvictionPolicy)} </br> </br> For example to create a

@@ -85,7 +85,7 @@ public class Count extends WindowingHelper {
 	}
 
 	/**
-	 * Specifies a count based eviction (window size) or trigger policy (slide
+	 * Specifies a count based eviction (window size) or trigger policy (maxSlide
 	 * size). For eviction 'count' defines the number of elements in each
 	 * window. For trigger 'count' defines how often do we call the user
 	 * function in terms of number of elements received.

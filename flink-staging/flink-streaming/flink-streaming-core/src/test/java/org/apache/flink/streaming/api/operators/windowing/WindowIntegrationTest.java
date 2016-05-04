@@ -211,7 +211,7 @@ public class WindowIntegrationTest implements Serializable {
 
 		env.execute();
 
-		// sum ( Time of 3 slide 2 )
+		// sum ( Time of 3 maxSlide 2 )
 		List<StreamWindow<Integer>> expected1 = new ArrayList<StreamWindow<Integer>>();
 		expected1.add(StreamWindow.fromElements(5));
 		expected1.add(StreamWindow.fromElements(11));
@@ -253,7 +253,7 @@ public class WindowIntegrationTest implements Serializable {
 
 		validateOutput(expected4, TestSink5.windows);
 
-		// min ( Time of 2 slide 3 )
+		// min ( Time of 2 maxSlide 3 )
 		List<StreamWindow<Integer>> expected5 = new ArrayList<StreamWindow<Integer>>();
 		expected5.add(StreamWindow.fromElements(1));
 		expected5.add(StreamWindow.fromElements(4));

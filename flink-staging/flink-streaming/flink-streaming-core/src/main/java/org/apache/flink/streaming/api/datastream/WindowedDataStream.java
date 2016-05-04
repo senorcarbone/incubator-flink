@@ -134,10 +134,10 @@ public class WindowedDataStream<OUT> {
 	}
 
 	/**
-	 * Defines the slide size (trigger frequency) for the windowed data stream.
+	 * Defines the maxSlide size (trigger frequency) for the windowed data stream.
 	 * This controls how often the user defined function will be triggered on
 	 * the window. </br></br> For example to get a window of 5 elements with a
-	 * slide of 2 seconds use: </br></br>
+	 * maxSlide of 2 seconds use: </br></br>
 	 * {@code ds.window(Count.of(5)).every(Time.of(2,TimeUnit.SECONDS))}
 	 * </br></br> The user function in this case will be called on the 5 most
 	 * recent elements every 2 seconds
@@ -161,7 +161,7 @@ public class WindowedDataStream<OUT> {
 
 	/**
 	 * Groups the elements of the {@link WindowedDataStream} by the given key
-	 * positions. The window sizes (evictions) and slide sizes (triggers) will
+	 * positions. The window sizes (evictions) and maxSlide sizes (triggers) will
 	 * be calculated on the whole stream (in a global fashion), but the user
 	 * defined functions will be applied on a per group basis. </br></br> To get
 	 * windows and triggers on a per group basis apply the
@@ -181,7 +181,7 @@ public class WindowedDataStream<OUT> {
 
 	/**
 	 * Groups the elements of the {@link WindowedDataStream} by the given field
-	 * expressions. The window sizes (evictions) and slide sizes (triggers) will
+	 * expressions. The window sizes (evictions) and maxSlide sizes (triggers) will
 	 * be calculated on the whole stream (in a global fashion), but the user
 	 * defined functions will be applied on a per group basis. </br></br> To get
 	 * windows and triggers on a per group basis apply the
@@ -201,7 +201,7 @@ public class WindowedDataStream<OUT> {
 
 	/**
 	 * Groups the elements of the {@link WindowedDataStream} using the given
-	 * {@link KeySelector}. The window sizes (evictions) and slide sizes
+	 * {@link KeySelector}. The window sizes (evictions) and maxSlide sizes
 	 * (triggers) will be calculated on the whole stream (in a global fashion),
 	 * but the user defined functions will be applied on a per group basis.
 	 * </br></br> To get windows and triggers on a per group basis apply the

@@ -11,7 +11,14 @@ public class AggregationStats implements Serializable {
 
 	private transient ThreadMXBean mxbean = ManagementFactory.getThreadMXBean();
 
+	public enum AGGREGATION_MODE {UPDATES, AGGREGATES}
+	public enum UPDATE_MODE {STORE, ACTIVE}
+
+	public AGGREGATION_MODE state = AGGREGATION_MODE.UPDATES;
+	public UPDATE_MODE updateState = UPDATE_MODE.ACTIVE;
+
 	private long update_count = 0l;
+	private long aggregatestore_count = 0l;
 	private long aggregate_count = 0l;
 	private long reduce_count = 0l;
 	private long max_buf_size = 0l;
@@ -33,6 +40,10 @@ public class AggregationStats implements Serializable {
 	private long sumOperatorTime;
 	private long sumOperatorCPUTime;
 
+
+	private AggregationStats() {
+	}
+	
 	public void startRecord() {
 		if(mxbean == null){
 			mxbean = ManagementFactory.getThreadMXBean();
@@ -49,13 +60,6 @@ public class AggregationStats implements Serializable {
 
 	}
 
-
-	public enum AGGREGATION_MODE {UPDATES, AGGREGATES}
-
-	;
-
-	public AGGREGATION_MODE state = AGGREGATION_MODE.UPDATES;
-
 	public static AggregationStats getInstance() {
 		if (ourInstance == null) {
 			return ourInstance = new AggregationStats();
@@ -64,11 +68,14 @@ public class AggregationStats implements Serializable {
 		}
 	}
 
-	private AggregationStats() {
-	}
-
 	public void registerUpdate() {
-		update_count++;
+		switch(updateState){
+			case ACTIVE:
+				update_count++;
+				break;
+			case STORE:
+				aggregatestore_count++;
+		}
 	}
 
 	public void registerStartUpdate() {
@@ -83,6 +90,7 @@ public class AggregationStats implements Serializable {
 	public void setAggregationMode(AGGREGATION_MODE mode) {
 		this.state = mode;
 	}
+	public void setUpdateMode(UPDATE_MODE mode){ this.updateState = mode;}
 
 	public void registerStartMerge() {
 		this.merge_timestamp = System.currentTimeMillis();
@@ -140,6 +148,10 @@ public class AggregationStats implements Serializable {
 		return num_partials;
 	}
 
+	public long getAggregatestore_count() {
+		return aggregatestore_count;
+	}
+
 	public void reset() {
 		update_count = 0l;
 		aggregate_count = 0l;
@@ -157,6 +169,7 @@ public class AggregationStats implements Serializable {
 		totalOperatorInvokes = 0;
 		sumOperatorCPUTime = 0l;
 		sumOperatorTime = 0l;
+		aggregatestore_count = 0l;
 	}
 
 	public long getSumOperatorCPUTime() {

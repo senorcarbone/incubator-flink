@@ -26,7 +26,7 @@ import org.apache.flink.util.Collector;
 
 /*
  * Non-grouped pre-reducer for sliding eviction policy
- * (the slide size is smaller than the window size).
+ * (the maxSlide size is smaller than the window size).
  */
 public abstract class SlidingPreReducer<T> extends WindowBuffer<T> implements PreAggregator {
 

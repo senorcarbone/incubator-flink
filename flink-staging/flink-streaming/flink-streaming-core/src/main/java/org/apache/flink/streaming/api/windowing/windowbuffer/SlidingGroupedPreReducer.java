@@ -30,7 +30,7 @@ import org.apache.flink.streaming.api.windowing.StreamWindow;
 
 /*
  * Grouped pre-reducer for sliding eviction policy
- * (the slide size is smaller than the window size).
+ * (the maxSlide size is smaller than the window size).
  */
 public abstract class SlidingGroupedPreReducer<T> extends SlidingPreReducer<T> {
 

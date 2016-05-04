@@ -23,22 +23,22 @@ import java.util.concurrent.TimeUnit;
 public interface TemporalWindow<T> {
 
 	/**
-	 * Defines the slide interval for this temporal operator
+	 * Defines the maxSlide interval for this temporal operator
 	 * 
 	 * @param length
 	 *            Length of the window
 	 * @param timeUnit
 	 *            Unit of time
-	 * @return The temporal operator with slide interval specified
+	 * @return The temporal operator with maxSlide interval specified
 	 */
 	public T every(long length, TimeUnit timeUnit);
 
 	/**
-	 * Defines the slide interval for this temporal operator
+	 * Defines the maxSlide interval for this temporal operator
 	 * 
 	 * @param length
 	 *            Length of the window
-	 * @return The temporal operator with slide interval specified
+	 * @return The temporal operator with maxSlide interval specified
 	 */
 	public T every(long length);
 

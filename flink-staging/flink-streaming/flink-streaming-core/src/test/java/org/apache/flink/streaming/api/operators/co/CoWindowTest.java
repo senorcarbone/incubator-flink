@@ -110,7 +110,7 @@ public class CoWindowTest {
 				new MyCoGroup1(), 2, 1, new TimestampWrapper<Integer>(new MyTS1(), 1),
 				new TimestampWrapper<Integer>(new MyTS1(), 1));
 
-		// Windowsize 2, slide 1
+		// Windowsize 2, maxSlide 1
 		// 1,2|2,3|3,4|4,5
 
 		List<Integer> input11 = new ArrayList<Integer>();
@@ -147,7 +147,7 @@ public class CoWindowTest {
 				new MyCoGroup2(), 2, 3, new TimestampWrapper<Tuple2<Integer, Integer>>(new MyTS2(),
 						1), new TimestampWrapper<Tuple2<Integer, Integer>>(new MyTS2(), 1));
 
-		// WindowSize 2, slide 3
+		// WindowSize 2, maxSlide 3
 		// 1,2|4,5|7,8|
 
 		List<Tuple2<Integer, Integer>> input21 = new ArrayList<Tuple2<Integer, Integer>>();

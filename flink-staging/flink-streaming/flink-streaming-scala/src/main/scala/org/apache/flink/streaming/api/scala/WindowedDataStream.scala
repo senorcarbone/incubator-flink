@@ -65,7 +65,7 @@ class WindowedDataStream[T](javaStream: JavaWStream[T]) {
   }
 
   /**
-   * Defines the slide size (trigger frequency) for the windowed data stream.
+   * Defines the maxSlide size (trigger frequency) for the windowed data stream.
    * This controls how often the user defined function will be triggered on
    * the window.
    */
@@ -74,7 +74,7 @@ class WindowedDataStream[T](javaStream: JavaWStream[T]) {
 
   /**
    * Groups the elements of the WindowedDataStream using the given
-   * field positions. The window sizes (evictions) and slide sizes
+   * field positions. The window sizes (evictions) and maxSlide sizes
    * (triggers) will be calculated on the whole stream (in a global fashion),
    * but the user defined functions will be applied on a per group basis.
    * </br></br> To get windows and triggers on a per group basis apply the
@@ -85,7 +85,7 @@ class WindowedDataStream[T](javaStream: JavaWStream[T]) {
 
   /**
    * Groups the elements of the WindowedDataStream using the given
-   * field expressions. The window sizes (evictions) and slide sizes
+   * field expressions. The window sizes (evictions) and maxSlide sizes
    * (triggers) will be calculated on the whole stream (in a global fashion),
    * but the user defined functions will be applied on a per group basis.
    * </br></br> To get windows and triggers on a per group basis apply the
@@ -97,7 +97,7 @@ class WindowedDataStream[T](javaStream: JavaWStream[T]) {
     
   /**
    * Groups the elements of the WindowedDataStream using the given
-   * KeySelector function. The window sizes (evictions) and slide sizes
+   * KeySelector function. The window sizes (evictions) and maxSlide sizes
    * (triggers) will be calculated on the whole stream (in a global fashion),
    * but the user defined functions will be applied on a per group basis.
    * </br></br> To get windows and triggers on a per group basis apply the

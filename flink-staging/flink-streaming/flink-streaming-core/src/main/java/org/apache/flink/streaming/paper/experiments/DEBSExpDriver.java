@@ -53,9 +53,9 @@ public class DEBSExpDriver extends ExperimentDriver {
 	{
 //		RUN_PAIRS_LAZY = true;
 //		RUN_PAIRS_EAGER = true;
-		RUN_B2B_LAZY = true;
+//		RUN_B2B_LAZY = true;
 		RUN_B2B_EAGER = true;
-		RUN_GENERAL_LAZY = true;
+//		RUN_GENERAL_LAZY = true;
 		RUN_GENERAL_EAGER = true;
 	}
 
@@ -268,9 +268,9 @@ public class DEBSExpDriver extends ExperimentDriver {
 				@Override
 				public Tuple2<Long, Long> reduce(Tuple2<Long, Long> t1, Tuple2<Long, Long> t2)
 						throws Exception {
-					if (!t1.equals(new Tuple2<>(0l, 1l)) && !t2.equals(new Tuple2<>(0l, 1l))) {
+					//if (!t1.equals(new Tuple2<>(0l, 1l)) && !t2.equals(new Tuple2<>(0l, 1l))) {
 						stats.registerReduce();
-					}
+					//}
 					return new Tuple2<>(t1.f0 + t2.f0, t1.f1 + t2.f1);
 				}
 			}, new MapFunction<Tuple4<Long, Long, Long, Integer>, Tuple2<Long, Long>>() {

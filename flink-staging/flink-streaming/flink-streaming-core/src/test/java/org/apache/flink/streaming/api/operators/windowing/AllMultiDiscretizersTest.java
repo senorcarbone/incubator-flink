@@ -24,7 +24,6 @@ import org.apache.flink.api.common.typeutils.base.IntSerializer;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.windowing.extractor.Extractor;
-import org.apache.flink.streaming.api.windowing.helper.Timestamp;
 import org.apache.flink.streaming.api.windowing.helper.TimestampWrapper;
 import org.apache.flink.streaming.api.windowing.policy.CountEvictionPolicy;
 import org.apache.flink.streaming.api.windowing.policy.CountTriggerPolicy;
@@ -101,7 +100,7 @@ public class AllMultiDiscretizersTest extends TestCase {
 		policyGroups.add(policyGroup);
 
 		//Create operator instance
-		B2BMultiDiscretizer<Integer,Integer> deterministicMD = new B2BMultiDiscretizer<>
+		Cutty<Integer,Integer> deterministicMD = new Cutty<>
 				(policyGroups, new Sum(), 0, 4, IntSerializer.INSTANCE, AggregationFramework.AGGREGATION_STRATEGY.LAZY);
 
 		//Run the test
@@ -154,8 +153,8 @@ public class AllMultiDiscretizersTest extends TestCase {
 		policyGroups.add(policyGroup);
 		policyGroups.add(policyGroup2);
 
-		B2BMultiDiscretizer<Tuple2<Integer, Integer>, Tuple2<Integer, Integer>> deterministicMD =
-				new B2BMultiDiscretizer<>(policyGroups, new TupleSum(),
+		Cutty<Tuple2<Integer, Integer>, Tuple2<Integer, Integer>> deterministicMD =
+				new Cutty<>(policyGroups, new TupleSum(),
 						new Tuple2<>(0, 0), 8, new TupleTypeInfo<Tuple2<Integer, Integer>>
 						(BasicTypeInfo.INT_TYPE_INFO, BasicTypeInfo.INT_TYPE_INFO).createSerializer(null),
 						AggregationFramework.AGGREGATION_STRATEGY.EAGER);

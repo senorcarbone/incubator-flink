@@ -39,7 +39,7 @@ public class SlidingCountPreReducer<T> extends SlidingPreReducer<T> {
 			this.start = start;
 		} else {
 			throw new RuntimeException(
-					"Window size needs to be larger than slide size for the sliding pre-reducer");
+					"Window size needs to be larger than maxSlide size for the sliding pre-reducer");
 		}
 		index = index - start;
 	}

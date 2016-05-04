@@ -59,6 +59,10 @@ public class DeterministicCountSequenceTrigger<IN> implements CloneableTriggerPo
 		}
 	}
 
+	public List<Long> getSequence() {
+		return sequence;
+	}
+
 	private void proceedMax() {
 		curIndex = (curIndex + 1) % sequence.size();
 	}

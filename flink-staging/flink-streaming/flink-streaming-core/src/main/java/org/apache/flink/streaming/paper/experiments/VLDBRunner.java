@@ -27,21 +27,39 @@ public class VLDBRunner {
 	 */
 	
 	private static final String[] SETUP_PATHS={
+//			"setups/exp2-1p.txt",
+//			"setups/exp2-10p.txt",4
+//			"setups/exp2-20p.txt"
 			"setups/exp2-1p.txt",
 			"setups/exp2-10p.txt",
-			"setups/exp2-20p.txt"
-//			"setups/exp1-1c.txt",
-//			"setups/exp1-10c.txt",
-//			"setups/exp1-20c.txt",
+			"setups/exp2-20p.txt",
+            "setups/exp2-30p.txt",
+            "setups/exp2-40p.txt",
+            "setups/exp2-50p.txt",
+            "setups/exp2-60p.txt",
+            "setups/exp2-70p.txt",
+            "setups/exp2-80p.txt",
+            "setups/exp2-90p.txt",
+            "setups/exp2-100p.txt"
 //			"setups/exp1-40c.txt"
     };
     private static final String[] RESULT_PATHS={
-			"setups/exp2-1p-results.txt",
-			"setups/exp2-10p-results.txt",
-			"setups/exp2-20p-results.txt"
+//			"setups/exp2-1p-results.txt",
+//			"setups/exp2-10p-results.txt",
+//			"setups/exp2-20p-results.txt"
 //			"setups/exp1-1c-results.txt",
 //			"setups/exp1-10c-results.txt",
-//			"setups/exp1-20c-results.txt"
+            "setups/exp2-1pres.txt",
+            "setups/exp2-10pres.txt",
+            "setups/exp2-20pres.txt",
+            "setups/exp2-30pres.txt",
+            "setups/exp2-40pres.txt",
+            "setups/exp2-50pres.txt",
+            "setups/exp2-60pres.txt",
+            "setups/exp2-70pres.txt",
+            "setups/exp2-80pres.txt",
+            "setups/exp2-90pres.txt",
+            "setups/exp2-100pres.txt"
 //			"setups/exp1-40c-results.txt"
     };
 
