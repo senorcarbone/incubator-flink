@@ -25,8 +25,10 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.IllegalConfigurationException;
 import org.apache.flink.core.fs.FSDataInputStream;
 import org.apache.flink.metrics.Gauge;
+import org.apache.flink.runtime.event.AbstractEvent;
 import org.apache.flink.runtime.execution.CancelTaskException;
 import org.apache.flink.runtime.io.network.api.CheckpointBarrier;
+import org.apache.flink.runtime.iterative.termination.AbstractLoopTerminationMessage;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.jobgraph.tasks.StatefulTask;
 import org.apache.flink.runtime.state.AbstractStateBackend;
@@ -128,7 +130,7 @@ public abstract class StreamTask<OUT, Operator extends StreamOperator<OUT>>
 	protected Operator headOperator;
 
 	/** The chain of operators executed by this task */
-	private OperatorChain<OUT> operatorChain;
+	OperatorChain<OUT> operatorChain;
 	
 	/** The configuration of this streaming task */
 	private StreamConfig configuration;
@@ -175,6 +177,28 @@ public abstract class StreamTask<OUT, Operator extends StreamOperator<OUT>>
 	/** Thread pool for async snapshot workers */
 	private ExecutorService asyncOperationsThreadPool;
 
+	/** Timeout to await the termination of the thread pool in milliseconds */
+	private long threadPoolTerminationTimeout = 0L;
+
+	private LoopTerminationHandler loopTerminationHandler;
+
+	public LoopTerminationHandler getLoopTerminationHandler() {
+		if(loopTerminationHandler ==null){
+			loopTerminationHandler = new LoopTerminationHandlerImpl(this);
+		}
+		return loopTerminationHandler;
+	}
+
+	@Override
+	public boolean onLoopTerminationCoordinatorMessage(AbstractLoopTerminationMessage msg) throws IOException, InterruptedException {
+		return false;
+	}
+
+	public void forwardEvent(AbstractEvent e) throws IOException, InterruptedException {
+		for (RecordWriterOutput<?> streamOutput : getStreamOutputs()) {
+			streamOutput.broadcastEvent(e);
+		}
+	}
 	// ------------------------------------------------------------------------
 	//  Life cycle methods for specific implementations
 	// ------------------------------------------------------------------------
@@ -611,7 +635,7 @@ public abstract class StreamTask<OUT, Operator extends StreamOperator<OUT>>
 				// Given this, we immediately emit the checkpoint barriers, so the downstream operators
 				// can start their checkpoint work as soon as possible
 				operatorChain.broadcastCheckpointBarrier(checkpointId, timestamp);
-				
+
 				// now draw the state snapshot
 				final StreamOperator<?>[] allOperators = operatorChain.getAllOperators();
 				final List<StreamStateHandle> nonPartitionedStates = Arrays.asList(new StreamStateHandle[allOperators.length]);
@@ -851,7 +875,9 @@ public abstract class StreamTask<OUT, Operator extends StreamOperator<OUT>>
 	// ------------------------------------------------------------------------
 	//  Utilities
 	// ------------------------------------------------------------------------
-	
+	public void tellJobManager(Object message){
+		getEnvironment().tellJobManger(message);
+	}
 	@Override
 	public String toString() {
 		return getName();

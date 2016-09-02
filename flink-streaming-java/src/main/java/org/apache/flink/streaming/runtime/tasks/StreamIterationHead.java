@@ -17,18 +17,24 @@
 
 package org.apache.flink.streaming.runtime.tasks;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.runtime.event.AbstractEvent;
+import org.apache.flink.runtime.iterative.termination.AbstractLoopTerminationMessage;
+import org.apache.flink.runtime.iterative.termination.BroadcastStatusUpdateEvent;
+import org.apache.flink.runtime.iterative.termination.StopInputTasks;
+import org.apache.flink.runtime.iterative.termination.WorkingStatusUpdate;
 import org.apache.flink.streaming.api.watermark.Watermark;
-import org.apache.flink.streaming.runtime.io.RecordWriterOutput;
 import org.apache.flink.streaming.runtime.io.BlockingQueueBroker;
+import org.apache.flink.streaming.runtime.io.RecordWriterOutput;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
+import org.apache.flink.types.Either;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 @Internal
 public class StreamIterationHead<OUT> extends OneInputStreamTask<OUT, OUT> {
@@ -36,12 +42,35 @@ public class StreamIterationHead<OUT> extends OneInputStreamTask<OUT, OUT> {
 	private static final Logger LOG = LoggerFactory.getLogger(StreamIterationHead.class);
 
 	private volatile boolean running = true;
+	private transient Thread taskthread;
 
-	// ------------------------------------------------------------------------
-	
+	@Override
+	public boolean onLoopTerminationCoordinatorMessage(AbstractLoopTerminationMessage msg) throws IOException, InterruptedException {
+		boolean handled  = super.onLoopTerminationCoordinatorMessage(msg);
+		if(msg instanceof StopInputTasks){
+			stop();
+			return true;
+		}else if(msg instanceof BroadcastStatusUpdateEvent){
+			long seq = ((BroadcastStatusUpdateEvent) msg).getSequenceNumber();
+			LOG.info("Head task {} will brodcast status event of SEQ : {}",getName(),seq);
+			forwardEvent(new WorkingStatusUpdate(seq,getName()));
+			return true;
+		}
+		return handled;
+	}
+
+	private void stop(){
+		running = false;
+		if(taskthread != null){
+			taskthread.interrupt(); // to stop the blocking method 'take' of the blocking queue
+		}
+	}
+
 	@Override
 	protected void run() throws Exception {
-		
+
+		taskthread =  Thread.currentThread();
+		LoopTerminationHandler finalizer =  getLoopTerminationHandler();
 		final String iterationId = getConfiguration().getIterationId();
 		if (iterationId == null || iterationId.length() == 0) {
 			throw new Exception("Missing iteration ID in the task configuration");
@@ -53,7 +82,7 @@ public class StreamIterationHead<OUT> extends OneInputStreamTask<OUT, OUT> {
 		final long iterationWaitTime = getConfiguration().getIterationWaitTime();
 		final boolean shouldWait = iterationWaitTime > 0;
 
-		final BlockingQueue<StreamRecord<OUT>> dataChannel = new ArrayBlockingQueue<StreamRecord<OUT>>(1);
+		final BlockingQueue<Either<StreamRecord<OUT>,AbstractEvent>> dataChannel = new ArrayBlockingQueue<>(1);
 
 		// offer the queue for the tail
 		BlockingQueueBroker.INSTANCE.handIn(brokerID, dataChannel);
@@ -72,18 +101,28 @@ public class StreamIterationHead<OUT> extends OneInputStreamTask<OUT, OUT> {
 			}
 
 			while (running) {
-				StreamRecord<OUT> nextRecord = shouldWait ?
-					dataChannel.poll(iterationWaitTime, TimeUnit.MILLISECONDS) :
-					dataChannel.take();
 
-				if (nextRecord != null) {
+				Either<StreamRecord<OUT>,AbstractEvent> nextRecordOrEvent =  null;
+				try {
+					nextRecordOrEvent = dataChannel.take();
+				}catch(InterruptedException e){
+					LOG.info("Head task {} interrupted.",getName());
+					break;
+				}
+				if ( nextRecordOrEvent.isLeft()) {
 					for (RecordWriterOutput<OUT> output : outputs) {
-						output.collect(nextRecord);
+						output.collect(nextRecordOrEvent.left());
 					}
+					finalizer.onStreamRecord(nextRecordOrEvent,0);
 				}
 				else {
-					// done
-					break;
+					AbstractEvent event = nextRecordOrEvent.right();
+					if(event instanceof WorkingStatusUpdate){
+						WorkingStatusUpdate e = (WorkingStatusUpdate)event;
+						finalizer.onStatusEvent(e,0);
+					}else{
+						forwardEvent(event);
+					}
 				}
 			}
 		}

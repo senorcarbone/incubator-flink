@@ -285,6 +285,8 @@ public class StreamingJobGraphGenerator {
 
 		jobVertex.setInvokableClass(streamNode.getJobVertexClass());
 
+		jobVertex.setSourceInputVertex(streamNode.isStreamSource());
+
 		int parallelism = streamNode.getParallelism();
 
 		if (parallelism > 0) {

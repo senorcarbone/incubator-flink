@@ -33,6 +33,7 @@ import org.apache.flink.runtime.execution.librarycache.LibraryCacheManager;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.filecache.FileCache;
 import org.apache.flink.runtime.instance.ActorGateway;
+import org.apache.flink.runtime.instance.DummyActorGateway;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.network.NetworkEnvironment;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionConsumableNotifier;
@@ -644,6 +645,7 @@ public class TaskTest {
 			mock(BroadcastVariableManager.class),
 			taskManagerConnection,
 			inputSplitProvider,
+			DummyActorGateway.INSTANCE,
 			checkpointResponder,
 			libCache,
 			mock(FileCache.class),

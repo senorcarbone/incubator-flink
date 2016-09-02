@@ -42,7 +42,7 @@ import org.apache.flink.runtime.checkpoint._
 import org.apache.flink.runtime.checkpoint.savepoint.{SavepointLoader, SavepointStore, SavepointStoreFactory}
 import org.apache.flink.runtime.checkpoint.stats.{CheckpointStatsTracker, DisabledCheckpointStatsTracker, SimpleCheckpointStatsTracker}
 import org.apache.flink.runtime.client._
-import org.apache.flink.runtime.execution.SuppressRestartsException
+import org.apache.flink.runtime.execution.{ExecutionState, SuppressRestartsException}
 import org.apache.flink.runtime.clusterframework.FlinkResourceManager
 import org.apache.flink.runtime.clusterframework.messages._
 import org.apache.flink.runtime.clusterframework.standalone.StandaloneResourceManager
@@ -51,6 +51,7 @@ import org.apache.flink.runtime.execution.librarycache.BlobLibraryCacheManager
 import org.apache.flink.runtime.executiongraph.restart.RestartStrategyFactory
 import org.apache.flink.runtime.executiongraph.{ExecutionGraph, ExecutionJobVertex, StatusListenerMessenger}
 import org.apache.flink.runtime.instance.{AkkaActorGateway, InstanceManager}
+import org.apache.flink.runtime.iterative.termination.{AbstractLoopTerminationMessage, LoopTerminationCoordinator, StreamCompleted, TaskWorkingStatus}
 import org.apache.flink.runtime.jobgraph.jsonplan.JsonPlanGenerator
 import org.apache.flink.runtime.jobgraph.{JobGraph, JobStatus, JobVertexID}
 import org.apache.flink.runtime.jobmanager.SubmittedJobGraphStore.SubmittedJobGraphListener
@@ -690,7 +691,8 @@ class JobManager(
 
     case checkpointMessage : AbstractCheckpointMessage =>
       handleCheckpointMessage(checkpointMessage)
-
+    case loopTerminationMessage:AbstractLoopTerminationMessage =>
+      handleLoopTerminationMessage(loopTerminationMessage);
     case kvStateMsg : KvStateMessage =>
       handleKvStateMessage(kvStateMsg)
 
@@ -736,7 +738,6 @@ class JobManager(
         case None =>
           sender() ! TriggerSavepointFailure(jobId, new IllegalArgumentException("Unknown job."))
       }
-
     case DisposeSavepoint(savepointPath) =>
       val senderRef = sender()
       future {
@@ -1278,6 +1279,9 @@ class JobManager(
         // get notified about job status changes
         executionGraph.registerJobStatusListener(
           new StatusListenerMessenger(self, leaderSessionID.orNull))
+        val allVertices = executionGraph.getAllVertices
+        val loopTerminationCoordinator = new LoopTerminationCoordinator(jobId,allVertices)
+        executionGraph.setLoopTerminationCoordinator(loopTerminationCoordinator);
 
         jobInfo.clients foreach {
           // the sender wants to be notified about state changes
@@ -1462,6 +1466,21 @@ class JobManager(
 
       // unknown checkpoint message
       case _ => unhandled(actorMessage)
+    }
+  }
+
+  def handleLoopTerminationMessage(loopTerminationMessage: AbstractLoopTerminationMessage): Unit = {
+    val jobId = loopTerminationMessage.getJobID();
+    currentJobs.get(jobId) match {
+      case Some((graph, _)) =>
+        val coordinator = graph.getLoopTerminationCoordinator();
+        loopTerminationMessage match{
+          case streamFinalization:StreamCompleted =>
+            coordinator.onStreamCompleted(streamFinalization);
+          case taskStatus:TaskWorkingStatus =>
+            coordinator.onTaskStatus(taskStatus);
+        }
+      case None => //
     }
   }
 

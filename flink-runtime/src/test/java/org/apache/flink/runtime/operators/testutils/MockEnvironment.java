@@ -329,4 +329,7 @@ public class MockEnvironment implements Environment {
 	public void failExternally(Throwable cause) {
 		throw new UnsupportedOperationException("MockEnvironment does not support external task failure.");
 	}
+
+	@Override
+	public void tellJobManger(Object msg){}
 }

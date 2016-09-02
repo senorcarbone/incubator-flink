@@ -27,6 +27,7 @@ import org.apache.flink.runtime.accumulators.AccumulatorRegistry;
 import org.apache.flink.runtime.broadcast.BroadcastVariableManager;
 import org.apache.flink.runtime.execution.Environment;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
+import org.apache.flink.runtime.instance.ActorGateway;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
 import org.apache.flink.runtime.io.network.partition.consumer.InputGate;
@@ -74,6 +75,8 @@ public class RuntimeEnvironment implements Environment {
 	
 	private final CheckpointResponder checkpointResponder;
 
+	private final ActorGateway jobManager;
+
 	private final AccumulatorRegistry accumulatorRegistry;
 
 	private final TaskKvStateRegistry kvStateRegistry;
@@ -104,6 +107,7 @@ public class RuntimeEnvironment implements Environment {
 			ResultPartitionWriter[] writers,
 			InputGate[] inputGates,
 			CheckpointResponder checkpointResponder,
+			ActorGateway jobManager,
 			TaskManagerRuntimeInfo taskManagerInfo,
 			TaskMetricGroup metrics,
 			Task containingTask) {
@@ -126,6 +130,7 @@ public class RuntimeEnvironment implements Environment {
 		this.writers = checkNotNull(writers);
 		this.inputGates = checkNotNull(inputGates);
 		this.checkpointResponder = checkNotNull(checkpointResponder);
+		this.jobManager = checkNotNull(jobManager);
 		this.taskManagerInfo = checkNotNull(taskManagerInfo);
 		this.containingTask = containingTask;
 		this.metrics = metrics;
@@ -236,6 +241,12 @@ public class RuntimeEnvironment implements Environment {
 	@Override
 	public InputGate[] getAllInputGates() {
 		return inputGates;
+	}
+
+
+	@Override
+	public void tellJobManger(Object msg){
+		jobManager.tell(msg);
 	}
 
 	@Override

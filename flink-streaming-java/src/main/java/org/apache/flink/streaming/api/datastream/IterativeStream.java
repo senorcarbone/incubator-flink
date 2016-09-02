@@ -71,14 +71,18 @@ public class IterativeStream<T> extends SingleOutputStreamOperator<T> {
 
 		Collection<StreamTransformation<?>> predecessors = feedbackStream.getTransformation().getTransitivePredecessors();
 
-		if (!predecessors.contains(this.transformation)) {
-			throw new UnsupportedOperationException(
-					"Cannot close an iteration with a feedback DataStream that does not originate from said iteration.");
+		for(StreamTransformation<?> t : predecessors){
+			if(t.equals(this.transformation)){
+				((FeedbackTransformation) getTransformation()).addFeedbackEdge(feedbackStream.getTransformation());
+				return feedbackStream;
+			}
+			if(t instanceof  FeedbackTransformation && ((FeedbackTransformation) t).getFeedbackEdges().size()==0){
+				throw new UnsupportedOperationException("An inner iteration should be closed first.");
+			}
 		}
+		throw new UnsupportedOperationException(
+				"Cannot close an iteration with a feedback DataStream that does not originate from said iteration.");
 
-		((FeedbackTransformation) getTransformation()).addFeedbackEdge(feedbackStream.getTransformation());
-
-		return feedbackStream;
 	}
 
 	/**

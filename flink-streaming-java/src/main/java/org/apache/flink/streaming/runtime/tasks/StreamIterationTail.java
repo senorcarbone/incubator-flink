@@ -17,28 +17,32 @@
 
 package org.apache.flink.streaming.runtime.tasks;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.runtime.event.AbstractEvent;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 import org.apache.flink.streaming.api.operators.Output;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.runtime.io.BlockingQueueBroker;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
+import org.apache.flink.types.Either;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.concurrent.BlockingQueue;
 
 @Internal
 public class StreamIterationTail<IN> extends OneInputStreamTask<IN, IN> {
 
 	private static final Logger LOG = LoggerFactory.getLogger(StreamIterationTail.class);
 
+	private BlockingQueue<Either<StreamRecord<IN>,AbstractEvent>> dataChannel ;
+
 	@Override
 	public void init() throws Exception {
 		super.init();
-		
+
 		final String iterationId = getConfiguration().getIterationId();
 		if (iterationId == null || iterationId.length() == 0) {
 			throw new Exception("Missing iteration ID in the task configuration");
@@ -47,20 +51,20 @@ public class StreamIterationTail<IN> extends OneInputStreamTask<IN, IN> {
 		final String brokerID = StreamIterationHead.createBrokerIdString(getEnvironment().getJobID(), iterationId,
 				getEnvironment().getTaskInfo().getIndexOfThisSubtask());
 
-		final long iterationWaitTime = getConfiguration().getIterationWaitTime();
+		//final long iterationWaitTime = getConfiguration().getIterationWaitTime();
 
 		LOG.info("Iteration tail {} trying to acquire feedback queue under {}", getName(), brokerID);
-		
-		@SuppressWarnings("unchecked")
-		BlockingQueue<StreamRecord<IN>> dataChannel =
-				(BlockingQueue<StreamRecord<IN>>) BlockingQueueBroker.INSTANCE.get(brokerID);
-		
-		LOG.info("Iteration tail {} acquired feedback queue {}", getName(), brokerID);
-		
-		this.headOperator = new RecordPusher<>();
-		this.headOperator.setup(this, getConfiguration(), new IterationTailOutput<>(dataChannel, iterationWaitTime));
-	}
 
+		dataChannel = (BlockingQueue<Either<StreamRecord<IN>,AbstractEvent>>) BlockingQueueBroker.INSTANCE.get(brokerID);
+		LOG.info("Iteration tail {} acquired feedback queue {}", getName(), brokerID);
+
+		this.headOperator = new RecordPusher<>();
+		this.headOperator.setup(this, getConfiguration(), new IterationTailOutput<>(dataChannel));
+	}
+	@Override
+	public void forwardEvent(AbstractEvent e) throws IOException, InterruptedException {
+			dataChannel.put(new Either.Right<StreamRecord<IN>, AbstractEvent>(e));
+	}
 	private static class RecordPusher<IN> extends AbstractStreamOperator<IN> implements OneInputStreamOperator<IN, IN> {
 		
 		private static final long serialVersionUID = 1L;
@@ -79,16 +83,10 @@ public class StreamIterationTail<IN> extends OneInputStreamTask<IN, IN> {
 	private static class IterationTailOutput<IN> implements Output<StreamRecord<IN>> {
 
 		@SuppressWarnings("NonSerializableFieldInSerializableClass")
-		private final BlockingQueue<StreamRecord<IN>> dataChannel;
-		
-		private final long iterationWaitTime;
-		
-		private final boolean shouldWait;
+		private final BlockingQueue<Either<StreamRecord<IN>,AbstractEvent>> dataChannel;
 
-		IterationTailOutput(BlockingQueue<StreamRecord<IN>> dataChannel, long iterationWaitTime) {
+		IterationTailOutput(BlockingQueue<Either<StreamRecord<IN>,AbstractEvent>> dataChannel) {
 			this.dataChannel = dataChannel;
-			this.iterationWaitTime = iterationWaitTime;
-			this.shouldWait =  iterationWaitTime > 0;
 		}
 
 		@Override
@@ -98,12 +96,7 @@ public class StreamIterationTail<IN> extends OneInputStreamTask<IN, IN> {
 		@Override
 		public void collect(StreamRecord<IN> record) {
 			try {
-				if (shouldWait) {
-					dataChannel.offer(record, iterationWaitTime, TimeUnit.MILLISECONDS);
-				}
-				else {
-					dataChannel.put(record);
-				}
+				dataChannel.put(new Either.Left<StreamRecord<IN>, AbstractEvent>(record));
 			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			}

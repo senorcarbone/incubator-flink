@@ -44,6 +44,7 @@ import org.apache.flink.runtime.executiongraph.archive.ExecutionConfigSummary;
 import org.apache.flink.runtime.executiongraph.restart.RestartStrategy;
 import org.apache.flink.runtime.instance.SlotProvider;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
+import org.apache.flink.runtime.iterative.termination.LoopTerminationCoordinator;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertex;
@@ -210,6 +211,10 @@ public class ExecutionGraph {
 
 	/** The coordinator for checkpoints, if snapshot checkpoints are enabled */
 	private CheckpointCoordinator checkpointCoordinator;
+
+	/** The coordinator used to determine when the execution of the iterations is done */
+	private LoopTerminationCoordinator loopTerminationCoordinator;
+
 
 	/** Checkpoint stats tracker separate from the coordinator in order to be
 	 * available after archiving. */
@@ -422,6 +427,10 @@ public class ExecutionGraph {
 	public CheckpointCoordinator getCheckpointCoordinator() {
 		return checkpointCoordinator;
 	}
+	public void setLoopTerminationCoordinator(LoopTerminationCoordinator loopTerminationCoordinator){
+		this.loopTerminationCoordinator = loopTerminationCoordinator;
+	}
+	public LoopTerminationCoordinator getLoopTerminationCoordinator() {return loopTerminationCoordinator;}
 
 	public KvStateLocationRegistry getKvStateLocationRegistry() {
 		return kvStateLocationRegistry;

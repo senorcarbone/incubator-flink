@@ -204,4 +204,6 @@ public interface Environment {
 	InputGate getInputGate(int index);
 
 	InputGate[] getAllInputGates();
+
+	void tellJobManger(Object msg);
 }

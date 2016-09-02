@@ -57,6 +57,7 @@ import org.apache.flink.runtime.io.network.buffer.NetworkBufferPool
 import org.apache.flink.runtime.io.network.{LocalConnectionManager, NetworkEnvironment, TaskEventDispatcher}
 import org.apache.flink.runtime.io.network.netty.{NettyConfig, NettyConnectionManager}
 import org.apache.flink.runtime.io.network.partition.ResultPartitionManager
+import org.apache.flink.runtime.iterative.termination.AbstractLoopTerminationMessage
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID
 import org.apache.flink.runtime.leaderretrieval.{LeaderRetrievalListener, LeaderRetrievalService}
 import org.apache.flink.runtime.memory.MemoryManager
@@ -75,7 +76,7 @@ import org.apache.flink.runtime.security.SecurityContext.{FlinkSecuredRunner, Se
 import org.apache.flink.runtime.security.SecurityContext
 import org.apache.flink.runtime.util._
 import org.apache.flink.runtime.{FlinkActor, LeaderSessionMessageFilter, LogMessages}
-import org.apache.flink.util.{MathUtils, NetUtils}
+import org.apache.flink.util.{MathUtils, NetUtils, Preconditions}
 
 import scala.collection.JavaConverters._
 import scala.concurrent._
@@ -365,6 +366,10 @@ class TaskManager(
       }
 
       sender ! decorateMessage(ResponseNumActiveConnections(numActive))
+
+    case msg:AbstractLoopTerminationMessage =>
+      notifySubtask(msg);
+
   }
 
   /**
@@ -1166,6 +1171,7 @@ class TaskManager(
         bcVarManager,
         taskManagerConnection,
         inputSplitProvider,
+        jobManagerGateway,
         checkpointResponder,
         libCache,
         fileCache,
@@ -1192,6 +1198,15 @@ class TaskManager(
       case t: Throwable =>
         log.error("SubmitTask failed", t)
         sender ! decorateMessage(Failure(t))
+    }
+  }
+
+  private def notifySubtask(msg: AbstractLoopTerminationMessage){
+    val task = runningTasks.get(msg.getTaskExecutionId);
+    if(task!=null){
+      Preconditions.checkArgument(msg.getJobID.equals(task.getJobID),
+        "Job mismatch {} , {}",msg.getJobID,task.getJobID);
+      task.onLoopTerminationMessage(msg: AbstractLoopTerminationMessage);
     }
   }
 

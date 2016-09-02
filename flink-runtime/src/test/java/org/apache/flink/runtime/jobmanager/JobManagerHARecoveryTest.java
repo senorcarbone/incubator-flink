@@ -41,6 +41,7 @@ import org.apache.flink.runtime.executiongraph.restart.FixedDelayRestartStrategy
 import org.apache.flink.runtime.instance.ActorGateway;
 import org.apache.flink.runtime.instance.AkkaActorGateway;
 import org.apache.flink.runtime.instance.InstanceManager;
+import org.apache.flink.runtime.iterative.termination.AbstractLoopTerminationMessage;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertex;
@@ -78,6 +79,7 @@ import scala.concurrent.Future;
 import scala.concurrent.duration.Deadline;
 import scala.concurrent.duration.FiniteDuration;
 
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -470,6 +472,11 @@ public class JobManagerHARecoveryTest {
 			if (completedCheckpoints++ > NUM_CHECKPOINTS_TO_COMPLETE) {
 				completedCheckpointsLatch.countDown();
 			}
+		}
+
+		@Override
+		public boolean onLoopTerminationCoordinatorMessage(AbstractLoopTerminationMessage msg) throws IOException, InterruptedException {
+			return false;
 		}
 
 		public static void initializeStaticHelpers(int numSubtasks) {

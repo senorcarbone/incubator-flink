@@ -18,11 +18,13 @@
 
 package org.apache.flink.runtime.jobgraph.tasks;
 
+import org.apache.flink.runtime.iterative.termination.AbstractLoopTerminationMessage;
 import org.apache.flink.runtime.state.ChainedStateHandle;
 import org.apache.flink.runtime.state.KeyGroupsStateHandle;
 import org.apache.flink.runtime.state.StreamStateHandle;
 
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -62,4 +64,7 @@ public interface StatefulTask {
 	 * @throws Exception The notification method may forward its exceptions.
 	 */
 	void notifyCheckpointComplete(long checkpointId) throws Exception;
+
+
+	boolean onLoopTerminationCoordinatorMessage(AbstractLoopTerminationMessage msg) throws IOException, InterruptedException;
 }
