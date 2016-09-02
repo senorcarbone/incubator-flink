@@ -58,6 +58,7 @@ import org.apache.flink.runtime.io.network.buffer.NetworkBufferPool
 import org.apache.flink.runtime.io.network.{LocalConnectionManager, NetworkEnvironment, TaskEventDispatcher}
 import org.apache.flink.runtime.io.network.netty.{NettyConfig, NettyConnectionManager, PartitionStateChecker}
 import org.apache.flink.runtime.io.network.partition.{ResultPartitionConsumableNotifier, ResultPartitionManager}
+import org.apache.flink.runtime.iterative.termination.JobTerminationMessage
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID
 import org.apache.flink.runtime.leaderretrieval.{LeaderRetrievalListener, LeaderRetrievalService}
 import org.apache.flink.runtime.memory.MemoryManager
@@ -76,7 +77,7 @@ import org.apache.flink.runtime.security.SecurityContext.{FlinkSecuredRunner, Se
 import org.apache.flink.runtime.security.SecurityContext
 import org.apache.flink.runtime.util._
 import org.apache.flink.runtime.{FlinkActor, LeaderSessionMessageFilter, LogMessages}
-import org.apache.flink.util.{MathUtils, NetUtils}
+import org.apache.flink.util.{MathUtils, NetUtils, Preconditions}
 
 import scala.collection.JavaConverters._
 import scala.concurrent._
@@ -199,6 +200,7 @@ class TaskManager(
 
   private var connectionUtils: Option[(
     CheckpointResponder,
+    JobTerminationResponder,
     PartitionStateChecker,
     ResultPartitionConsumableNotifier,
     TaskManagerConnection)] = None
@@ -370,6 +372,10 @@ class TaskManager(
       }
 
       sender ! decorateMessage(ResponseNumActiveConnections(numActive))
+
+    case msg:JobTerminationMessage =>
+      handleJobTerminationMessage(msg);
+
   }
 
   /**
@@ -939,6 +945,8 @@ class TaskManager(
 
     val checkpointResponder = new ActorGatewayCheckpointResponder(jobManagerGateway);
 
+    val jobTerminationResponder = new ActorGatewayJobTerminationResponder(jobManagerGateway);
+
     val taskManagerConnection = new ActorGatewayTaskManagerConnection(taskManagerGateway)
 
     val partitionStateChecker = new ActorGatewayPartitionStateChecker(
@@ -952,6 +960,7 @@ class TaskManager(
 
     connectionUtils = Some(
       (checkpointResponder,
+        jobTerminationResponder,
         partitionStateChecker,
         resultPartitionConsumableNotifier,
         taskManagerConnection))
@@ -1133,7 +1142,7 @@ class TaskManager(
         throw new IllegalArgumentException(s"Target slot $slot does not exist on TaskManager.")
       }
 
-      val (checkpointResponder,
+      val (checkpointResponder,loopTerminationResponder,
         partitionStateChecker,
         resultPartitionConsumableNotifier,
         taskManagerConnection) = connectionUtils match {
@@ -1171,6 +1180,7 @@ class TaskManager(
         bcVarManager,
         taskManagerConnection,
         inputSplitProvider,
+        loopTerminationResponder,
         checkpointResponder,
         libCache,
         fileCache,
@@ -1200,6 +1210,20 @@ class TaskManager(
       case t: Throwable =>
         log.error("SubmitTask failed", t)
         sender ! decorateMessage(Failure(t))
+    }
+  }
+
+  /**
+    * The handling of [[org.apache.flink.runtime.iterative.termination.JobTerminationCoordinator]]
+    * messages. It basically forward them to the specified sub-task
+    * @param msg message from coordinator to specific sub-task
+    */
+  private def handleJobTerminationMessage(msg: JobTerminationMessage){
+    val task = runningTasks.get(msg.getTaskExecutionId);
+    if(task!=null){
+      Preconditions.checkArgument(msg.getJobID.equals(task.getJobID),
+        "Job mismatch {} , {}",msg.getJobID,task.getJobID);
+      task.onLoopTerminationMessage(msg: JobTerminationMessage);
     }
   }
 

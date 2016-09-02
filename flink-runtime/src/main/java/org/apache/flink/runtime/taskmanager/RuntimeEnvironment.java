@@ -72,6 +72,8 @@ public class RuntimeEnvironment implements Environment {
 	
 	private final CheckpointResponder checkpointResponder;
 
+	private final JobTerminationResponder loopTerminationResponder;
+
 	private final AccumulatorRegistry accumulatorRegistry;
 
 	private final TaskKvStateRegistry kvStateRegistry;
@@ -102,6 +104,7 @@ public class RuntimeEnvironment implements Environment {
 			ResultPartitionWriter[] writers,
 			InputGate[] inputGates,
 			CheckpointResponder checkpointResponder,
+			JobTerminationResponder jobTerminationResponder,
 			TaskManagerRuntimeInfo taskManagerInfo,
 			TaskMetricGroup metrics,
 			Task containingTask) {
@@ -124,6 +127,7 @@ public class RuntimeEnvironment implements Environment {
 		this.writers = checkNotNull(writers);
 		this.inputGates = checkNotNull(inputGates);
 		this.checkpointResponder = checkNotNull(checkpointResponder);
+		this.loopTerminationResponder = checkNotNull(jobTerminationResponder);
 		this.taskManagerInfo = checkNotNull(taskManagerInfo);
 		this.containingTask = containingTask;
 		this.metrics = metrics;
@@ -234,6 +238,19 @@ public class RuntimeEnvironment implements Environment {
 	@Override
 	public InputGate[] getAllInputGates() {
 		return inputGates;
+	}
+
+
+	@Override
+	public void replyWorkingStatus(int sequenceNumber,boolean isIdle){
+		int subtaskIndex =  getTaskInfo().getIndexOfThisSubtask();
+		loopTerminationResponder.replyStatus(sequenceNumber,isIdle,getJobID(),getJobVertexId(),getExecutionId(),subtaskIndex);
+	}
+
+	@Override
+	public void notifyStreamCompleted(){
+		int subtaskIndex =  getTaskInfo().getIndexOfThisSubtask();
+		loopTerminationResponder.notifyStreamCompleted(getJobID(),getJobVertexId(),getExecutionId(),subtaskIndex);
 	}
 
 	@Override

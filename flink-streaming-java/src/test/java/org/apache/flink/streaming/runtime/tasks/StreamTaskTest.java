@@ -48,6 +48,7 @@ import org.apache.flink.runtime.query.TaskKvStateRegistry;
 import org.apache.flink.runtime.state.AbstractStateBackend;
 import org.apache.flink.runtime.state.StateBackendFactory;
 import org.apache.flink.runtime.taskmanager.CheckpointResponder;
+import org.apache.flink.runtime.taskmanager.JobTerminationResponder;
 import org.apache.flink.runtime.taskmanager.Task;
 import org.apache.flink.runtime.taskmanager.TaskExecutionState;
 import org.apache.flink.runtime.taskmanager.TaskExecutionStateListener;
@@ -145,7 +146,7 @@ public class StreamTaskTest {
 		cfg.setStreamOperator(new StreamSource<>(new MockSourceFunction()));
 		cfg.setTimeCharacteristic(TimeCharacteristic.ProcessingTime);
 
-		Task task = createTask(SourceStreamTask.class, cfg, taskManagerConfig);
+		Task task = createTask(MockedSourceStreamTask.class, cfg, taskManagerConfig);
 
 		task.startTaskThread();
 
@@ -240,6 +241,7 @@ public class StreamTaskTest {
 			mock(BroadcastVariableManager.class),
 			mock(TaskManagerConnection.class),
 			mock(InputSplitProvider.class),
+			mock(JobTerminationResponder.class),
 			mock(CheckpointResponder.class),
 			libCache,
 			mock(FileCache.class),

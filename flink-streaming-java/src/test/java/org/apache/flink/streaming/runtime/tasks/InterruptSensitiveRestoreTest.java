@@ -46,6 +46,7 @@ import org.apache.flink.runtime.state.KeyGroupsStateHandle;
 import org.apache.flink.runtime.state.OperatorStateHandle;
 import org.apache.flink.runtime.state.StreamStateHandle;
 import org.apache.flink.runtime.taskmanager.CheckpointResponder;
+import org.apache.flink.runtime.taskmanager.JobTerminationResponder;
 import org.apache.flink.runtime.taskmanager.Task;
 import org.apache.flink.runtime.taskmanager.TaskManagerConnection;
 import org.apache.flink.runtime.taskmanager.TaskManagerRuntimeInfo;
@@ -161,6 +162,7 @@ public class InterruptSensitiveRestoreTest {
 				mock(BroadcastVariableManager.class),
 				mock(TaskManagerConnection.class),
 				mock(InputSplitProvider.class),
+				mock(JobTerminationResponder.class),
 				mock(CheckpointResponder.class),
 				new FallbackLibraryCacheManager(),
 				new FileCache(new Configuration()),

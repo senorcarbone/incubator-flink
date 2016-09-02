@@ -41,6 +41,8 @@ import org.apache.flink.streaming.runtime.streamrecord.StreamElement;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.runtime.streamrecord.MultiplexingStreamRecordSerializer;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecordSerializer;
+import org.apache.flink.streaming.runtime.tasks.JobTerminationHandler;
+import org.apache.flink.runtime.iterative.termination.WorkingStatusUpdate;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -87,6 +89,8 @@ public class StreamTwoInputProcessor<IN1, IN2> {
 	private final DeserializationDelegate<StreamElement> deserializationDelegate1;
 	private final DeserializationDelegate<StreamElement> deserializationDelegate2;
 
+	private final JobTerminationHandler jobTerminationHandler;
+
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	public StreamTwoInputProcessor(
 			Collection<InputGate> inputGates1,
@@ -94,10 +98,12 @@ public class StreamTwoInputProcessor<IN1, IN2> {
 			TypeSerializer<IN1> inputSerializer1,
 			TypeSerializer<IN2> inputSerializer2,
 			StatefulTask checkpointedTask,
+			JobTerminationHandler jobTerminationHandler,
 			CheckpointingMode checkpointMode,
 			IOManager ioManager,
 			boolean enableMultiplexing) throws IOException {
-		
+
+		this.jobTerminationHandler = jobTerminationHandler;
 		final InputGate inputGate = InputGateUtil.createInputGate(inputGates1, inputGates2);
 
 		if (checkpointMode == CheckpointingMode.EXACTLY_ONCE) {
@@ -181,6 +187,8 @@ public class StreamTwoInputProcessor<IN1, IN2> {
 				}
 
 				if (result.isFullRecord()) {
+					jobTerminationHandler.onStreamRecord("TWO INPUT NULL",currentChannel);
+
 					if (currentChannel < numInputChannels1) {
 						StreamElement recordOrWatermark = deserializationDelegate1.getInstance();
 						if (recordOrWatermark.isWatermark()) {
@@ -236,7 +244,9 @@ public class StreamTwoInputProcessor<IN1, IN2> {
 				} else {
 					// Event received
 					final AbstractEvent event = bufferOrEvent.getEvent();
-					if (event.getClass() != EndOfPartitionEvent.class) {
+					if(event instanceof WorkingStatusUpdate){
+						jobTerminationHandler.onStatusEvent((WorkingStatusUpdate)event, bufferOrEvent.getChannelIndex());
+					} else if (event.getClass() != EndOfPartitionEvent.class) {
 						throw new IOException("Unexpected event: " + event);
 					}
 				}

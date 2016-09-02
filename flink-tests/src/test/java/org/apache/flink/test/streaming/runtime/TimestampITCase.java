@@ -212,7 +212,9 @@ public class TimestampITCase extends TestLogger {
 					
 					// send stop until the job is stopped
 					do {
-						cluster.stopJob(id);
+						try {
+							cluster.stopJob(id);
+						}catch (Throwable t){t.printStackTrace();}
 						Thread.sleep(50);
 					} while (!cluster.getCurrentlyRunningJobsJava().isEmpty());
 				}

@@ -28,6 +28,7 @@ import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
 import org.apache.flink.runtime.concurrent.BiFunction;
 import org.apache.flink.runtime.io.network.PartitionState;
+import org.apache.flink.runtime.iterative.termination.JobTerminationMessage;
 import org.apache.flink.runtime.io.network.netty.PartitionStateChecker;
 import org.apache.flink.runtime.jobgraph.tasks.InputSplitProvider;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionConsumableNotifier;
@@ -178,7 +179,10 @@ public class Task implements Runnable, TaskActions {
 	/** Connection to the task manager */
 	private final TaskManagerConnection taskManagerConnection;
 
-	/** Input split provider for the task */
+    /** The responder of the loop termination cordination */
+	private final JobTerminationResponder jobTerminationResponder;
+
+    /** Input split provider for the task */
 	private final InputSplitProvider inputSplitProvider;
 
 	/** Checkpoint notifier used to communicate with the CheckpointCoordinator */
@@ -261,6 +265,7 @@ public class Task implements Runnable, TaskActions {
 		BroadcastVariableManager bcVarManager,
 		TaskManagerConnection taskManagerConnection,
 		InputSplitProvider inputSplitProvider,
+		JobTerminationResponder jobTerminationResponder,
 		CheckpointResponder checkpointResponder,
 		LibraryCacheManager libraryCache,
 		FileCache fileCache,
@@ -295,6 +300,7 @@ public class Task implements Runnable, TaskActions {
 		this.accumulatorRegistry = new AccumulatorRegistry(jobId, executionId);
 
 		this.inputSplitProvider = checkNotNull(inputSplitProvider);
+		this.jobTerminationResponder = checkNotNull(jobTerminationResponder);
 		this.checkpointResponder = checkNotNull(checkpointResponder);
 		this.taskManagerConnection = checkNotNull(taskManagerConnection);
 
@@ -561,7 +567,7 @@ public class Task implements Runnable, TaskActions {
 				memoryManager, ioManager, broadcastVariableManager,
 				accumulatorRegistry, kvStateRegistry, inputSplitProvider,
 				distributedCacheEntries, writers, inputGates,
-				checkpointResponder, taskManagerConfig, metrics, this);
+				checkpointResponder, jobTerminationResponder, taskManagerConfig, metrics, this);
 
 			// let the task code create its readers and writers
 			invokable.setEnvironment(env);
@@ -846,6 +852,36 @@ public class Task implements Runnable, TaskActions {
 		cancelOrFailAndCancelInvokable(ExecutionState.CANCELING, null);
 	}
 
+	public void onLoopTerminationMessage(final JobTerminationMessage msg)  {
+
+		if(invokable!=null){
+
+			if( invokable instanceof StatefulTask ) {
+				final String taskName = taskNameWithSubtask;
+				Runnable runnable = new Runnable() {
+					@Override
+					public void run() {
+
+						try {
+							((StatefulTask)invokable).onLoopTerminationCoordinatorMessage(msg);
+						} catch (Throwable e) {
+							e.printStackTrace();
+							if (getExecutionState() == ExecutionState.RUNNING) {
+								failExternally(new RuntimeException(
+										"Error while handling termination interaction message for " + taskName,
+										e));
+							}
+						}
+					}
+				};
+				executeAsyncCallRunnable(runnable, "Termination Trigger for " + taskName);
+			}
+		}
+		//else{
+			// DISABLED : This can happens if the stream source finshed quickly before this task is initialized
+			//throw new RuntimeException("the task to be notified has not been set!");
+		//}
+	}
 	/**
 	 * Marks task execution failed for an external reason (a reason other than the task code itself
 	 * throwing an exception). If the task is already in a terminal state

@@ -25,9 +25,11 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.IllegalConfigurationException;
 import org.apache.flink.core.fs.FSDataInputStream;
 import org.apache.flink.metrics.Gauge;
+import org.apache.flink.runtime.event.AbstractEvent;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
 import org.apache.flink.runtime.execution.CancelTaskException;
 import org.apache.flink.runtime.execution.Environment;
+import org.apache.flink.runtime.iterative.termination.JobTerminationMessage;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.jobgraph.tasks.StatefulTask;
 import org.apache.flink.runtime.state.AbstractKeyedStateBackend;
@@ -126,7 +128,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	 * All interaction with the {@code StreamOperator} must be synchronized on this lock object to ensure that
 	 * we don't have concurrent method calls that void consistent checkpoints.
 	 */
-	private final Object lock = new Object();
+	final Object lock = new Object();
+	final Object terminationLock = new Object();
 
 	/** the head operator that consumes the input streams of this task */
 	protected OP headOperator;
@@ -176,6 +179,32 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	/** Thread pool for async snapshot workers */
 	private ExecutorService asyncOperationsThreadPool;
 
+
+	private JobTerminationHandler jobTerminationHandler;
+
+	public JobTerminationHandler getJobTerminationHandler() {
+		if(jobTerminationHandler ==null){
+			jobTerminationHandler = new JobTerminationHandlerImpl(this);
+		}
+		return jobTerminationHandler;
+	}
+
+	@Override
+	public boolean onLoopTerminationCoordinatorMessage(JobTerminationMessage msg) throws IOException, InterruptedException {
+		return false;
+	}
+
+	public  void forwardEvent(AbstractEvent e) throws IOException, InterruptedException {
+		synchronized (terminationLock) {
+			if (operatorChain != null) {
+				for (RecordWriterOutput<?> streamOutput : getStreamOutputs()) {
+					streamOutput.broadcastEvent(e);
+				}
+			} else {
+				LOG.error("Forwarding event while the operator chain is null for task {}, running : {}, canceled : {}", getName(), isRunning(), isCanceled());
+			}
+		}
+	}
 	// ------------------------------------------------------------------------
 	//  Life cycle methods for specific implementations
 	// ------------------------------------------------------------------------

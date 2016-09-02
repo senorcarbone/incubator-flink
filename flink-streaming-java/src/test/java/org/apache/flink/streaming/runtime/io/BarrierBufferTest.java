@@ -27,6 +27,7 @@ import org.apache.flink.runtime.io.network.api.EndOfPartitionEvent;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.FreeingBufferRecycler;
 import org.apache.flink.runtime.io.network.partition.consumer.BufferOrEvent;
+import org.apache.flink.runtime.iterative.termination.JobTerminationMessage;
 import org.apache.flink.runtime.jobgraph.tasks.StatefulTask;
 import org.apache.flink.runtime.state.ChainedStateHandle;
 import org.apache.flink.runtime.state.KeyGroupsStateHandle;
@@ -37,6 +38,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -999,6 +1001,11 @@ public class BarrierBufferTest {
 		@Override
 		public void notifyCheckpointComplete(long checkpointId) throws Exception {
 			throw new UnsupportedOperationException("should never be called");
+		}
+
+		@Override
+		public boolean onLoopTerminationCoordinatorMessage(JobTerminationMessage msg) throws IOException, InterruptedException {
+			return false;
 		}
 	}
 }

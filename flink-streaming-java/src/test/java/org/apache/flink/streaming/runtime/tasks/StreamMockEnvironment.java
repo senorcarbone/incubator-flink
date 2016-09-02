@@ -283,6 +283,16 @@ public class StreamMockEnvironment implements Environment {
 	}
 
 	@Override
+	public void replyWorkingStatus(int sequenceNumber, boolean isIdle) {
+
+	}
+
+	@Override
+	public void notifyStreamCompleted() {
+
+	}
+
+	@Override
 	public JobVertexID getJobVertexId() {
 		return new JobVertexID(new byte[16]);
 	}

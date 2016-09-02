@@ -46,6 +46,7 @@ import org.apache.flink.api.common.Archiveable;
 import org.apache.flink.runtime.executiongraph.restart.RestartStrategy;
 import org.apache.flink.runtime.instance.SlotProvider;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
+import org.apache.flink.runtime.iterative.termination.JobTerminationCoordinator;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertex;
@@ -210,6 +211,9 @@ public class ExecutionGraph implements AccessExecutionGraph, Archiveable<Archive
 
 	/** The coordinator for checkpoints, if snapshot checkpoints are enabled */
 	private CheckpointCoordinator checkpointCoordinator;
+
+	/** The coordinator used to determine when the execution of the job is done */
+	private JobTerminationCoordinator jobTerminationCoordinator;
 
 	/** Checkpoint stats tracker separate from the coordinator in order to be
 	 * available after archiving. */
@@ -415,6 +419,10 @@ public class ExecutionGraph implements AccessExecutionGraph, Archiveable<Archive
 	public CheckpointCoordinator getCheckpointCoordinator() {
 		return checkpointCoordinator;
 	}
+	public void setJobTerminationCoordinator(JobTerminationCoordinator jobTerminationCoordinator){
+		this.jobTerminationCoordinator = jobTerminationCoordinator;
+	}
+	public JobTerminationCoordinator getJobTerminationCoordinator() {return jobTerminationCoordinator;}
 
 	public KvStateLocationRegistry getKvStateLocationRegistry() {
 		return kvStateLocationRegistry;

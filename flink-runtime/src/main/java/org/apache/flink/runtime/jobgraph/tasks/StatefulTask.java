@@ -18,13 +18,16 @@
 
 package org.apache.flink.runtime.jobgraph.tasks;
 
+import org.apache.flink.runtime.iterative.termination.JobTerminationMessage;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
 import org.apache.flink.runtime.state.ChainedStateHandle;
 import org.apache.flink.runtime.state.KeyGroupsStateHandle;
 import org.apache.flink.runtime.state.OperatorStateHandle;
 import org.apache.flink.runtime.state.StreamStateHandle;
+import org.apache.flink.runtime.iterative.termination.JobTerminationCoordinator;
 
 import java.util.Collection;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -80,4 +83,10 @@ public interface StatefulTask {
 	 * @throws Exception The notification method may forward its exceptions.
 	 */
 	void notifyCheckpointComplete(long checkpointId) throws Exception;
+
+	/** Invoked upon receiving a message from the loop termination coordinator
+	 * {@link JobTerminationCoordinator} to this task.
+	 * @param  msg the message sent from the coordinator
+ 	* */
+	boolean onLoopTerminationCoordinatorMessage(JobTerminationMessage msg) throws IOException, InterruptedException;
 }

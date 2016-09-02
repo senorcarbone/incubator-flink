@@ -1,0 +1,363 @@
+/*
+* Licensed to the Apache Software Foundation (ASF) under one or more
+* contributor license agreements.  See the NOTICE file distributed with
+* this work for additional information regarding copyright ownership.
+* The ASF licenses this file to You under the Apache License, Version 2.0
+* (the "License"); you may not use this file except in compliance with
+* the License.  You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
+package org.apache.flink.test.streaming.runtime;
+
+import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.streaming.api.collector.selector.OutputSelector;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.IterativeStream;
+import org.apache.flink.streaming.api.datastream.SplitStream;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.sink.SinkFunction;
+import org.apache.flink.streaming.api.functions.source.SourceFunction;
+import org.apache.flink.streaming.util.StreamingMultipleProgramsTestBase;
+import org.apache.flink.test.streaming.runtime.util.NoOpInt2Map;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+@SuppressWarnings({ "unchecked", "unused", "serial" })
+public class JobTerminationITCase extends StreamingMultipleProgramsTestBase {
+
+	private static final Logger LOG = LoggerFactory.getLogger(JobTerminationITCase.class);
+
+	int streamSamples = 100;
+	int BOUND = 5;
+	long sourceDelay = 20L;
+	int interationTimeout = 10;
+	IntRepeaterStreamSource intRepeaterStreamSource = new IntRepeaterStreamSource(streamSamples,sourceDelay);
+	StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+	DataStream<Tuple2<Integer,Integer>> inputStream;
+	@Before
+	public void beforeTest(){
+		CollectSink.reset();
+		inputStream = env.addSource(intRepeaterStreamSource );
+	}
+	/*
+	 *This is a simple test for a single iteration graph. The illustration is shown bellow:
+	 *<pre>
+	 *                  ┌────┐            ┌────┐
+	 *                  │ h1 ◀────────────│ t1 │
+	 *                  └────┘            └──▲─┘
+	 *                     │                 │
+	 *                     │                 │
+	 *┌────┐    ┌────┐  ┌──▼─┐  ┌────┐    ┌──┴─┐    ┌────┐
+	 *│ s1 │────▶ m1 ├──▶ i1 ├──▶ m2 │────▶ b1 │────▶sn1 │
+	 *└────┘    └────┘  └────┘  └────┘    └────┘    └────┘
+	 *</pre>
+	 * The test expects to see a certain number of output records with certain values out from <code>sn1</code>.
+	 **/
+	@Test
+	public void singleIteration(){
+		 doForIteration(inputStream, 1,0);
+	}
+	@Ignore
+	@Test
+	public void singleIterationLongStepTime(){
+		doForIteration(inputStream, 1,5000);
+	}
+
+	/*
+	 * This is a more complicated test, it contains two sequential iterations. Where the output of the
+	 * first iteration is fed into the second as an input source. The test expects to see certain records out from
+	 * <code>sn1</code>
+	 *<pre>
+	 *                ┌────┐          ┌────┐  ┌────┐          ┌────┐
+	 *                │ h1 │◀─────────│ t1 │  │ h2 ◀──────────│ t2 │
+	 *                └────┘          └──▲─┘  └────┘          └──▲─┘
+	 *                   │               │       │               │
+	 *                   │               │       │               │
+	 *┌────┐  ┌────┐  ┌──▼─┐  ┌────┐  ┌──┴─┐  ┌──▼─┐  ┌────┐  ┌──┴─┐   ┌────┐
+	 *│ s1 ├──▶ m1 ├──▶ i1 ├──▶ m2 ├──▶ b1 ├──▶ i2 ├──▶ m3 │──▶ b2 │──▶│sn1 │
+	 *└────┘  └────┘  └────┘  └────┘  └────┘  └────┘  └────┘  └────┘   └────┘
+	 *</pre>
+	 ***/
+	@Test
+	public void doubleNonNestedIteration(){
+		// IF this test is done in the old implementation it will fail
+		DataStream<Tuple2<Integer,Integer>> iteration1Out = getStepForIteration(inputStream,1,0);
+		DataStream<Tuple2<Integer,Integer>> iteration2Out = getStepForIteration(iteration1Out,-1,0);
+
+		CollectSink collectIteration1 = new CollectSink("c"+1);
+		iteration1Out.addSink(collectIteration1);
+
+		CollectSink collectIteration2 = new CollectSink("c"+2);
+		iteration2Out.addSink(collectIteration2);
+
+		try {
+			env.execute();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		List<Tuple2<Integer,Integer>> colectedIteration1 = collectIteration1.getCollected();
+		//  all records are terminated after gracefuly finished
+		Assert.assertEquals(colectedIteration1.size(),streamSamples);
+		// each record finishes its iterations
+		for(int i =0;i< colectedIteration1.size();i++){
+			Tuple2<Integer,Integer> v = colectedIteration1.get(i);
+			Assert.assertEquals(v.f1.intValue(),(BOUND+1)*1);
+		}
+
+
+		List<Tuple2<Integer,Integer>> colectedIteration2 = collectIteration2.getCollected();
+		//  all records are terminated after gracefuly finished
+		Assert.assertEquals(colectedIteration2.size(),streamSamples);
+		// each record finishes its iterations
+		for(int i =0;i< colectedIteration2.size();i++){
+			Tuple2<Integer,Integer> v = colectedIteration2.get(i);
+			Assert.assertEquals(v.f1.intValue(),-1);
+		}
+
+
+	}
+
+	/*
+	 *<pre>
+	 *                ┌────┐                                ┌────┐
+	 *                │ h2 ◀────────────────────────────────┤ t2 │
+	 *                └─┬──┘                                └──▲─┘
+	 *                  │     ┌────┐          ┌────┐           │
+	 *                  │     │ h1 │◀─────────│ t1 │           │
+	 *                  │     └────┘          └──▲─┘           │
+	 *                  │        │               │             │
+	 *                  │        │               │             │
+	 *┌────┐  ┌────┐  ┌─▼──┐  ┌──▼─┐  ┌────┐  ┌──┴─┐ ┌────┐ ┌──┴─┐   ┌────┐
+	 *│ s1 │──▶ m1 ├──▶ i1 ├──▶ i2 ├──▶ m2 ├──▶ b1 ├─▶ m3 ├─▶ b2 │──▶│sn1 │
+	 *└────┘  └────┘  └────┘  └────┘  └────┘  └────┘ └────┘ └────┘   └────┘
+	 *</pre>
+	 * This tests the nested iterations illustrated above. Its main complication is that the main stream
+	 * that is going to the inner iteration, i2, contains a feedback loop, i1.
+	 **/
+	@Test
+	public void nestedIteration(){
+		// IF this test is done in the old implementation it will fail
+		doForIterationNested(1);
+	}
+	/*
+	 *<pre>
+	 *                ┌────┐                  ┌────┐
+	 *                │ h1 │◀─────────────────│ t1 │
+	 *                └─┬──┘                  └──▲─┘
+	 *                  │                        │
+	 *                  │                        │
+	 *┌────┐  ┌────┐  ┌─▼──┐  ┌────┐  ┌────┐  ┌──┴─┐ ┌────┐ ┌────┐   ┌────┐
+	 *│ s1 │──▶ m1 ├──▶ i1 ├──▶ i2 ├──▶ m2 ├──▶ b1 ├─▶ m3 ├─▶ b2 │──▶│sn1 │
+	 *└────┘  └────┘  └────┘  └──▲─┘  └────┘  └────┘ └────┘ └──┬─┘   └────┘
+	 *                           │                             │
+	 *                           │                             │
+	 *                           │                             │
+	 *                         ┌─┴──┐                        ┌─▼──┐
+	 *                         │ h2 ◀────────────────────────┤ t2 │
+	 *                         └────┘                        └────┘
+	 *</pre>
+	 *
+	 * The overlapping iterations above are not allowed. Any inner iteration should be closed before the outer ones
+	 **/
+	@Test(expected = UnsupportedOperationException.class)
+	public void overlappingIterations(){
+		doForOverlappingIteration();
+	}
+
+	/*=========================================== TEST HELPERS========================================*/
+	private DataStream<Tuple2<Integer,Integer>> getStepForIteration(DataStream<Tuple2<Integer,Integer>>  input ,int factor,int stepFunctionTimeMs){
+		IterativeStream<Tuple2<Integer,Integer>> it = input.map(new NoOpInt2Map()).iterate(interationTimeout);
+
+		SplitStream<Tuple2<Integer,Integer>> step = it.map(new IncMapFunction(factor,stepFunctionTimeMs)).split(new BoundSelector(0,BOUND*Math.abs(factor)));
+
+		it.closeWith(step.select("feedback"));
+
+		return step.select("output");
+	}
+	private void doForIteration(DataStream<Tuple2<Integer,Integer>>  input ,int factor,int stepFunctionTimeMs){
+
+		DataStream<Tuple2<Integer,Integer>> output = getStepForIteration(input,factor,stepFunctionTimeMs);
+
+		CollectSink collect = new CollectSink("c"+factor);
+		output.addSink(collect);
+
+
+		try {
+			env.execute();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		List<Tuple2<Integer,Integer>> colected = collect.getCollected();
+		//  all records are terminated after gracefuly finished
+		Assert.assertEquals(colected.size(),streamSamples);
+		// each record finishes its iterations
+		for(int i =0;i< colected.size();i++){
+			Tuple2<Integer,Integer> v = colected.get(i);
+			Assert.assertEquals(v.f1.intValue(),(BOUND+1)*factor);
+		}
+	}
+
+	private void doForIterationNested(int factor){
+
+		IterativeStream<Tuple2<Integer,Integer>> outerloop = inputStream.map(new NoOpInt2Map()).iterate(interationTimeout);
+		IterativeStream<Tuple2<Integer,Integer>> interloop = outerloop.iterate(interationTimeout);
+
+		SplitStream<Tuple2<Integer,Integer>> stepInner = interloop.map(new IncMapFunction(factor)).split(new BoundSelector(0,BOUND*factor));
+		interloop.closeWith(stepInner.select("feedback"));
+		CollectSink collectInternalLoop = new CollectSink("ic"+factor);
+		DataStream<Tuple2<Integer,Integer>> outputInner = stepInner.select("output");
+		outputInner.addSink(collectInternalLoop);
+
+		//IterativeStream<Tuple2<Integer,Integer>> it2 = outputInner.iterate(interationTimeout);
+		SplitStream<Tuple2<Integer,Integer>> stepOuter =  outputInner.map(new IncMapFunction(factor)).split(new BoundSelector(BOUND+2*factor,(2*BOUND+1)*factor));
+		outerloop.closeWith(stepOuter.select("feedback"));
+
+		CollectSink collectOuterLoop = new CollectSink("oc"+factor);
+		DataStream<Tuple2<Integer,Integer>> outputOuter = stepOuter.select("output");
+		outputOuter.addSink(collectOuterLoop);
+		//outputOuter.print();
+
+		try {
+			env.execute();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		List<Tuple2<Integer,Integer>> colectedInner = collectInternalLoop.getCollected();
+		Assert.assertEquals(streamSamples*4,colectedInner.size());
+		for(int i =0;i< colectedInner.size();i++){
+			int v = colectedInner.get(i).f1;
+			Assert.assertTrue(v>=(BOUND+1)*factor);
+		}
+
+		List<Tuple2<Integer,Integer>> colectedOuter = collectOuterLoop.getCollected();
+		Assert.assertEquals(colectedOuter.size(),streamSamples);
+		for(int i =0;i< colectedOuter.size();i++){
+			int v = colectedOuter.get(i).f1;
+			Assert.assertEquals(v,(BOUND+1)*factor*2+1);
+		}
+
+	}
+
+
+	private void doForOverlappingIteration(){
+		int factor = 1;
+		IterativeStream<Tuple2<Integer,Integer>> outerloop = inputStream.map(new NoOpInt2Map()).iterate(interationTimeout);
+		IterativeStream<Tuple2<Integer,Integer>> interloop = outerloop.iterate(interationTimeout);
+
+		SplitStream<Tuple2<Integer,Integer>> stepInner = interloop.map(new IncMapFunction(factor)).split(new BoundSelector(0,BOUND*factor));
+		// closing the outer before the inner
+		outerloop.closeWith(stepInner.select("feedback"));
+
+	}
+
+	 static class CollectSink implements SinkFunction<Tuple2<Integer,Integer>> {
+
+		private static final long serialVersionUID = 1L;
+		private static ConcurrentHashMap<String,CopyOnWriteArrayList<Tuple2<Integer,Integer>>> collected = new ConcurrentHashMap<>();
+		 final String collectionName;
+		 CollectSink(String collectionName){
+		 	this.collectionName = collectionName;
+			 collected.put(this.collectionName, new CopyOnWriteArrayList<Tuple2<Integer,Integer>>());
+		 }
+
+		 public List<Tuple2<Integer,Integer>> getCollected(){
+		 	return collected.get(collectionName);
+		 }
+		@Override
+		public void invoke(Tuple2<Integer,Integer> value) throws Exception {
+			collected.get(collectionName).add(value);
+		}
+
+		 public static void reset() {
+			 collected.clear();
+		 }
+	 }
+
+	private static class IntRepeaterStreamSource implements SourceFunction<Tuple2<Integer,Integer>> {
+		private static final long serialVersionUID = 1L;
+		private final  int MAX_STREAMED_SAMPLES;
+		private volatile boolean isRunning;
+		private int counter = 0;
+		private final long delayMS;
+		IntRepeaterStreamSource(int maxstreamSamples,long delayMS){
+			this.MAX_STREAMED_SAMPLES = maxstreamSamples;
+			this.delayMS=delayMS;
+		}
+		@Override
+		public void run(SourceContext<Tuple2<Integer,Integer>> ctx) throws Exception {
+			counter = 0;
+			isRunning = true;
+			while (isRunning && counter < MAX_STREAMED_SAMPLES) {
+				ctx.collect(new Tuple2<Integer, Integer>(counter,0));
+				counter++;
+				Thread.sleep(this.delayMS);
+			}
+		}
+
+		@Override
+		public void cancel() {
+			isRunning = false;
+		}
+	}
+
+	private static class IncMapFunction implements MapFunction<Tuple2<Integer,Integer>,Tuple2<Integer,Integer>>{
+		private final int delta;
+		private final int stepFunctionTimeMs;
+		IncMapFunction(int delta){
+			this(delta,0);
+		}
+
+		public IncMapFunction(int delta, int stepFunctionTimeMs) {
+			this.delta = delta;
+			this.stepFunctionTimeMs = stepFunctionTimeMs;
+		}
+
+		@Override
+		public Tuple2<Integer,Integer> map(Tuple2<Integer,Integer> value) throws Exception {
+			if(stepFunctionTimeMs>0){
+				Thread.sleep(stepFunctionTimeMs);
+			}
+			return new Tuple2<>(value.f0,value.f1+delta);
+		}
+	}
+
+	private static class BoundSelector implements OutputSelector<Tuple2<Integer,Integer>> {
+		private static final long serialVersionUID = 1L;
+		// to include in the loop feedback
+		private final int lowerBound;
+		private final int upperBound;
+		BoundSelector(int lowerBound, int upperBound){
+			this.lowerBound=lowerBound;
+			this.upperBound=upperBound;
+		}
+		@Override
+		public Iterable<String> select( Tuple2<Integer,Integer> value) {
+			if (value.f1 >=lowerBound && value.f1<=upperBound ) {
+				return Collections.singleton("feedback");
+			} else {
+				return Collections.singleton("output");
+			}
+		}
+	}
+
+}

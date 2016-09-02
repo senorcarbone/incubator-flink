@@ -18,8 +18,6 @@
 
 package org.apache.flink.streaming.runtime.io;
 
-import java.io.IOException;
-
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.metrics.Counter;
@@ -36,15 +34,19 @@ import org.apache.flink.runtime.io.network.api.serialization.SpillingAdaptiveSpa
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.partition.consumer.BufferOrEvent;
 import org.apache.flink.runtime.io.network.partition.consumer.InputGate;
+import org.apache.flink.runtime.iterative.termination.WorkingStatusUpdate;
 import org.apache.flink.runtime.plugable.DeserializationDelegate;
 import org.apache.flink.runtime.plugable.NonReusingDeserializationDelegate;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
-import org.apache.flink.streaming.runtime.streamrecord.StreamElement;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.runtime.streamrecord.MultiplexingStreamRecordSerializer;
+import org.apache.flink.streaming.runtime.streamrecord.StreamElement;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecordSerializer;
+import org.apache.flink.streaming.runtime.tasks.JobTerminationHandler;
+
+import java.io.IOException;
 
 /**
  * Input reader for {@link org.apache.flink.streaming.runtime.tasks.OneInputStreamTask}.
@@ -82,15 +84,19 @@ public class StreamInputProcessor<IN> {
 
 	private Counter numRecordsIn;
 
+	private final JobTerminationHandler jobTerminationHandler;
+
 	@SuppressWarnings("unchecked")
 	public StreamInputProcessor(
 			InputGate[] inputGates,
 			TypeSerializer<IN> inputSerializer,
 			StatefulTask checkpointedTask,
+			JobTerminationHandler jobTerminationHandler,
 			CheckpointingMode checkpointMode,
 			IOManager ioManager,
 			boolean enableMultiplexing) throws IOException {
 
+		this.jobTerminationHandler = jobTerminationHandler;
 		InputGate inputGate = InputGateUtil.createInputGate(inputGates);
 
 		if (checkpointMode == CheckpointingMode.EXACTLY_ONCE) {
@@ -151,6 +157,7 @@ public class StreamInputProcessor<IN> {
 
 				if (result.isFullRecord()) {
 					StreamElement recordOrMark = deserializationDelegate.getInstance();
+					jobTerminationHandler.onStreamRecord(recordOrMark,currentChannel);
 
 					if (recordOrMark.isWatermark()) {
 						long watermarkMillis = recordOrMark.asWatermark().getTimestamp();
@@ -197,7 +204,9 @@ public class StreamInputProcessor<IN> {
 				else {
 					// Event received
 					final AbstractEvent event = bufferOrEvent.getEvent();
-					if (event.getClass() != EndOfPartitionEvent.class) {
+					if(event instanceof WorkingStatusUpdate){
+						jobTerminationHandler.onStatusEvent((WorkingStatusUpdate)event,bufferOrEvent.getChannelIndex());
+					} else if (event.getClass() != EndOfPartitionEvent.class) {
 						throw new IOException("Unexpected event: " + event);
 					}
 				}

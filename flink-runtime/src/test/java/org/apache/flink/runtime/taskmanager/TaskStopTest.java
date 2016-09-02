@@ -77,6 +77,7 @@ public class TaskStopTest {
 			mock(BroadcastVariableManager.class),
 			mock(TaskManagerConnection.class),
 			mock(InputSplitProvider.class),
+			mock(JobTerminationResponder.class),
 			mock(CheckpointResponder.class),
 			mock(LibraryCacheManager.class),
 			mock(FileCache.class),

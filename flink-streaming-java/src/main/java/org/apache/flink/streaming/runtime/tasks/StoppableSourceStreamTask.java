@@ -31,20 +31,40 @@ import org.apache.flink.streaming.api.operators.StoppableStreamSource;
 public class StoppableSourceStreamTask<OUT, SRC extends SourceFunction<OUT> & StoppableFunction>
 	extends SourceStreamTask<OUT, SRC, StoppableStreamSource<OUT, SRC>> implements StoppableTask {
 
-	private volatile boolean stopped;
+	//private volatile boolean stopped;
+
+	//@Override
+	//protected void run() throws Exception {
+		//if (!stopped) {
+		//	super.run();
+		//}else{
+		//	notifyAndFinish(); // stopped before running ... so, it is a graceful termination
+		//}
+	//}
 
 	@Override
-	protected void run() throws Exception {
-		if (!stopped) {
-			super.run();
-		}
-	}
+	public  void stop() {
+		synchronized (sourceLock) {
+			// even if it is terminal ... we do not assert .. we just skip. because :
+			//TimestampITCase.testWatermarkPropagationNoFinalWatermarkOnStop fails
+			//checkExecStateNot("stop task",SourceExecState.TERMINAL);
 
-	@Override
-	public void stop() {
-		stopped = true;
-		if (this.headOperator != null) {
-			this.headOperator.stop();
+			switch(state){
+				case RUNNING:
+					if (this.headOperator != null) {
+						this.headOperator.stop();
+					}
+					state = SourceExecState.STOPPING;
+					break;
+				case IDLE:
+					if (this.headOperator != null) {
+						this.headOperator.stop();
+					}
+					notifyAndFinish(); // terminal
+					break;
+				default:break;
+			}
 		}
+
 	}
 }

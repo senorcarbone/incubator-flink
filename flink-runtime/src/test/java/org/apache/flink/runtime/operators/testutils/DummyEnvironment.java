@@ -184,4 +184,14 @@ public class DummyEnvironment implements Environment {
 		return null;
 	}
 
+	@Override
+	public void replyWorkingStatus(int sequenceNumber, boolean isIdle) {
+
+	}
+
+	@Override
+	public void notifyStreamCompleted() {
+
+	}
+
 }

@@ -53,6 +53,7 @@ import org.apache.flink.runtime.executiongraph.restart.RestartStrategyFactory
 import org.apache.flink.runtime.executiongraph.{ExecutionGraph, ExecutionGraphBuilder, ExecutionJobVertex, StatusListenerMessenger}
 import org.apache.flink.runtime.instance.{AkkaActorGateway, InstanceManager}
 import org.apache.flink.runtime.io.network.PartitionState
+import org.apache.flink.runtime.iterative.termination._
 import org.apache.flink.runtime.jobgraph.{JobGraph, JobStatus}
 import org.apache.flink.runtime.jobmanager.SubmittedJobGraphStore.SubmittedJobGraphListener
 import org.apache.flink.runtime.jobmanager.scheduler.{Scheduler => FlinkScheduler}
@@ -744,7 +745,8 @@ class JobManager(
 
     case checkpointMessage : AbstractCheckpointMessage =>
       handleCheckpointMessage(checkpointMessage)
-
+    case loopTerminationMessage:JobTerminationMessage =>
+      handleLoopTerminationMessage(loopTerminationMessage);
     case kvStateMsg : KvStateMessage =>
       handleKvStateMessage(kvStateMsg)
 
@@ -1226,7 +1228,7 @@ class JobManager(
           jobMetrics,
           numSlots,
           log.logger)
-        
+
         if (registerNewGraph) {
           currentJobs.put(jobGraph.getJobID, (executionGraph, jobInfo))
         }
@@ -1234,7 +1236,10 @@ class JobManager(
         // get notified about job status changes
         executionGraph.registerJobStatusListener(
           new StatusListenerMessenger(self, leaderSessionID.orNull))
-
+        val allVertices = executionGraph.getAllVertices
+        val loopTerminationCoordinator = new JobTerminationCoordinator(jobId,allVertices)
+        executionGraph.setJobTerminationCoordinator(loopTerminationCoordinator);
+        executionGraph.registerJobStatusListener(loopTerminationCoordinator);
         jobInfo.clients foreach {
           // the sender wants to be notified about state changes
           case (client, ListeningBehaviour.EXECUTION_RESULT_AND_STATE_CHANGES) =>
@@ -1418,6 +1423,21 @@ class JobManager(
 
       // unknown checkpoint message
       case _ => unhandled(actorMessage)
+    }
+  }
+
+  def handleLoopTerminationMessage(loopTerminationMessage: JobTerminationMessage): Unit = {
+    val jobId = loopTerminationMessage.getJobID();
+    currentJobs.get(jobId) match {
+      case Some((graph, _)) =>
+        val coordinator = graph.getJobTerminationCoordinator();
+        loopTerminationMessage match{
+          case streamFinalization:StreamCompleted =>
+            coordinator.onStreamCompleted(streamFinalization);
+          case taskStatus:TaskWorkingStatus =>
+            coordinator.onTaskStatus(taskStatus);
+        }
+      case None => //
     }
   }
 

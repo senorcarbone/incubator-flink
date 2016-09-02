@@ -636,6 +636,7 @@ public class TaskTest {
 			new FiniteDuration(60, TimeUnit.SECONDS));
 
 		CheckpointResponder checkpointResponder = new ActorGatewayCheckpointResponder(jobManagerGateway);
+		JobTerminationResponder jobTerminationResponder = new ActorGatewayJobTerminationResponder(jobManagerGateway);
 		
 		return new Task(
 			tdd,
@@ -645,6 +646,7 @@ public class TaskTest {
 			mock(BroadcastVariableManager.class),
 			taskManagerConnection,
 			inputSplitProvider,
+                jobTerminationResponder,
 			checkpointResponder,
 			libCache,
 			mock(FileCache.class),

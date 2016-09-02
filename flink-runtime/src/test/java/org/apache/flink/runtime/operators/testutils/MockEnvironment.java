@@ -287,6 +287,16 @@ public class MockEnvironment implements Environment {
 	}
 
 	@Override
+	public void replyWorkingStatus(int sequenceNumber, boolean isIdle) {
+
+	}
+
+	@Override
+	public void notifyStreamCompleted() {
+
+	}
+
+	@Override
 	public JobVertexID getJobVertexId() {
 		return new JobVertexID(new byte[16]);
 	}
@@ -324,4 +334,5 @@ public class MockEnvironment implements Environment {
 	public void failExternally(Throwable cause) {
 		throw new UnsupportedOperationException("MockEnvironment does not support external task failure.");
 	}
+
 }

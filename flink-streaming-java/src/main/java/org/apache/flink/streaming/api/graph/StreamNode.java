@@ -30,6 +30,7 @@ import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.streaming.api.collector.selector.OutputSelector;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.operators.StreamOperator;
+import org.apache.flink.streaming.api.operators.StreamSource;
 import org.apache.flink.util.Preconditions;
 
 /**
@@ -280,6 +281,13 @@ public class StreamNode implements Serializable {
 		this.transformationId = transformationId;
 	}
 
+	/**
+	 * determines whether this task is a regular stream source or not.
+	 * @return true if this node represents a stream source
+	 */
+	public boolean isStreamSource(){
+		return operator!=null && operator instanceof StreamSource;
+	}
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) {

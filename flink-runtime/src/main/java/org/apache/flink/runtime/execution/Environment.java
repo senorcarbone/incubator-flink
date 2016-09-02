@@ -200,4 +200,9 @@ public interface Environment {
 	InputGate getInputGate(int index);
 
 	InputGate[] getAllInputGates();
+
+	void replyWorkingStatus(int sequenceNumber,boolean isIdle);
+
+	void notifyStreamCompleted();
+
 }
