@@ -963,7 +963,7 @@ unary = [ "!" | "-" ] , composite ;
 
 composite = suffixed | atom ;
 
-suffixed = interval | cast | as | aggregation | nullCheck | if | functionCall ;
+suffixed = interval | cast | as | aggregation | if | functionCall ;
 
 interval = composite , "." , ("year" | "month" | "day" | "hour" | "minute" | "second" | "milli") ;
 
@@ -975,13 +975,13 @@ as = composite , ".as(" , fieldReference , ")" ;
 
 aggregation = composite , ( ".sum" | ".min" | ".max" | ".count" | ".avg" ) , [ "()" ] ;
 
-nullCheck = composite , ( ".isNull" | ".isNotNull" ) , [ "()" ] ;
-
 if = composite , ".?(" , expression , "," , expression , ")" ;
 
-functionCall = composite , "." , functionIdentifier , "(" , [ expression , { "," , expression } ] , ")" ;
+functionCall = composite , "." , functionIdentifier , [ "(" , [ expression , { "," , expression } ] , ")" ] ;
 
 atom = ( "(" , expression , ")" ) | literal | nullLiteral | fieldReference ;
+
+fieldReference = "*" | identifier ;
 
 nullLiteral = "Null(" , dataType , ")" ;
 
@@ -991,7 +991,7 @@ timePointUnit = "YEAR" | "MONTH" | "DAY" | "HOUR" | "MINUTE" | "SECOND" | "QUART
 
 {% endhighlight %}
 
-Here, `literal` is a valid Java literal, `fieldReference` specifies a column in the data, and `functionIdentifier` specifies a supported scalar function. The
+Here, `literal` is a valid Java literal, `fieldReference` specifies a column in the data (or all columns if `*` is used), and `functionIdentifier` specifies a supported scalar function. The
 column names and function names follow Java identifier syntax. Expressions specified as Strings can also use prefix notation instead of suffix notation to call operators and functions.
 
 If working with exact numeric values or large decimals is required, the Table API also supports Java's BigDecimal type. In the Scala Table API decimals can be defined by `BigDecimal("123456")` and in Java by appending a "p" for precise e.g. `123456p`.
@@ -1234,6 +1234,50 @@ Both the Table API and SQL come with a set of built-in scalar functions for data
     <tr>
       <td>
         {% highlight java %}
+ANY.isNull
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns true if the given expression is null.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight java %}
+ANY.isNotNull
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns true if the given expression is not null.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight java %}
+BOOLEAN.isTrue
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns true if the given boolean expression is true. False otherwise (for null and false).</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight java %}
+BOOLEAN.isFalse
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns true if given boolean expression is false. False otherwise (for null and true).</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight java %}
 NUMERIC.exp()
 {% endhighlight %}
       </td>
@@ -1273,6 +1317,17 @@ NUMERIC.power(NUMERIC)
       </td>
       <td>
         <p>Calculates the given number raised to the power of the other value.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight java %}
+NUMERIC.sqrt()
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Calculates the square root of a given value.</p>
       </td>
     </tr>
 
@@ -1416,6 +1471,29 @@ STRING.similar(STRING)
     <tr>
       <td>
         {% highlight java %}
+STRING.position(STRING)
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the position of string in an other string starting at 1. Returns 0 if string could not be found. E.g. <code>'a'.position('bbbbba')</code> leads to 6.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight java %}
+STRING.overlay(STRING, INT)
+STRING.overlay(STRING, INT, INT)
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Replaces a substring of string with a string starting at a position (starting at 1). An optional length specifies how many characters should be removed. E.g. <code>'xxxxxtest'.overlay('xxxx', 6)</code> leads to "xxxxxxxxx", <code>'xxxxxtest'.overlay('xxxx', 6, 2)</code> leads to "xxxxxxxxxst".</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight java %}
 STRING.toDate()
 {% endhighlight %}
       </td>
@@ -1453,7 +1531,18 @@ TEMPORAL.extract(TIMEINTERVALUNIT)
 {% endhighlight %}
       </td>
       <td>
-        <p>Extracts parts of a time point or time interval. Returns the part as a long value. E.g. <code>"2006-06-05".toDate.extract(DAY)</code> leads to 5.</p>
+        <p>Extracts parts of a time point or time interval. Returns the part as a long value. E.g. <code>'2006-06-05'.toDate.extract(DAY)</code> leads to 5.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight java %}
+DATE.quarter()
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the quarter of a year from a SQL date. E.g. <code>'1994-09-27'.toDate.quarter()</code> leads to 3.</p>
       </td>
     </tr>
 
@@ -1464,7 +1553,7 @@ TIMEPOINT.floor(TIMEINTERVALUNIT)
 {% endhighlight %}
       </td>
       <td>
-        <p>Rounds a time point down to the given unit. E.g. <code>"12:44:31".toDate.floor(MINUTE)</code> leads to 12:44:00.</p>
+        <p>Rounds a time point down to the given unit. E.g. <code>'12:44:31'.toDate.floor(MINUTE)</code> leads to 12:44:00.</p>
       </td>
     </tr>
 
@@ -1475,7 +1564,73 @@ TIMEPOINT.ceil(TIMEINTERVALUNIT)
 {% endhighlight %}
       </td>
       <td>
-        <p>Rounds a time point up to the given unit. E.g. <code>"12:44:31".toTime.floor(MINUTE)</code> leads to 12:45:00.</p>
+        <p>Rounds a time point up to the given unit. E.g. <code>'12:44:31'.toTime.floor(MINUTE)</code> leads to 12:45:00.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight java %}
+currentDate()
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL date in UTC time zone.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight java %}
+currentTime()
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL time in UTC time zone.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight java %}
+currentTimestamp()
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL timestamp in UTC time zone.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight java %}
+localTime()
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL time in local time zone.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight java %}
+localTimestamp()
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL timestamp in local time zone.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight java %}
+temporalOverlaps(TIMEPOINT, TEMPORAL, TIMEPOINT, TEMPORAL)
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Determines whether two anchored time intervals overlap. Time point and temporal are transformed into a range defined by two time points (start, end). The function evaluates <code>leftEnd >= rightStart && rightEnd >= leftStart</code>. E.g. <code>temporalOverlaps("2:55:00".toTime, 1.hour, "3:30:00".toTime, 2.hour)</code> leads to true.</p>
       </td>
     </tr>
 
@@ -1495,6 +1650,50 @@ TIMEPOINT.ceil(TIMEINTERVALUNIT)
   </thead>
 
   <tbody>
+    <tr>
+      <td>
+        {% highlight scala %}
+ANY.isNull
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns true if the given expression is null.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight scala %}
+ANY.isNotNull
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns true if the given expression is not null.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight scala %}
+BOOLEAN.isTrue
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns true if the given boolean expression is true. False otherwise (for null and false).</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight scala %}
+BOOLEAN.isFalse
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns true if given boolean expression is false. False otherwise (for null and true).</p>
+      </td>
+    </tr>
+
     <tr>
       <td>
         {% highlight scala %}
@@ -1537,6 +1736,17 @@ NUMERIC.power(NUMERIC)
       </td>
       <td>
         <p>Calculates the given number raised to the power of the other value.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight scala %}
+NUMERIC.sqrt()
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Calculates the square root of a given value.</p>
       </td>
     </tr>
 
@@ -1679,6 +1889,29 @@ STRING.similar(STRING)
     <tr>
       <td>
         {% highlight scala %}
+STRING.position(STRING)
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the position of string in an other string starting at 1. Returns 0 if string could not be found. E.g. <code>"a".position("bbbbba")</code> leads to 6.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight scala %}
+STRING.overlay(STRING, INT)
+STRING.overlay(STRING, INT, INT)
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Replaces a substring of string with a string starting at a position (starting at 1). An optional length specifies how many characters should be removed. E.g. <code>"xxxxxtest".overlay("xxxx", 6)</code> leads to "xxxxxxxxx", <code>"xxxxxtest".overlay('xxxx', 6, 2)</code> leads to "xxxxxxxxxst".</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight scala %}
 STRING.toDate
 {% endhighlight %}
       </td>
@@ -1723,6 +1956,17 @@ TEMPORAL.extract(TimeIntervalUnit)
     <tr>
       <td>
         {% highlight scala %}
+DATE.quarter()
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the quarter of a year from a SQL date. E.g. <code>"1994-09-27".toDate.quarter()</code> leads to 3.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight scala %}
 TIMEPOINT.floor(TimeIntervalUnit)
 {% endhighlight %}
       </td>
@@ -1739,6 +1983,72 @@ TIMEPOINT.ceil(TimeIntervalUnit)
       </td>
       <td>
         <p>Rounds a time point up to the given unit. E.g. <code>"12:44:31".toTime.floor(TimeIntervalUnit.MINUTE)</code> leads to 12:45:00.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight scala %}
+currentDate()
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL date in UTC time zone.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight scala %}
+currentTime()
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL time in UTC time zone.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight scala %}
+currentTimestamp()
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL timestamp in UTC time zone.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight scala %}
+localTime()
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL time in local time zone.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight scala %}
+localTimestamp()
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL timestamp in local time zone.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight scala %}
+temporalOverlaps(TIMEPOINT, TEMPORAL, TIMEPOINT, TEMPORAL)
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Determines whether two anchored time intervals overlap. Time point and temporal are transformed into a range defined by two time points (start, end). The function evaluates <code>leftEnd >= rightStart && rightEnd >= leftStart</code>. E.g. <code>temporalOverlaps('2:55:00'.toTime, 1.hour, '3:30:00'.toTime, 2.hour)</code> leads to true.</p>
       </td>
     </tr>
 
@@ -2007,6 +2317,61 @@ CEIL(TIMEPOINT TO TIMEINTERVALUNIT)
       </td>
     </tr>
 
+    <tr>
+      <td>
+        {% highlight sql %}
+CURRENT_DATE
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL date in UTC time zone.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight sql %}
+CURRENT_TIME
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL time in UTC time zone.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight sql %}
+CURRENT_TIMESTAMP
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL timestamp in UTC time zone.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight sql %}
+LOCALTIME
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL time in local time zone.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        {% highlight sql %}
+LOCALTIMESTAMP
+{% endhighlight %}
+      </td>
+      <td>
+        <p>Returns the current SQL timestamp in local time zone.</p>
+      </td>
+    </tr>
+
   </tbody>
 </table>
 </div>
@@ -2158,3 +2523,56 @@ The Table API provides a configuration (the so-called `TableConfig`) to modify r
 By default, the Table API supports `null` values. Null handling can be disabled to improve preformance by setting the `nullCheck` property in the `TableConfig` to `false`.
 
 {% top %}
+
+Explaining a Table
+----
+The Table API provides a mechanism to describe the graph of operations that leads to the resulting output. This is done through the `TableEnvironment#explain(table)` method. It returns a string describing two graphs: the Abstract Syntax Tree of the relational algebra query and Flink's Execution Plan of the Job. 
+
+Table `explain` is supported for both `BatchTableEnvironment` and `StreamTableEnvironment`. Currently `StreamTableEnvironment` doesn't support the explanation of the Execution Plan.
+
+The following code shows an example and the corresponding output:
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+StreamTableEnvironment tEnv = TableEnvironment.getTableEnvironment(env);
+
+DataStream<Tuple2<Integer, String>> stream1 = env.fromElements(new Tuple2<>(1, "hello"));
+DataStream<Tuple2<Integer, String>> stream2 = env.fromElements(new Tuple2<>(1, "hello"));
+
+Table table1 = tEnv.fromDataStream(stream1, "count, word");
+Table table2 = tEnv.fromDataStream(stream2, "count, word");
+Table table = table1.unionAll(table2);
+
+String explanation = tEnv.explain(table);
+System.out.println(explanation);
+{% endhighlight %}
+</div>
+
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val env = StreamExecutionEnvironment.getExecutionEnvironment
+val tEnv = TableEnvironment.getTableEnvironment(env)
+
+val table1 = env.fromElements((1, "hello")).toTable(tEnv, 'count, 'word)
+val table2 = env.fromElements((1, "hello")).toTable(tEnv, 'count, 'word)
+val table = table1.unionAll(table2)
+
+val explanation: String = tEnv.explain(table)
+println(explanation)
+{% endhighlight %}
+</div>
+</div>
+
+{% highlight text %}
+== Abstract Syntax Tree ==
+LogicalUnion(all=[true])
+  LogicalTableScan(table=[[_DataStreamTable_0]])
+  LogicalTableScan(table=[[_DataStreamTable_1]])
+{% endhighlight %}
+
+{% top %}
+
+
+

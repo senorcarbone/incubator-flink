@@ -36,6 +36,7 @@ import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.messages.JobManagerMessages;
 import org.apache.flink.runtime.state.KeyGroupRangeAssignment;
 import org.apache.flink.runtime.state.filesystem.FsStateBackendFactory;
+import org.apache.flink.runtime.testingUtils.TestingCluster;
 import org.apache.flink.runtime.testingUtils.TestingJobManagerMessages;
 import org.apache.flink.streaming.api.checkpoint.Checkpointed;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -43,7 +44,6 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.DiscardingSink;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
-import org.apache.flink.test.util.ForkableFlinkMiniCluster;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.TestLogger;
 import org.junit.AfterClass;
@@ -69,11 +69,11 @@ import static org.junit.Assert.fail;
 
 public class RescalingITCase extends TestLogger {
 
-	private static int numTaskManagers = 2;
-	private static int slotsPerTaskManager = 2;
-	private static int numSlots = numTaskManagers * slotsPerTaskManager;
+	private static final int numTaskManagers = 2;
+	private static final int slotsPerTaskManager = 2;
+	private static final int numSlots = numTaskManagers * slotsPerTaskManager;
 
-	private static ForkableFlinkMiniCluster cluster;
+	private static TestingCluster cluster;
 
 	@ClassRule
 	public static TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -92,7 +92,7 @@ public class RescalingITCase extends TestLogger {
 		config.setString(SavepointStoreFactory.SAVEPOINT_BACKEND_KEY, "filesystem");
 		config.setString(SavepointStoreFactory.SAVEPOINT_DIRECTORY_KEY, savepointDir.toURI().toString());
 
-		cluster = new ForkableFlinkMiniCluster(config);
+		cluster = new TestingCluster(config);
 		cluster.start();
 	}
 
@@ -109,12 +109,12 @@ public class RescalingITCase extends TestLogger {
 	 */
 	@Test
 	public void testSavepointRescalingWithPartitionedState() throws Exception {
-		int numberKeys = 42;
-		int numberElements = 1000;
-		int numberElements2 = 500;
-		int parallelism = numSlots / 2;
-		int parallelism2 = numSlots;
-		int maxParallelism = 13;
+		final int numberKeys = 42;
+		final int numberElements = 1000;
+		final int numberElements2 = 500;
+		final int parallelism = numSlots / 2;
+		final int parallelism2 = numSlots;
+		final int maxParallelism = 13;
 
 		FiniteDuration timeout = new FiniteDuration(3, TimeUnit.MINUTES);
 		Deadline deadline = timeout.fromNow();
@@ -214,9 +214,9 @@ public class RescalingITCase extends TestLogger {
 	 */
 	@Test
 	public void testSavepointRescalingFailureWithNonPartitionedState() throws Exception {
-		int parallelism = numSlots / 2;
-		int parallelism2 = numSlots;
-		int maxParallelism = 13;
+		final int parallelism = numSlots / 2;
+		final int parallelism2 = numSlots;
+		final int maxParallelism = 13;
 
 		FiniteDuration timeout = new FiniteDuration(3, TimeUnit.MINUTES);
 		Deadline deadline = timeout.fromNow();
@@ -233,13 +233,21 @@ public class RescalingITCase extends TestLogger {
 
 			cluster.submitJobDetached(jobGraph);
 
-			Future<Object> allTasksRunning = jobManager.ask(new TestingJobManagerMessages.WaitForAllVerticesToBeRunning(jobID), deadline.timeLeft());
+			Object savepointResponse = null;
 
-			Await.ready(allTasksRunning, deadline.timeLeft());
+			// wait until the operator is started
+			NonPartitionedStateSource.workStartedLatch.await();
 
-			Future<Object> savepointPathFuture = jobManager.ask(new JobManagerMessages.TriggerSavepoint(jobID), deadline.timeLeft());
+			while (deadline.hasTimeLeft()) {
 
-			Object savepointResponse = Await.result(savepointPathFuture, deadline.timeLeft());
+				Future<Object> savepointPathFuture = jobManager.ask(new JobManagerMessages.TriggerSavepoint(jobID), deadline.timeLeft());
+				FiniteDuration waitingTime = new FiniteDuration(10, TimeUnit.SECONDS);
+				savepointResponse = Await.result(savepointPathFuture, waitingTime);
+
+				if (savepointResponse instanceof JobManagerMessages.TriggerSavepointSuccess) {
+					break;
+				}
+			}
 
 			assertTrue(savepointResponse instanceof JobManagerMessages.TriggerSavepointSuccess);
 
@@ -422,6 +430,8 @@ public class RescalingITCase extends TestLogger {
 		env.enableCheckpointing(checkpointInterval);
 		env.setRestartStrategy(RestartStrategies.noRestart());
 
+		NonPartitionedStateSource.workStartedLatch = new CountDownLatch(1);
+
 		DataStream<Integer> input = env.addSource(new NonPartitionedStateSource());
 
 		input.addSink(new DiscardingSink<Integer>());
@@ -460,7 +470,7 @@ public class RescalingITCase extends TestLogger {
 
 		DataStream<Tuple2<Integer, Integer>> result = input.flatMap(new SubtaskIndexFlatMapper(numberElements));
 
-		result.addSink(new CollectionSink());
+		result.addSink(new CollectionSink<Tuple2<Integer, Integer>>());
 
 		return env.getStreamGraph().getJobGraph();
 	}
@@ -498,7 +508,7 @@ public class RescalingITCase extends TestLogger {
 
 		DataStream<Tuple2<Integer, Integer>> result = input.flatMap(new SubtaskIndexFlatMapper(numberElements));
 
-		result.addSink(new CollectionSink());
+		result.addSink(new CollectionSink<Tuple2<Integer, Integer>>());
 
 		return env.getStreamGraph().getJobGraph();
 	}
@@ -639,8 +649,10 @@ public class RescalingITCase extends TestLogger {
 
 		private static final long serialVersionUID = -8108185918123186841L;
 
-		private int counter = 0;
-		private boolean running = true;
+		private static volatile CountDownLatch workStartedLatch = new CountDownLatch(1);
+
+		private volatile int counter = 0;
+		private volatile boolean running = true;
 
 		@Override
 		public Integer snapshotState(long checkpointId, long checkpointTimestamp) throws Exception {
@@ -663,13 +675,16 @@ public class RescalingITCase extends TestLogger {
 					ctx.collect(counter * getRuntimeContext().getIndexOfThisSubtask());
 				}
 
-				Thread.sleep(100);
+				Thread.sleep(2);
+				if(counter == 10) {
+					workStartedLatch.countDown();
+				}
 			}
 		}
 
 		@Override
 		public void cancel() {
-			running = true;
+			running = false;
 		}
 	}
 }

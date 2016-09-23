@@ -49,7 +49,7 @@ import org.apache.flink.runtime.clusterframework.standalone.StandaloneResourceMa
 import org.apache.flink.runtime.clusterframework.types.ResourceID
 import org.apache.flink.runtime.execution.librarycache.BlobLibraryCacheManager
 import org.apache.flink.runtime.executiongraph.restart.RestartStrategyFactory
-import org.apache.flink.runtime.executiongraph.{StatusListenerMessenger, ExecutionGraph, ExecutionJobVertex}
+import org.apache.flink.runtime.executiongraph.{ExecutionGraph, ExecutionJobVertex, StatusListenerMessenger}
 import org.apache.flink.runtime.instance.{AkkaActorGateway, InstanceManager}
 import org.apache.flink.runtime.jobgraph.jsonplan.JsonPlanGenerator
 import org.apache.flink.runtime.jobgraph.{JobGraph, JobStatus, JobVertexID}
@@ -72,8 +72,8 @@ import org.apache.flink.runtime.metrics.groups.JobManagerMetricGroup
 import org.apache.flink.runtime.process.ProcessReaper
 import org.apache.flink.runtime.query.{KvStateMessage, UnknownKvStateLocation}
 import org.apache.flink.runtime.query.KvStateMessage.{LookupKvStateLocation, NotifyKvStateRegistered, NotifyKvStateUnregistered}
-import org.apache.flink.runtime.security.SecurityUtils
-import org.apache.flink.runtime.security.SecurityUtils.FlinkSecuredRunner
+import org.apache.flink.runtime.security.SecurityContext.{FlinkSecuredRunner, SecurityConfiguration}
+import org.apache.flink.runtime.security.{SecurityContext}
 import org.apache.flink.runtime.taskmanager.TaskManager
 import org.apache.flink.runtime.util._
 import org.apache.flink.runtime.webmonitor.{WebMonitor, WebMonitorUtils}
@@ -349,7 +349,7 @@ class JobManager(
       currentResourceManager = Option(msg.resourceManager())
 
       val taskManagerResources = instanceManager.getAllRegisteredInstances.asScala.map(
-        instance => instance.getResourceId).toList.asJava
+        instance => instance.getTaskManagerID).toList.asJava
 
       // confirm registration and send known task managers with their resource ids
       sender ! decorateMessage(new RegisterResourceManagerSuccessful(self, taskManagerResources))
@@ -425,7 +425,6 @@ class JobManager(
         try {
           val instanceID = instanceManager.registerTaskManager(
             taskManager,
-            resourceId,
             connectionInfo,
             hardwareInformation,
             numberOfSlots,
@@ -650,7 +649,7 @@ class JobManager(
             val taskId = execution.getVertex.getParallelSubtaskIndex
 
             val host = if (slot != null) {
-              slot.getInstance().getInstanceConnectionInfo.getHostname
+              slot.getTaskManagerLocation().getHostname()
             } else {
               null
             }
@@ -1472,6 +1471,9 @@ class JobManager(
         currentJobs.get(msg.getJobId) match {
           case Some((graph, _)) =>
             try {
+              log.debug(s"Lookup key-value state for job ${msg.getJobId} with registration " +
+                         s"name ${msg.getRegistrationName}.")
+
               val registry = graph.getKvStateLocationRegistry
               val location = registry.getKvStateLocation(msg.getRegistrationName)
               if (location == null) {
@@ -1493,9 +1495,12 @@ class JobManager(
         currentJobs.get(msg.getJobId) match {
           case Some((graph, _)) =>
             try {
+              log.debug(s"Key value state registered for job ${msg.getJobId} under " +
+                         s"name ${msg.getRegistrationName}.")
+
               graph.getKvStateLocationRegistry.notifyKvStateRegistered(
                 msg.getJobVertexId,
-                msg.getKeyGroupIndex,
+                msg.getKeyGroupRange,
                 msg.getRegistrationName,
                 msg.getKvStateId,
                 msg.getKvStateServerAddress)
@@ -1514,7 +1519,7 @@ class JobManager(
             try {
               graph.getKvStateLocationRegistry.notifyKvStateUnregistered(
                 msg.getJobVertexId,
-                msg.getKeyGroupIndex,
+                msg.getKeyGroupRange,
                 msg.getRegistrationName)
             } catch {
               case t: Throwable =>
@@ -2014,6 +2019,7 @@ object JobManager {
     // startup checks and logging
     EnvironmentInformation.logEnvironmentInfo(LOG.logger, "JobManager", args)
     SignalHandler.register(LOG.logger)
+    JvmShutdownSafeguard.installAsShutdownHook(LOG.logger)
 
     // parsing the command line arguments
     val (configuration: Configuration,
@@ -2056,26 +2062,18 @@ object JobManager {
     }
 
     // run the job manager
+    SecurityContext.install(new SecurityConfiguration().setFlinkConfiguration(configuration))
+
     try {
-      if (SecurityUtils.isSecurityEnabled) {
-        LOG.info("Security is enabled. Starting secure JobManager.")
-        SecurityUtils.runSecured(new FlinkSecuredRunner[Unit] {
-          override def run(): Unit = {
-            runJobManager(
-              configuration,
-              executionMode,
-              listeningHost,
-              listeningPortRange)
-          }
-        })
-      } else {
-        LOG.info("Security is not enabled. Starting non-authenticated JobManager.")
-        runJobManager(
-          configuration,
-          executionMode,
-          listeningHost,
-          listeningPortRange)
-      }
+      SecurityContext.getInstalled.runSecured(new FlinkSecuredRunner[Unit] {
+        override def run(): Unit = {
+          runJobManager(
+            configuration,
+            executionMode,
+            listeningHost,
+            listeningPortRange)
+        }
+      })
     } catch {
       case t: Throwable =>
         LOG.error("Failed to run JobManager.", t)
@@ -2716,7 +2714,7 @@ object JobManager {
       configuration,
       None)
 
-    val archiveProps = Props(archiveClass, archiveCount)
+    val archiveProps = getArchiveProps(archiveClass, archiveCount)
 
     // start the archiver with the given name, or without (avoid name conflicts)
     val archive: ActorRef = archiveActorName match {
@@ -2724,7 +2722,7 @@ object JobManager {
       case None => actorSystem.actorOf(archiveProps)
     }
 
-    val jobManagerProps = Props(
+    val jobManagerProps = getJobManagerProps(
       jobManagerClass,
       configuration,
       executorService,
@@ -2745,8 +2743,53 @@ object JobManager {
       case Some(actorName) => actorSystem.actorOf(jobManagerProps, actorName)
       case None => actorSystem.actorOf(jobManagerProps)
     }
+    
+    metricsRegistry match {
+      case Some(registry) =>
+        registry.startQueryService(actorSystem)
+      case None =>
+    }
 
     (jobManager, archive)
+  }
+
+  def getArchiveProps(archiveClass: Class[_ <: MemoryArchivist], archiveCount: Int): Props = {
+    Props(archiveClass, archiveCount)
+  }
+
+  def getJobManagerProps(
+    jobManagerClass: Class[_ <: JobManager],
+    configuration: Configuration,
+    executorService: ExecutorService,
+    instanceManager: InstanceManager,
+    scheduler: FlinkScheduler,
+    libraryCacheManager: BlobLibraryCacheManager,
+    archive: ActorRef,
+    restartStrategyFactory: RestartStrategyFactory,
+    timeout: FiniteDuration,
+    leaderElectionService: LeaderElectionService,
+    submittedJobGraphStore: SubmittedJobGraphStore,
+    checkpointRecoveryFactory: CheckpointRecoveryFactory,
+    savepointStore: SavepointStore,
+    jobRecoveryTimeout: FiniteDuration,
+    metricsRegistry: Option[FlinkMetricRegistry]): Props = {
+
+    Props(
+      jobManagerClass,
+      configuration,
+      executorService,
+      instanceManager,
+      scheduler,
+      libraryCacheManager,
+      archive,
+      restartStrategyFactory,
+      timeout,
+      leaderElectionService,
+      submittedJobGraphStore,
+      checkpointRecoveryFactory,
+      savepointStore,
+      jobRecoveryTimeout,
+      metricsRegistry)
   }
 
   // --------------------------------------------------------------------------

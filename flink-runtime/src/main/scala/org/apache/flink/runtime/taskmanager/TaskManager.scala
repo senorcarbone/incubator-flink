@@ -50,11 +50,13 @@ import org.apache.flink.runtime.execution.ExecutionState
 import org.apache.flink.runtime.execution.librarycache.{BlobLibraryCacheManager, FallbackLibraryCacheManager, LibraryCacheManager}
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID
 import org.apache.flink.runtime.filecache.FileCache
-import org.apache.flink.runtime.instance.{AkkaActorGateway, HardwareDescription, InstanceConnectionInfo, InstanceID}
+import org.apache.flink.runtime.instance.{AkkaActorGateway, HardwareDescription, InstanceID}
 import org.apache.flink.runtime.io.disk.iomanager.IOManager.IOMode
 import org.apache.flink.runtime.io.disk.iomanager.{IOManager, IOManagerAsync}
-import org.apache.flink.runtime.io.network.NetworkEnvironment
-import org.apache.flink.runtime.io.network.netty.NettyConfig
+import org.apache.flink.runtime.io.network.buffer.NetworkBufferPool
+import org.apache.flink.runtime.io.network.{LocalConnectionManager, NetworkEnvironment, TaskEventDispatcher}
+import org.apache.flink.runtime.io.network.netty.{NettyConfig, NettyConnectionManager}
+import org.apache.flink.runtime.io.network.partition.ResultPartitionManager
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID
 import org.apache.flink.runtime.leaderretrieval.{LeaderRetrievalListener, LeaderRetrievalService}
 import org.apache.flink.runtime.memory.MemoryManager
@@ -67,8 +69,10 @@ import org.apache.flink.runtime.messages.checkpoint.{AbstractCheckpointMessage, 
 import org.apache.flink.runtime.metrics.{MetricRegistry => FlinkMetricRegistry}
 import org.apache.flink.runtime.metrics.groups.TaskManagerMetricGroup
 import org.apache.flink.runtime.process.ProcessReaper
-import org.apache.flink.runtime.security.SecurityUtils
-import org.apache.flink.runtime.security.SecurityUtils.FlinkSecuredRunner
+import org.apache.flink.runtime.query.KvStateRegistry
+import org.apache.flink.runtime.query.netty.{DisabledKvStateRequestStats, KvStateServer}
+import org.apache.flink.runtime.security.SecurityContext.{FlinkSecuredRunner, SecurityConfiguration}
+import org.apache.flink.runtime.security.SecurityContext
 import org.apache.flink.runtime.util._
 import org.apache.flink.runtime.{FlinkActor, LeaderSessionMessageFilter, LogMessages}
 import org.apache.flink.util.{MathUtils, NetUtils}
@@ -76,7 +80,6 @@ import org.apache.flink.util.{MathUtils, NetUtils}
 import scala.collection.JavaConverters._
 import scala.concurrent._
 import scala.concurrent.duration._
-import scala.concurrent.forkjoin.ForkJoinPool
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
@@ -124,12 +127,13 @@ import scala.util.{Failure, Success}
 class TaskManager(
     protected val config: TaskManagerConfiguration,
     protected val resourceID: ResourceID,
-    protected val connectionInfo: InstanceConnectionInfo,
+    protected val location: TaskManagerLocation,
     protected val memoryManager: MemoryManager,
     protected val ioManager: IOManager,
     protected val network: NetworkEnvironment,
     protected val numberOfSlots: Int,
-    protected val leaderRetrievalService: LeaderRetrievalService)
+    protected val leaderRetrievalService: LeaderRetrievalService,
+    protected val metricsRegistry: FlinkMetricRegistry)
   extends FlinkActor
   with LeaderSessionMessageFilter // Mixin order is important: We want to filter after logging
   with LogMessages // Mixin order is important: first we want to support message logging
@@ -155,7 +159,6 @@ class TaskManager(
   /** Registry of metrics periodically transmitted to the JobManager */
   private val metricRegistry = TaskManager.createMetricsRegistry()
 
-  private var metricsRegistry : FlinkMetricRegistry = _
   private var taskManagerMetricGroup : TaskManagerMetricGroup = _
 
   /** Metric serialization */
@@ -186,12 +189,14 @@ class TaskManager(
   var leaderSessionID: Option[UUID] = None
 
   private val runtimeInfo = new TaskManagerRuntimeInfo(
-       connectionInfo.getHostname(),
+       location.getHostname(),
        new UnmodifiableConfiguration(config.configuration),
        config.tmpDirPaths)
 
   private var scheduledTaskManagerRegistration: Option[Cancellable] = None
   private var currentRegistrationRun: UUID = UUID.randomUUID()
+
+  private var jobManagerConnectionFactory: Option[JobManagerCommunicationFactory] = None
 
   // --------------------------------------------------------------------------
   //  Actor messages and life cycle
@@ -204,7 +209,7 @@ class TaskManager(
    */
   override def preStart(): Unit = {
     log.info(s"Starting TaskManager actor at ${self.path.toSerializationFormat}.")
-    log.info(s"TaskManager data connection information: $connectionInfo")
+    log.info(s"TaskManager data connection information: $location")
     log.info(s"TaskManager has $numberOfSlots task slot(s).")
 
     // log the initial memory utilization
@@ -271,11 +276,7 @@ class TaskManager(
     
     // failsafe shutdown of the metrics registry
     try {
-      val reg = metricsRegistry
-      metricsRegistry = null
-      if (reg != null) {
-        reg.shutdown()
-      }
+      metricsRegistry.shutdown()
     } catch {
       case t: Exception => log.error("MetricRegistry did not shutdown properly.", t)
     }
@@ -349,6 +350,21 @@ class TaskManager(
         case None =>
           sender() ! new IOException("BlobService not available. Cannot upload TaskManager logs.")
       }
+
+    case RequestBroadcastVariablesWithReferences =>
+      sender ! decorateMessage(
+        ResponseBroadcastVariablesWithReferences(
+          bcVarManager.getNumberOfVariablesWithReferences)
+      )
+
+    case RequestNumActiveConnections =>
+      val numActive = if (!network.isShutdown) {
+        network.getConnectionManager.getNumberOfActiveConnections
+      } else {
+        0
+      }
+
+      sender ! decorateMessage(ResponseNumActiveConnections(numActive))
   }
 
   /**
@@ -395,13 +411,11 @@ class TaskManager(
         // discards intermediate result partitions of a task execution on this TaskManager
         case FailIntermediateResultPartitions(executionID) =>
           log.info("Discarding the results produced by task execution " + executionID)
-          if (network.isAssociated) {
-            try {
-              network.getPartitionManager.releasePartitionsProducedBy(executionID)
-            } catch {
-              case t: Throwable => killTaskManagerFatal(
-              "Fatal leak: Unable to release intermediate result partition data", t)
-            }
+          try {
+            network.getResultPartitionManager.releasePartitionsProducedBy(executionID)
+          } catch {
+            case t: Throwable => killTaskManagerFatal(
+            "Fatal leak: Unable to release intermediate result partition data", t)
           }
 
         // notifies the TaskManager that the state of a task has changed.
@@ -598,7 +612,7 @@ class TaskManager(
             jobManager ! decorateMessage(
               RegisterTaskManager(
                 resourceID,
-                connectionInfo,
+                location,
                 resources,
                 numberOfSlots)
             )
@@ -916,25 +930,33 @@ class TaskManager(
       "starting network stack and library cache.")
 
     // sanity check that the JobManager dependent components are not set up currently
-    if (network.isAssociated || blobService.isDefined) {
+    if (jobManagerConnectionFactory.isDefined || blobService.isDefined) {
       throw new IllegalStateException("JobManager-specific components are already initialized.")
     }
 
     currentJobManager = Some(jobManager)
     instanceID = id
 
-    // start the network stack, now that we have the JobManager actor reference
-    try {
-      network.associateWithTaskManagerAndJobManager(
-        new AkkaActorGateway(jobManager, leaderSessionID.orNull),
-        new AkkaActorGateway(self, leaderSessionID.orNull)
-      )
-    }
-    catch {
-      case e: Exception =>
-        val message = "Could not start network environment."
-        log.error(message, e)
-        throw new RuntimeException(message, e)
+    val jobManagerGateway = new AkkaActorGateway(jobManager, leaderSessionID.orNull)
+    val taskmanagerGateway = new AkkaActorGateway(self, leaderSessionID.orNull)
+
+    jobManagerConnectionFactory = Some(
+      new ActorGatewayJobManagerCommunicationFactory(
+        context.dispatcher,
+        jobManagerGateway,
+        taskmanagerGateway,
+        config.timeout))
+
+
+    val kvStateServer = network.getKvStateServer()
+
+    if (kvStateServer != null) {
+      val kvStateRegistry = network.getKvStateRegistry()
+
+      kvStateRegistry.registerListener(
+        new ActorGatewayKvStateRegistryListener(
+          jobManagerGateway,
+          kvStateServer.getAddress))
     }
 
     // start a blob service, if a blob server is specified
@@ -959,8 +981,6 @@ class TaskManager(
     else {
       libraryCacheManager = Some(new FallbackLibraryCacheManager)
     }
-
-    metricsRegistry = new FlinkMetricRegistry(config.configuration)
     
     taskManagerMetricGroup = 
       new TaskManagerMetricGroup(metricsRegistry, this.runtimeInfo.getHostname, id.toString)
@@ -1031,12 +1051,19 @@ class TaskManager(
     }
     blobService = None
 
-    // disassociate the network environment
-    network.disassociate()
+    // disassociate the slot environment
+    jobManagerConnectionFactory = None
+
+    if (network.getKvStateRegistry != null) {
+      network.getKvStateRegistry.unregisterListener()
+    }
     
-    // stop the metrics reporters
-    metricsRegistry.shutdown()
-    metricsRegistry = null
+    // failsafe shutdown of the metrics registry
+    try {
+      metricsRegistry.shutdown()
+    } catch {
+      case t: Exception => log.error("MetricRegistry did not shutdown properly.", t)
+    }
   }
 
   protected def handleJobManagerDisconnect(jobManager: ActorRef, msg: String): Unit = {
@@ -1092,6 +1119,13 @@ class TaskManager(
         case None => throw new IllegalStateException("There is no valid library cache manager.")
       }
 
+      val jmFactory = jobManagerConnectionFactory match {
+        case Some(factory) => factory
+        case None =>
+          throw new IllegalStateException("TaskManager is not associated with a JobManager and, " +
+                                            "thus, the SlotEnvironment has not been initialized.")
+      }
+
       val slot = tdd.getTargetSlotNumber
       if (slot < 0 || slot >= numberOfSlots) {
         throw new IllegalArgumentException(s"Target slot $slot does not exist on TaskManager.")
@@ -1112,15 +1146,27 @@ class TaskManager(
       
       val taskMetricGroup = taskManagerMetricGroup.addTaskForJob(tdd)
 
+      val inputSplitProvider = new TaskInputSplitProvider(
+        jobManagerGateway,
+        tdd.getJobID,
+        tdd.getVertexID,
+        tdd.getExecutionId,
+        config.timeout)
+
+      val checkpointResponder = new ActorGatewayCheckpointResponder(jobManagerGateway);
+
+      val taskManagerConnection = new ActorGatewayTaskManagerConnection(selfGateway)
+
       val task = new Task(
         tdd,
         memoryManager,
         ioManager,
         network,
+        jmFactory,
         bcVarManager,
-        selfGateway,
-        jobManagerGateway,
-        config.timeout,
+        taskManagerConnection,
+        inputSplitProvider,
+        checkpointResponder,
         libCache,
         fileCache,
         runtimeInfo,
@@ -1451,6 +1497,7 @@ object TaskManager {
     // startup checks and logging
     EnvironmentInformation.logEnvironmentInfo(LOG.logger, "TaskManager", args)
     SignalHandler.register(LOG.logger)
+    JvmShutdownSafeguard.installAsShutdownHook(LOG.logger)
 
     val maxOpenFileHandles = EnvironmentInformation.getOpenFileHandlesLimit()
     if (maxOpenFileHandles != -1) {
@@ -1474,19 +1521,14 @@ object TaskManager {
     val resourceId = ResourceID.generate()
 
     // run the TaskManager (if requested in an authentication enabled context)
+    SecurityContext.install(new SecurityConfiguration().setFlinkConfiguration(configuration))
+
     try {
-      if (SecurityUtils.isSecurityEnabled) {
-        LOG.info("Security is enabled. Starting secure TaskManager.")
-        SecurityUtils.runSecured(new FlinkSecuredRunner[Unit] {
-          override def run(): Unit = {
-            selectNetworkInterfaceAndRunTaskManager(configuration, resourceId, classOf[TaskManager])
-          }
-        })
-      }
-      else {
-        LOG.info("Security is not enabled. Starting non-authenticated TaskManager.")
-        selectNetworkInterfaceAndRunTaskManager(configuration, resourceId, classOf[TaskManager])
-      }
+      SecurityContext.getInstalled.runSecured(new FlinkSecuredRunner[Unit] {
+        override def run(): Unit = {
+          selectNetworkInterfaceAndRunTaskManager(configuration, resourceId, classOf[TaskManager])
+        }
+      })
     }
     catch {
       case t: Throwable =>
@@ -1758,6 +1800,7 @@ object TaskManager {
   }
 
   /**
+   * Starts the task manager actor.
    *
    * @param configuration The configuration for the TaskManager.
    * @param resourceID The id of the resource which the task manager will run on.
@@ -1794,11 +1837,82 @@ object TaskManager {
       taskManagerClass: Class[_ <: TaskManager])
     : ActorRef = {
 
-    val (taskManagerConfig : TaskManagerConfiguration,      
-      netConfig: NetworkEnvironmentConfiguration,
-      connectionInfo: InstanceConnectionInfo,
-      memType: MemoryType
-    ) = parseTaskManagerConfiguration(
+    val (taskManagerConfig,
+      connectionInfo,
+      memoryManager,
+      ioManager,
+      network,
+      leaderRetrievalService,
+      metricsRegistry) = createTaskManagerComponents(
+      configuration,
+      resourceID,
+      taskManagerHostname,
+      localTaskManagerCommunication,
+      leaderRetrievalServiceOption)
+
+    // create the actor properties (which define the actor constructor parameters)
+    val tmProps = getTaskManagerProps(
+      taskManagerClass,
+      taskManagerConfig,
+      resourceID,
+      connectionInfo,
+      memoryManager,
+      ioManager,
+      network,
+      leaderRetrievalService,
+      metricsRegistry)
+
+    metricsRegistry.startQueryService(actorSystem)
+
+    taskManagerActorName match {
+      case Some(actorName) => actorSystem.actorOf(tmProps, actorName)
+      case None => actorSystem.actorOf(tmProps)
+    }
+  }
+
+  def getTaskManagerProps(
+    taskManagerClass: Class[_ <: TaskManager],
+    taskManagerConfig: TaskManagerConfiguration,
+    resourceID: ResourceID,
+    taskManagerLocation: TaskManagerLocation,
+    memoryManager: MemoryManager,
+    ioManager: IOManager,
+    networkEnvironment: NetworkEnvironment,
+    leaderRetrievalService: LeaderRetrievalService,
+    metricsRegistry: FlinkMetricRegistry
+  ): Props = {
+    Props(
+      taskManagerClass,
+      taskManagerConfig,
+      resourceID,
+      taskManagerLocation,
+      memoryManager,
+      ioManager,
+      networkEnvironment,
+      taskManagerConfig.numberOfSlots,
+      leaderRetrievalService,
+      metricsRegistry)
+  }
+
+  def createTaskManagerComponents(
+    configuration: Configuration,
+    resourceID: ResourceID,
+    taskManagerHostname: String,
+    localTaskManagerCommunication: Boolean,
+    leaderRetrievalServiceOption: Option[LeaderRetrievalService]):
+      (TaskManagerConfiguration,
+      TaskManagerLocation,
+      MemoryManager,
+      IOManager,
+      NetworkEnvironment,
+      LeaderRetrievalService,
+      FlinkMetricRegistry) = {
+
+    val (taskManagerConfig : TaskManagerConfiguration,
+    netConfig: NetworkEnvironmentConfiguration,
+    taskManagerAddress: InetSocketAddress,
+    memType: MemoryType
+      ) = parseTaskManagerConfiguration(
       configuration,
       taskManagerHostname,
       localTaskManagerCommunication)
@@ -1806,14 +1920,65 @@ object TaskManager {
     // pre-start checks
     checkTempDirs(taskManagerConfig.tmpDirPaths)
 
-    val executionContext = ExecutionContext.fromExecutor(new ForkJoinPool())
+    val networkBufferPool = new NetworkBufferPool(
+      netConfig.numNetworkBuffers,
+      netConfig.networkBufferSize,
+      netConfig.memoryType)
+
+    val connectionManager = netConfig.nettyConfig match {
+      case Some(nettyConfig) => new NettyConnectionManager(nettyConfig)
+      case None => new LocalConnectionManager()
+    }
+
+    val resultPartitionManager = new ResultPartitionManager()
+    val taskEventDispatcher = new TaskEventDispatcher()
+
+    val kvStateRegistry = new KvStateRegistry()
+
+    val kvStateServer = netConfig.nettyConfig match {
+      case Some(nettyConfig) =>
+
+        val numNetworkThreads = if (netConfig.queryServerNetworkThreads == 0) {
+          nettyConfig.getNumberOfSlots
+        } else {
+          netConfig.queryServerNetworkThreads
+        }
+
+        val numQueryThreads = if (netConfig.queryServerQueryThreads == 0) {
+          nettyConfig.getNumberOfSlots
+        } else {
+          netConfig.queryServerQueryThreads
+        }
+
+        new KvStateServer(
+          taskManagerAddress.getAddress(),
+          netConfig.queryServerPort,
+          numNetworkThreads,
+          numQueryThreads,
+          kvStateRegistry,
+          new DisabledKvStateRequestStats())
+
+      case None => null
+    }
 
     // we start the network first, to make sure it can allocate its buffers first
     val network = new NetworkEnvironment(
-      executionContext,
-      taskManagerConfig.timeout,
-      netConfig,
-      connectionInfo)
+      networkBufferPool,
+      connectionManager,
+      resultPartitionManager,
+      taskEventDispatcher,
+      kvStateRegistry,
+      kvStateServer,
+      netConfig.ioMode,
+      netConfig.partitionRequestInitialBackoff,
+      netConfig.partitinRequestMaxBackoff)
+
+    network.start()
+
+    val taskManagerLocation = new TaskManagerLocation(
+      resourceID,
+      taskManagerAddress.getAddress(),
+      network.getConnectionManager().getDataPort())
 
     // computing the amount of memory to use depends on how much memory is available
     // it strictly needs to happen AFTER the network stack has been initialized
@@ -1821,10 +1986,10 @@ object TaskManager {
     // check if a value has been configured
     val configuredMemory = configuration.getLong(ConfigConstants.TASK_MANAGER_MEMORY_SIZE_KEY, -1L)
     checkConfigParameter(configuredMemory == -1 || configuredMemory > 0, configuredMemory,
-      ConfigConstants.TASK_MANAGER_MEMORY_SIZE_KEY,
-      "MemoryManager needs at least one MB of memory. " +
-        "If you leave this config parameter empty, the system automatically " +
-        "pick a fraction of the available memory.")
+                         ConfigConstants.TASK_MANAGER_MEMORY_SIZE_KEY,
+                         "MemoryManager needs at least one MB of memory. " +
+                           "If you leave this config parameter empty, the system automatically " +
+                           "pick a fraction of the available memory.")
 
 
     val preAllocateMemory = configuration.getBoolean(
@@ -1836,7 +2001,7 @@ object TaskManager {
         LOG.info(s"Using $configuredMemory MB for managed memory.")
       } else {
         LOG.info(s"Limiting managed memory to $configuredMemory MB, " +
-          s"memory will be allocated lazily.")
+                   s"memory will be allocated lazily.")
       }
       configuredMemory << 20 // megabytes to bytes
     }
@@ -1854,10 +2019,10 @@ object TaskManager {
 
         if (preAllocateMemory) {
           LOG.info(s"Using $fraction of the currently free heap space for managed " +
-            s"heap memory (${relativeMemSize >> 20} MB).")
+                     s"heap memory (${relativeMemSize >> 20} MB).")
         } else {
           LOG.info(s"Limiting managed memory to $fraction of the currently free heap space " +
-            s"(${relativeMemSize >> 20} MB), memory will be allocated lazily.")
+                     s"(${relativeMemSize >> 20} MB), memory will be allocated lazily.")
         }
 
         relativeMemSize
@@ -1870,10 +2035,10 @@ object TaskManager {
 
         if (preAllocateMemory) {
           LOG.info(s"Using $fraction of the maximum memory size for " +
-            s"managed off-heap memory (${directMemorySize >> 20} MB).")
+                     s"managed off-heap memory (${directMemorySize >> 20} MB).")
         } else {
           LOG.info(s"Limiting managed memory to $fraction of the maximum memory size " +
-            s"(${directMemorySize >> 20} MB), memory will be allocated lazily.")
+                     s"(${directMemorySize >> 20} MB), memory will be allocated lazily.")
         }
 
         directMemorySize
@@ -1897,12 +2062,12 @@ object TaskManager {
         memType match {
           case MemoryType.HEAP =>
             throw new Exception(s"OutOfMemory error (${e.getMessage()})" +
-              s" while allocating the TaskManager heap memory ($memorySize bytes).", e)
+                      s" while allocating the TaskManager heap memory ($memorySize bytes).", e)
 
           case MemoryType.OFF_HEAP =>
             throw new Exception(s"OutOfMemory error (${e.getMessage()})" +
-              s" while allocating the TaskManager off-heap memory ($memorySize bytes). " +
-              s"Try increasing the maximum direct memory (-XX:MaxDirectMemorySize)", e)
+                      s" while allocating the TaskManager off-heap memory ($memorySize bytes). " +
+                      s"Try increasing the maximum direct memory (-XX:MaxDirectMemorySize)", e)
 
           case _ => throw e
         }
@@ -1916,22 +2081,15 @@ object TaskManager {
       case None => LeaderRetrievalUtils.createLeaderRetrievalService(configuration)
     }
 
-    // create the actor properties (which define the actor constructor parameters)
-    val tmProps = Props(
-      taskManagerClass,
-      taskManagerConfig,
-      resourceID,
-      connectionInfo,
+    val metricsRegistry = new FlinkMetricRegistry(configuration)
+
+    (taskManagerConfig,
+      taskManagerLocation,
       memoryManager,
       ioManager,
       network,
-      taskManagerConfig.numberOfSlots,
-      leaderRetrievalService)
-
-    taskManagerActorName match {
-      case Some(actorName) => actorSystem.actorOf(tmProps, actorName)
-      case None => actorSystem.actorOf(tmProps)
-    }
+      leaderRetrievalService,
+      metricsRegistry)
   }
 
 
@@ -1981,8 +2139,8 @@ object TaskManager {
    * @param taskManagerHostname The host name under which the TaskManager communicates.
    * @param localTaskManagerCommunication True, to skip initializing the network stack.
    *                                      Use only in cases where only one task manager runs.
-   * @return A tuple (TaskManagerConfiguration, network configuration,
-   *                  InstanceConnectionInfo, JobManager actor Akka URL).
+   * @return A tuple (TaskManagerConfiguration, network configuration, inet socket address,
+    *         memory tyep).
    */
   @throws(classOf[IllegalArgumentException])
   def parseTaskManagerConfiguration(
@@ -1991,7 +2149,7 @@ object TaskManager {
       localTaskManagerCommunication: Boolean)
     : (TaskManagerConfiguration,
      NetworkEnvironmentConfiguration,
-     InstanceConnectionInfo,
+     InetSocketAddress,
      MemoryType) = {
 
     // ------- read values from the config and check them ---------
@@ -2000,16 +2158,13 @@ object TaskManager {
     // ----> hosts / ports for communication and data exchange
 
     val dataport = configuration.getInteger(ConfigConstants.TASK_MANAGER_DATA_PORT_KEY,
-      ConfigConstants.DEFAULT_TASK_MANAGER_DATA_PORT) match {
-      case 0 => NetUtils.getAvailablePort()
-      case x => x
-    }
+      ConfigConstants.DEFAULT_TASK_MANAGER_DATA_PORT)
 
-    checkConfigParameter(dataport > 0, dataport, ConfigConstants.TASK_MANAGER_DATA_PORT_KEY,
+    checkConfigParameter(dataport >= 0, dataport, ConfigConstants.TASK_MANAGER_DATA_PORT_KEY,
       "Leave config parameter empty or use 0 to let the system choose a port automatically.")
 
     val taskManagerAddress = InetAddress.getByName(taskManagerHostname)
-    val connectionInfo = new InstanceConnectionInfo(taskManagerAddress, dataport)
+    val taskManagerInetSocketAddress = new InetSocketAddress(taskManagerAddress, dataport)
 
     // ----> memory / network stack (shuffles/broadcasts), task slots, temp directories
 
@@ -2076,8 +2231,8 @@ object TaskManager {
     } else {
       Some(
         new NettyConfig(
-          connectionInfo.address(),
-          connectionInfo.dataPort(),
+          taskManagerInetSocketAddress.getAddress(),
+          taskManagerInetSocketAddress.getPort(),
           pageSize,
           slots,
           configuration)
@@ -2206,7 +2361,7 @@ object TaskManager {
       maxRegistrationPause,
       refusedRegistrationPause)
 
-    (taskManagerConfig, networkConfig, connectionInfo, memType)
+    (taskManagerConfig, networkConfig, taskManagerInetSocketAddress, memType)
   }
 
   /**
