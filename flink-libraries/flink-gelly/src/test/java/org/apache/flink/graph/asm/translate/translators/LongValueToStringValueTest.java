@@ -16,25 +16,25 @@
  * limitations under the License.
  */
 
-package org.apache.flink.graph.asm.translate;
+package org.apache.flink.graph.asm.translate.translators;
 
+import org.apache.flink.graph.asm.translate.TranslateFunction;
 import org.apache.flink.types.LongValue;
 import org.apache.flink.types.StringValue;
+import org.junit.Test;
 
-/**
- * Translate {@link LongValue} to {@link StringValue}.
- */
-public class LongValueToStringValue
-implements TranslateFunction<LongValue, StringValue> {
+import static org.junit.Assert.assertEquals;
 
-	@Override
-	public StringValue translate(LongValue value, StringValue reuse)
-			throws Exception {
-		if (reuse == null) {
-			reuse = new StringValue();
-		}
+public class LongValueToStringValueTest {
 
-		reuse.setValue(Long.toString(value.getValue()));
-		return reuse;
+	private TranslateFunction<LongValue, StringValue> translator = new LongValueToStringValue();
+
+	@Test
+	public void testTranslation() throws Exception {
+		StringValue reuse = new StringValue();
+
+		assertEquals(new StringValue("-9223372036854775808"), translator.translate(new LongValue(Long.MIN_VALUE), reuse));
+		assertEquals(new StringValue("0"), translator.translate(new LongValue(0), reuse));
+		assertEquals(new StringValue("9223372036854775807"), translator.translate(new LongValue(Long.MAX_VALUE), reuse));
 	}
 }
