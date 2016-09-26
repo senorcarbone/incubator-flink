@@ -94,7 +94,9 @@ public class JobVertex implements java.io.Serializable {
 	/** Optional, the JSON for the optimizer properties of the operator result,
 	 * to be included in the JSON plan */
 	private String resultOptimizerProperties;
-
+	/**A flag that tags the input source  vertecies
+	 * */
+	private boolean isSourceInputVertex = false;
 	// --------------------------------------------------------------------------------------------
 
 	/**
@@ -418,6 +420,9 @@ public class JobVertex implements java.io.Serializable {
 	public boolean isInputVertex() {
 		return this.inputs.isEmpty();
 	}
+	public boolean isSourceInputVertex(){return isSourceInputVertex;};
+
+	public void  setSourceInputVertex(boolean b){ this.isSourceInputVertex = b;};
 
 	public boolean isStoppable() {
 		return this.isStoppable;

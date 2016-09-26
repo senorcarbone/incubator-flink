@@ -32,6 +32,7 @@ import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.execution.librarycache.FallbackLibraryCacheManager;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.filecache.FileCache;
+import org.apache.flink.runtime.instance.DummyActorGateway;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.network.NetworkEnvironment;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
@@ -154,6 +155,7 @@ public class InterruptSensitiveRestoreTest {
 			mock(BroadcastVariableManager.class),
 				mock(TaskManagerConnection.class),
 				mock(InputSplitProvider.class),
+				DummyActorGateway.INSTANCE,
 				mock(CheckpointResponder.class),
 			new FallbackLibraryCacheManager(),
 			new FileCache(new Configuration()),

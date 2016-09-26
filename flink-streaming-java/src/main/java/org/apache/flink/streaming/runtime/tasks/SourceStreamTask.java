@@ -19,8 +19,15 @@
 package org.apache.flink.streaming.runtime.tasks;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.runtime.iterative.termination.AbstractLoopTerminationMessage;
+import org.apache.flink.runtime.iterative.termination.BroadcastStatusUpdateEvent;
+import org.apache.flink.runtime.iterative.termination.StopInputTasks;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.operators.StreamSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 /**
  * Task for executing streaming sources.
@@ -39,7 +46,15 @@ import org.apache.flink.streaming.api.operators.StreamSource;
 @Internal
 public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends StreamSource<OUT, SRC>>
 	extends StreamTask<OUT, OP> {
-
+	private static final Logger LOG = LoggerFactory.getLogger(SourceStreamTask.class);
+	/**
+	 * Source tasks are not involved in the comunication with coordinator regarding status update
+	 * */
+	@Override
+	public LoopTerminationHandler getLoopTerminationHandler() {
+		return null;
+	}
+	private StreamClosure streamClosure;
 	@Override
 	protected void init() {
 		// does not hold any resources, so no initialization needed
@@ -54,10 +69,27 @@ public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends S
 	@Override
 	protected void run() throws Exception {
 		headOperator.run(getCheckpointLock());
+		streamClosure = new StreamClosure(this);
+		LOG.info("Stream {} Completed, Starting closure!",getName());
+		streamClosure.start();
 	}
 	
 	@Override
 	protected void cancelTask() throws Exception {
 		headOperator.cancel();
+		streamClosure.stop();
 	}
+
+	@Override
+	public boolean onLoopTerminationCoordinatorMessage(AbstractLoopTerminationMessage msg) throws IOException, InterruptedException {
+		boolean handled = super.onLoopTerminationCoordinatorMessage(msg);
+		if(msg instanceof BroadcastStatusUpdateEvent){
+			streamClosure.broadcastStatusEvent(((BroadcastStatusUpdateEvent) msg).getSequenceNumber());
+			return true;
+		}else if(msg instanceof StopInputTasks){
+			streamClosure.stop();
+		}
+		return handled;
+	}
+
 }

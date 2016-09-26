@@ -17,10 +17,6 @@
 
 package org.apache.flink.streaming.api.graph;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.io.InputFormat;
@@ -30,7 +26,12 @@ import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.streaming.api.collector.selector.OutputSelector;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.operators.StreamOperator;
+import org.apache.flink.streaming.api.operators.StreamSource;
 import org.apache.flink.util.Preconditions;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Class representing the operators in the streaming programs, with all their properties.
@@ -280,6 +281,9 @@ public class StreamNode implements Serializable {
 		this.transformationId = transformationId;
 	}
 
+	public boolean isStreamSource(){
+		return operator!=null && operator instanceof StreamSource;
+	}
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) {

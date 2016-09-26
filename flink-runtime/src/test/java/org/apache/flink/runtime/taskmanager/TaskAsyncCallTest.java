@@ -22,6 +22,9 @@ import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.testutils.OneShotLatch;
+import org.apache.flink.runtime.instance.DummyActorGateway;
+import org.apache.flink.runtime.jobgraph.tasks.InputSplitProvider;
+import org.apache.flink.runtime.iterative.termination.AbstractLoopTerminationMessage;
 import org.apache.flink.runtime.jobgraph.tasks.InputSplitProvider;
 import org.apache.flink.runtime.metrics.groups.TaskMetricGroup;
 import org.apache.flink.runtime.blob.BlobKey;
@@ -51,6 +54,7 @@ import org.apache.flink.util.SerializedValue;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
@@ -174,6 +178,7 @@ public class TaskAsyncCallTest {
 			mock(BroadcastVariableManager.class),
 			mock(TaskManagerConnection.class),
 			mock(InputSplitProvider.class),
+			DummyActorGateway.INSTANCE,
 			mock(CheckpointResponder.class),
 			libCache,
 			mock(FileCache.class),
@@ -235,6 +240,11 @@ public class TaskAsyncCallTest {
 					notifyAll();
 				}
 			}
+		}
+
+		@Override
+		public boolean onLoopTerminationCoordinatorMessage(AbstractLoopTerminationMessage msg) throws IOException, InterruptedException {
+			return false;
 		}
 	}
 }

@@ -25,6 +25,8 @@ import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.Path;
+import org.apache.flink.runtime.instance.ActorGateway;
+import org.apache.flink.runtime.iterative.termination.AbstractLoopTerminationMessage;
 import org.apache.flink.runtime.io.network.netty.PartitionStateChecker;
 import org.apache.flink.runtime.jobgraph.tasks.InputSplitProvider;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionConsumableNotifier;
@@ -170,7 +172,10 @@ public class Task implements Runnable {
 	/** Connection to the task manager */
 	private final TaskManagerConnection taskManagerConnection;
 
-	/** Input split provider for the task */
+    /** Gateway to the JobManager */
+	private final ActorGateway jobManager;
+
+    /** Input split provider for the task */
 	private final InputSplitProvider inputSplitProvider;
 
 	/** Checkpoint notifier used to communicate with the CheckpointCoordinator */
@@ -246,6 +251,7 @@ public class Task implements Runnable {
 		BroadcastVariableManager bcVarManager,
 		TaskManagerConnection taskManagerConnection,
 		InputSplitProvider inputSplitProvider,
+		ActorGateway jobManager,
 		CheckpointResponder checkpointResponder,
 		LibraryCacheManager libraryCache,
 		FileCache fileCache,
@@ -276,6 +282,7 @@ public class Task implements Runnable {
 		this.accumulatorRegistry = new AccumulatorRegistry(jobId, executionId);
 
 		this.inputSplitProvider = checkNotNull(inputSplitProvider);
+		this.jobManager = checkNotNull(jobManager);
 		this.checkpointResponder = checkNotNull(checkpointResponder);
 		this.taskManagerConnection = checkNotNull(taskManagerConnection);
 
@@ -543,7 +550,7 @@ public class Task implements Runnable {
 				memoryManager, ioManager, broadcastVariableManager,
 				accumulatorRegistry, kvStateRegistry, inputSplitProvider,
 				distributedCacheEntries, writers, inputGates,
-				checkpointResponder, taskManagerConfig, metrics, this);
+				checkpointResponder,jobManager, taskManagerConfig, metrics, this);
 
 			// let the task code create its readers and writers
 			invokable.setEnvironment(env);
@@ -828,6 +835,15 @@ public class Task implements Runnable {
 		cancelOrFailAndCancelInvokable(ExecutionState.CANCELING, null);
 	}
 
+	public void onLoopTerminationMessage(AbstractLoopTerminationMessage msg) throws IOException, InterruptedException {
+		if(invokable!=null){
+			if( invokable instanceof StatefulTask ) {
+				((StatefulTask) invokable).onLoopTerminationCoordinatorMessage(msg);
+			}
+		}else{
+			throw new RuntimeException("the task to be notified has not been set!");
+		}
+	}
 	/**
 	 * Marks task execution failed for an external reason (a reason other than the task code itself
 	 * throwing an exception). If the task is already in a terminal state
