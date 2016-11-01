@@ -51,7 +51,7 @@ public class SelectTransformation<T> extends StreamTransformation<T> {
 	 */
 	public SelectTransformation(StreamTransformation<T> input,
 			List<String> selectedNames) {
-		super("Select", input.getOutputType(), input.getParallelism());
+		super("Select", input.getOutputType(), input.getParallelism(), input.getScope());
 		this.input = input;
 		this.selectedNames = selectedNames;
 	}
@@ -77,7 +77,7 @@ public class SelectTransformation<T> extends StreamTransformation<T> {
 		result.addAll(input.getTransitivePredecessors());
 		return result;
 	}
-
+	
 	@Override
 	public final void setChainingStrategy(ChainingStrategy strategy) {
 		throw new UnsupportedOperationException("Cannot set chaining strategy on Select Transformation.");

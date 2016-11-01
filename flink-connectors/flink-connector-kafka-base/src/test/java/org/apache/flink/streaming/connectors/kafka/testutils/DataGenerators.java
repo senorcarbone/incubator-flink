@@ -29,6 +29,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
+import org.apache.flink.streaming.api.graph.StreamScope;
 import org.apache.flink.streaming.api.operators.ChainingStrategy;
 import org.apache.flink.streaming.api.operators.StreamSink;
 import org.apache.flink.streaming.api.transformations.StreamTransformation;
@@ -202,7 +203,7 @@ public class DataGenerators {
 
 		private static class MockStreamTransformation extends StreamTransformation<String> {
 			public MockStreamTransformation() {
-				super("MockTransform", TypeInfoParser.<String>parse("String"), 1);
+				super("MockTransform", TypeInfoParser.<String>parse("String"), 1, new StreamScope());
 			}
 
 			@Override
@@ -214,6 +215,7 @@ public class DataGenerators {
 			public Collection<StreamTransformation<?>> getTransitivePredecessors() {
 				return null;
 			}
+
 		}
 
 		public static class DummyStreamExecutionEnvironment extends StreamExecutionEnvironment {

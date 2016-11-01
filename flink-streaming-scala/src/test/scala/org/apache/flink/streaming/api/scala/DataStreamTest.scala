@@ -517,6 +517,25 @@ class DataStreamTest extends StreamingMultipleProgramsTestBase {
     assert(sg.getIterationSourceSinkPairs.size() == 2)
   }
 
+  @Test
+  def testLoops() {
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    // we need to rebalance before iteration
+    val source = env.fromElements(1, 2, 3).map { t: Int => t }
+
+    source.iterateWithFeedback((input: ConnectedStreams[Int, String]) => {
+      val head = input.map(i => (i + 1).toString, s => s)
+      (head.filter(_ == "2"), head.filter(_ != "2"))
+    }).print(); 
+    
+    source.iterate((input: DataStream[Int]) =>
+      (input.map(_ + 1), input.map(_.toString)))
+
+    val sg = env.getStreamGraph
+
+    assert(sg.getIterationSourceSinkPairs.size() == 2)
+  }
+
   /////////////////////////////////////////////////////////////
   // Utilities
   /////////////////////////////////////////////////////////////

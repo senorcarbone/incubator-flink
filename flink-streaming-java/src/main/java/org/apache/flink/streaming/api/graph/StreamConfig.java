@@ -81,6 +81,8 @@ public class StreamConfig implements Serializable {
 	
 	private static final String TIME_CHARACTERISTIC = "timechar";
 	
+	private static final String STREAM_SCOPE = "scopelevel";
+	
 	// ------------------------------------------------------------------------
 	//  Default Values
 	// ------------------------------------------------------------------------
@@ -169,6 +171,22 @@ public class StreamConfig implements Serializable {
 			InstantiationUtil.writeObjectToConfig(typeWrapper, this.config, key);
 		} catch (IOException e) {
 			throw new StreamTaskException("Could not serialize type serializer.", e);
+		}
+	}
+
+	public void setScope(StreamScope scope) {
+		try{
+			InstantiationUtil.writeObjectToConfig(scope, this.config, STREAM_SCOPE);
+		} catch (IOException e) {
+			throw new StreamTaskException("Cannot serialize stream scope", e);
+		}
+	}
+
+	public StreamScope getScope(ClassLoader cl) {
+		try {
+			return InstantiationUtil.readObjectFromConfig(this.config, STREAM_SCOPE, cl);
+		} catch (Exception e) {
+			throw new StreamTaskException("Could not instantiate stream scope.", e);
 		}
 	}
 

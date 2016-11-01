@@ -70,14 +70,17 @@ public class StreamNode implements Serializable {
 	private InputFormat<?, ?> inputFormat;
 
 	private String transformationId;
-
+	
+	private StreamScope scope;
+	
 	public StreamNode(StreamExecutionEnvironment env,
 		Integer id,
 		String slotSharingGroup,
 		StreamOperator<?> operator,
 		String operatorName,
 		List<OutputSelector<?>> outputSelector,
-		Class<? extends AbstractInvokable> jobVertexClass) {
+		Class<? extends AbstractInvokable> jobVertexClass,
+		StreamScope scope) {
 		this.env = env;
 		this.id = id;
 		this.operatorName = operatorName;
@@ -85,6 +88,7 @@ public class StreamNode implements Serializable {
 		this.outputSelectors = outputSelector;
 		this.jobVertexClass = jobVertexClass;
 		this.slotSharingGroup = slotSharingGroup;
+		this.scope = scope;
 	}
 
 	public void addInEdge(StreamEdge inEdge) {
@@ -109,6 +113,14 @@ public class StreamNode implements Serializable {
 
 	public List<StreamEdge> getInEdges() {
 		return inEdges;
+	}
+
+	public StreamScope getScope() {
+		return scope;
+	}
+
+	public void setScope(StreamScope scope) {
+		this.scope = scope;
 	}
 
 	public List<Integer> getOutEdgeIndices() {

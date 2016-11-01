@@ -19,41 +19,26 @@ package org.apache.flink.streaming.api.transformations;
 
 import com.google.common.collect.Lists;
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.streaming.api.collector.selector.OutputSelector;
 import org.apache.flink.streaming.api.operators.ChainingStrategy;
 
 import java.util.Collection;
 import java.util.List;
 
 /**
- * This transformation represents a split of one
- * {@link org.apache.flink.streaming.api.datastream.DataStream} into several {@code DataStreams}
- * using an {@link org.apache.flink.streaming.api.collector.selector.OutputSelector}.
- *
- * <p>
- * This does not create a physical operation, it only affects how upstream operations are
- * connected to downstream operations.
- *
- * @param <T> The type of the elements that result from this {@code SplitTransformation}
+ * This transformation represents an exit from an iteration scope. It is there to aid the proper
+ * job graph construction and coordinate the level of encapsulation in the dataflow graph.
+
  */
 @Internal
-public class SplitTransformation<T> extends StreamTransformation<T> {
-
+public class ScopeTransformation<T> extends StreamTransformation<T> {
+	
 	private final StreamTransformation<T> input;
+	public enum SCOPE_TYPE {INGRESS, EGRESS}
 
-	private final OutputSelector<T> outputSelector;
-
-	/**
-	 * Creates a new {@code SplitTransformation} from the given input and {@code OutputSelector}.
-	 *
-	 * @param input The input {@code StreamTransformation}
-	 * @param outputSelector The output selector
-	 */
-	public SplitTransformation(StreamTransformation<T> input,
-			OutputSelector<T> outputSelector) {
-		super("Split", input.getOutputType(), input.getParallelism(), input.getScope());
+	public ScopeTransformation(StreamTransformation<T> input, SCOPE_TYPE scopeType) {
+		super("Scope", input.getOutputType(), input.getParallelism(),
+			scopeType==SCOPE_TYPE.INGRESS ? input.getScope().nest(): input.getScope().unnest());
 		this.input = input;
-		this.outputSelector = outputSelector;
 	}
 
 	/**
@@ -61,13 +46,6 @@ public class SplitTransformation<T> extends StreamTransformation<T> {
 	 */
 	public StreamTransformation<T> getInput() {
 		return input;
-	}
-
-	/**
-	 * Returns the {@code OutputSelector}
-	 */
-	public OutputSelector<T> getOutputSelector() {
-		return outputSelector;
 	}
 
 	@Override
@@ -80,7 +58,8 @@ public class SplitTransformation<T> extends StreamTransformation<T> {
 
 	@Override
 	public final void setChainingStrategy(ChainingStrategy strategy) {
-		throw new UnsupportedOperationException("Cannot set chaining strategy on Split Transformation.");
 	}
+
 }
+
 

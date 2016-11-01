@@ -34,6 +34,7 @@ import org.apache.flink.streaming.api.transformations.SplitTransformation;
 import org.apache.flink.streaming.api.transformations.StreamTransformation;
 import org.apache.flink.streaming.api.transformations.TwoInputTransformation;
 import org.apache.flink.streaming.api.transformations.UnionTransformation;
+import org.apache.flink.streaming.api.transformations.ScopeTransformation;
 import org.apache.flink.util.MathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -194,7 +195,9 @@ public class StreamGraphGenerator {
 			transformedIds = transformCoFeedback((CoFeedbackTransformation<?>) transform);
 		} else if (transform instanceof PartitionTransformation<?>) {
 			transformedIds = transformPartition((PartitionTransformation<?>) transform);
-		} else {
+		} else if (transform instanceof ScopeTransformation<?>) {
+			transformedIds = transformScope((ScopeTransformation<?>) transform);
+		}else {
 			throw new IllegalStateException("Unknown transformation: " + transform);
 		}
 
@@ -278,6 +281,17 @@ public class StreamGraphGenerator {
 	}
 
 	/**
+	 * Transforms a {@code ScopeTransformation}.
+	 * 
+	 * <p>
+	 * This transformation has no effect on the resulting stream graph since it is embedded solely 
+	 * to enforce the right scopes during operator initialization.
+	 */
+	private <T> Collection<Integer> transformScope(ScopeTransformation<T> scope){
+		return transform(scope.getInput());
+	}
+
+	/**
 	 * Transforms a {@code SelectTransformation}.
 	 *
 	 * <p>
@@ -340,11 +354,12 @@ public class StreamGraphGenerator {
 			getNewIterationNodeId(),
 			iterate.getWaitTime(),
 			iterate.getParallelism(),
-			iterate.getMaxParallelism());
+			iterate.getMaxParallelism(),
+			iterate.getScope());
 
 		StreamNode itSource = itSourceAndSink.f0;
 		StreamNode itSink = itSourceAndSink.f1;
-
+		
 		// We set the proper serializers for the sink/source
 		streamGraph.setSerializers(itSource.getId(), null, null, iterate.getOutputType().createSerializer(env.getConfig()));
 		streamGraph.setSerializers(itSink.getId(), iterate.getOutputType().createSerializer(env.getConfig()), null, null);
@@ -375,7 +390,7 @@ public class StreamGraphGenerator {
 
 		itSink.setSlotSharingGroup(slotSharingGroup);
 		itSource.setSlotSharingGroup(slotSharingGroup);
-
+		
 		return resultIds;
 	}
 
@@ -405,11 +420,12 @@ public class StreamGraphGenerator {
 				getNewIterationNodeId(),
 				coIterate.getWaitTime(),
 				coIterate.getParallelism(),
-				coIterate.getMaxParallelism());
+				coIterate.getMaxParallelism(),
+				coIterate.getScope());
 
 		StreamNode itSource = itSourceAndSink.f0;
 		StreamNode itSink = itSourceAndSink.f1;
-
+		
 		// We set the proper serializers for the sink/source
 		streamGraph.setSerializers(itSource.getId(), null, null, coIterate.getOutputType().createSerializer(env.getConfig()));
 		streamGraph.setSerializers(itSink.getId(), coIterate.getOutputType().createSerializer(env.getConfig()), null, null);
@@ -452,7 +468,8 @@ public class StreamGraphGenerator {
 				source.getOperator(),
 				null,
 				source.getOutputType(),
-				"Source: " + source.getName());
+				"Source: " + source.getName(),
+				source.getScope());
 		if (source.getOperator().getUserFunction() instanceof InputFormatSourceFunction) {
 			InputFormatSourceFunction<T> fs = (InputFormatSourceFunction<T>) source.getOperator().getUserFunction();
 			streamGraph.setInputFormat(source.getId(), fs.getFormat());
@@ -476,7 +493,8 @@ public class StreamGraphGenerator {
 				sink.getOperator(),
 				sink.getInput().getOutputType(),
 				null,
-				"Sink: " + sink.getName());
+				"Sink: " + sink.getName(),
+				sink.getScope());
 
 		streamGraph.setParallelism(sink.getId(), sink.getParallelism());
 		streamGraph.setMaxParallelism(sink.getId(), sink.getMaxParallelism());
@@ -520,7 +538,8 @@ public class StreamGraphGenerator {
 				transform.getOperator(),
 				transform.getInputType(),
 				transform.getOutputType(),
-				transform.getName());
+				transform.getName(),
+				transform.getScope());
 
 		if (transform.getStateKeySelector() != null) {
 			TypeSerializer<?> keySerializer = transform.getStateKeyType().createSerializer(env.getConfig());
@@ -567,7 +586,8 @@ public class StreamGraphGenerator {
 				transform.getInputType1(),
 				transform.getInputType2(),
 				transform.getOutputType(),
-				transform.getName());
+				transform.getName(),
+				transform.getScope());
 
 		if (transform.getStateKeySelector1() != null) {
 			TypeSerializer<?> keySerializer = transform.getStateKeyType().createSerializer(env.getConfig());

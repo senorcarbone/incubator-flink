@@ -369,7 +369,8 @@ public class StreamingJobGraphGenerator {
 
 		List<StreamEdge> allOutputs = new ArrayList<StreamEdge>(chainableOutputs);
 		allOutputs.addAll(nonChainableOutputs);
-
+		config.setScope(vertex.getScope());
+		
 		vertexConfigs.put(vertexID, config);
 	}
 
@@ -429,6 +430,7 @@ public class StreamingJobGraphGenerator {
 					headOperator.getChainingStrategy() == ChainingStrategy.ALWAYS)
 				&& (edge.getPartitioner() instanceof ForwardPartitioner)
 				&& upStreamVertex.getParallelism() == downStreamVertex.getParallelism()
+				&& upStreamVertex.getScope() == downStreamVertex.getScope()
 				&& streamGraph.isChainingEnabled();
 	}
 

@@ -24,15 +24,16 @@ import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction, M
 import org.apache.flink.api.common.io.OutputFormat
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.functions.KeySelector
-import org.apache.flink.api.java.tuple.{Tuple => JavaTuple}
+import org.apache.flink.api.java.tuple.{Tuple2, Tuple => JavaTuple}
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable
 import org.apache.flink.api.scala.operators.ScalaCsvOutputFormat
 import org.apache.flink.core.fs.{FileSystem, Path}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
-import org.apache.flink.streaming.api.datastream.{AllWindowedStream => JavaAllWindowedStream, DataStream => JavaStream, KeyedStream => JavaKeyedStream, _}
+import org.apache.flink.streaming.api.datastream.{AllWindowedStream => JavaAllWindowedStream, ConnectedStreams => ConnectedJavaStreams, DataStream => JavaStream, KeyedStream => JavaKeyedStream, _}
+import org.apache.flink.streaming.api.functions.co.CoLoopFunction
 import org.apache.flink.streaming.api.functions.sink.SinkFunction
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor
-import org.apache.flink.streaming.api.functions.{AssignerWithPeriodicWatermarks, AssignerWithPunctuatedWatermarks, TimestampExtractor}
+import org.apache.flink.streaming.api.functions.{AssignerWithPeriodicWatermarks, AssignerWithPunctuatedWatermarks, LoopFunction, TimestampExtractor}
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator
 import org.apache.flink.streaming.api.windowing.assigners._
 import org.apache.flink.streaming.api.windowing.time.Time
@@ -43,7 +44,7 @@ import org.apache.flink.util.Collector
 import scala.collection.JavaConverters._
 
 @Public
-class DataStream[T](stream: JavaStream[T]) {
+class DataStream[T](val stream: JavaStream[T]) {
 
   /**
    * Returns the [[StreamExecutionEnvironment]] associated with the current [[DataStream]].
@@ -441,15 +442,46 @@ class DataStream[T](stream: JavaStream[T]) {
    *
    */
   @PublicEvolving
-  def iterate[R](stepFunction: DataStream[T] => (DataStream[T], DataStream[R]),
-                    maxWaitTimeMillis:Long = 0,
-                    keepPartitioning: Boolean = false) : DataStream[R] = {
+  @Deprecated
+  def iterate[R](loopFunction: DataStream[T] => (DataStream[T], DataStream[R]),
+                 maxWaitTimeMillis:Long = 0,
+                 keepPartitioning: Boolean = false) : DataStream[R] = {
     val iterativeStream = stream.iterate(maxWaitTimeMillis)
 
-    val (feedback, output) = stepFunction(new DataStream[T](iterativeStream))
+    val (feedback, output) = loopFunction(new DataStream[T](iterativeStream))
     iterativeStream.closeWith(feedback.javaStream)
     output
   }
+
+  /**
+    * Initiates an iterative part of the program that creates a loop by feeding
+    * back data streams. To create a streaming iteration the user needs to define
+    * a transformation that creates two DataStreams. The first one is the output
+    * that will be fed back to the start of the iteration and the second is the output
+    * stream of the iterative part.
+    *
+    * loopFunction: initialStream => (feedback, output)
+    *
+    * A common pattern is to use output splitting to create feedback and output DataStream.
+    * Please refer to the .split(...) method of the DataStream
+    *
+    *
+    * The feedback partitioning is set to match the input by default.
+    *
+    */
+  @PublicEvolving
+  def iterate[R](loopFunction: DataStream[T] => (DataStream[T], DataStream[R])) : DataStream[R] = {
+    val cleanFun = clean(loopFunction)
+    val loopFun = new LoopFunction[T, R]  {
+      override def loop(value: JavaStream[T]): Tuple2[JavaStream[T], JavaStream[R]] = {
+        val loopRes = cleanFun(asScalaStream(value));
+        new Tuple2(loopRes._1.stream, loopRes._2.stream)
+      }
+    }
+    asScalaStream(stream.iterate(loopFun));
+  }
+  
+  
 
   /**
    * Initiates an iterative part of the program that creates a loop by feeding
@@ -471,6 +503,7 @@ class DataStream[T](stream: JavaStream[T]) {
    *
    */
   @PublicEvolving
+  @Deprecated
   def iterate[R, F: TypeInformation](
         stepFunction: ConnectedStreams[T, F] => (DataStream[F], DataStream[R]),
         maxWaitTimeMillis:Long): DataStream[R] = {
@@ -483,6 +516,35 @@ class DataStream[T](stream: JavaStream[T]) {
     val (feedback, output) = stepFunction(asScalaStream(connectedIterativeStream))
     connectedIterativeStream.closeWith(feedback.javaStream)
     output
+  }
+
+  /**
+    * Initiates an iterative part of the program that creates a loop by feeding
+    * back data streams. To create a streaming iteration the user needs to define
+    * a transformation that creates two DataStreams. The first one is the output
+    * that will be fed back to the start of the iteration and the second is the output
+    * stream of the iterative part.
+    *
+    * The input stream of the iterate operator and the feedback stream will be treated
+    * as a ConnectedStreams where the the input is connected with the feedback stream.
+    *
+    * This allows the user to distinguish standard input from feedback inputs.
+    *
+    * stepfunction: initialStream => (feedback, output)
+    *
+    *
+    */
+  @PublicEvolving
+  def iterateWithFeedback[R, F: TypeInformation](coLoopFunction: ConnectedStreams[T, F] => 
+    (DataStream[F], DataStream[R])): DataStream[R] = {
+    val cleanFun = clean(coLoopFunction);
+    val colLoopFun = new CoLoopFunction[T, F, R] {
+      override def loop(value: ConnectedJavaStreams[T, F]): Tuple2[JavaStream[F], JavaStream[R]] = {
+        val coLoopRes = cleanFun(asScalaStream(value));
+        new Tuple2(coLoopRes._1.stream, coLoopRes._2.stream)
+      }
+    }
+    asScalaStream(stream.iterateWithFeedback(colLoopFun,implicitly[TypeInformation[F]] ));
   }
 
   /**

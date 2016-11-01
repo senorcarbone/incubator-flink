@@ -50,6 +50,7 @@ import org.apache.flink.runtime.state.memory.MemoryStateBackend;
 import org.apache.flink.runtime.taskmanager.DispatcherThreadFactory;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.graph.StreamConfig;
+import org.apache.flink.streaming.api.graph.StreamScope;
 import org.apache.flink.streaming.api.operators.OperatorSnapshotResult;
 import org.apache.flink.streaming.api.operators.Output;
 import org.apache.flink.streaming.api.operators.StreamCheckpointedOperator;
@@ -816,6 +817,10 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 			throw new IllegalStateException("The timer service has not been initialized.");
 		}
 		return timerService;
+	}
+	
+	public StreamScope getScope(){
+		return configuration.getScope(Thread.currentThread().getContextClassLoader());
 	}
 
 	/**

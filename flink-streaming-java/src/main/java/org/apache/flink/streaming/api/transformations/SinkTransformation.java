@@ -58,7 +58,7 @@ public class SinkTransformation<T> extends StreamTransformation<Object> {
 			String name,
 			StreamSink<T> operator,
 			int parallelism) {
-		super(name, TypeExtractor.getForClass(Object.class), parallelism);
+		super(name, TypeExtractor.getForClass(Object.class), parallelism, input.getScope());
 		this.input = input;
 		this.operator = operator;
 	}
@@ -111,7 +111,7 @@ public class SinkTransformation<T> extends StreamTransformation<Object> {
 		result.addAll(input.getTransitivePredecessors());
 		return result;
 	}
-
+	
 	@Override
 	public final void setChainingStrategy(ChainingStrategy strategy) {
 		operator.setChainingStrategy(strategy);

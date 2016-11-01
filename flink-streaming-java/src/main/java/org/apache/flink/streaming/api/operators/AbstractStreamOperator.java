@@ -151,6 +151,7 @@ public abstract class AbstractStreamOperator<OUT>
 	private long combinedWatermark = Long.MIN_VALUE;
 	private long input1Watermark = Long.MIN_VALUE;
 	private long input2Watermark = Long.MIN_VALUE;
+	int scopeLevel;
 
 	// ------------------------------------------------------------------------
 	//  Life Cycle
@@ -187,7 +188,7 @@ public abstract class AbstractStreamOperator<OUT>
 	public MetricGroup getMetricGroup() {
 		return metrics;
 	}
-
+	
 	@Override
 	public final void initializeState(OperatorStateHandles stateHandles) throws Exception {
 
