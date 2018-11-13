@@ -47,7 +47,6 @@ import org.apache.flink.streaming.runtime.streamstatus.StatusWatermarkValve;
 import org.apache.flink.streaming.runtime.streamstatus.StreamStatus;
 import org.apache.flink.streaming.runtime.streamstatus.StreamStatusMaintainer;
 import org.apache.flink.streaming.runtime.tasks.TwoInputStreamTask;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -141,6 +140,12 @@ public class StreamTwoInputProcessor<IN1, IN2> {
 			TaskIOMetricGroup metrics,
 			WatermarkGauge input1WatermarkGauge,
 			WatermarkGauge input2WatermarkGauge) throws IOException {
+		
+		// fixme
+//		final InputGate inputGate = 
+//			(streamOperator instanceof WindowMultiPassOperator) ?
+//			InputGateUtil.createInputGatePrioritized(inputGates1, inputGates2)
+//			: InputGateUtil.createInputGate(inputGates1, inputGates2);
 
 		final InputGate inputGate = InputGateUtil.createInputGate(inputGates1, inputGates2);
 

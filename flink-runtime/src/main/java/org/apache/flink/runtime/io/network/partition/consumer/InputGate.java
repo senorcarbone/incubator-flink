@@ -94,4 +94,6 @@ public interface InputGate {
 	void registerListener(InputGateListener listener);
 
 	int getPageSize();
+	
+	int getPriority();
 }
