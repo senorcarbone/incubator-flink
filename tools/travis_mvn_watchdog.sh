@@ -53,61 +53,24 @@ flink-optimizer,\
 flink-runtime,\
 flink-runtime-web,\
 flink-scala,\
-flink-scala-shell,\
 flink-streaming-java,\
 flink-streaming-scala"
 
 MODULES_LIBRARIES="\
-flink-contrib/flink-storm,\
-flink-contrib/flink-storm-examples,\
-flink-libraries/flink-cep,\
-flink-libraries/flink-cep-scala,\
-flink-libraries/flink-gelly,\
-flink-libraries/flink-gelly-scala,\
-flink-libraries/flink-gelly-examples,\
-flink-libraries/flink-ml,\
-flink-libraries/flink-python,\
-flink-libraries/flink-streaming-python,\
-flink-libraries/flink-table,\
 flink-queryable-state/flink-queryable-state-runtime,\
 flink-queryable-state/flink-queryable-state-client-java"
 
 MODULES_CONNECTORS="\
-flink-contrib/flink-connector-wikiedits,\
-flink-filesystems/flink-hadoop-fs,\
-flink-filesystems/flink-mapr-fs,\
-flink-filesystems/flink-s3-fs-hadoop,\
-flink-filesystems/flink-s3-fs-presto,\
 flink-formats/flink-avro,\
-flink-connectors/flink-hbase,\
-flink-connectors/flink-hcatalog,\
-flink-connectors/flink-hadoop-compatibility,\
-flink-connectors/flink-jdbc,\
-flink-connectors/flink-connector-cassandra,\
-flink-connectors/flink-connector-elasticsearch,\
-flink-connectors/flink-connector-elasticsearch2,\
-flink-connectors/flink-connector-elasticsearch5,\
-flink-connectors/flink-connector-elasticsearch-base,\
 flink-connectors/flink-connector-filesystem,\
 flink-connectors/flink-connector-kafka-0.8,\
 flink-connectors/flink-connector-kafka-0.9,\
 flink-connectors/flink-connector-kafka-0.10,\
 flink-connectors/flink-connector-kafka-0.11,\
-flink-connectors/flink-connector-kafka-base,\
-flink-connectors/flink-connector-nifi,\
-flink-connectors/flink-connector-rabbitmq,\
-flink-connectors/flink-connector-twitter"
+flink-connectors/flink-connector-kafka-base"
 
 MODULES_TESTS="\
 flink-tests"
-
-if [[ $PROFILE == *"include-kinesis"* ]]; then
-	case $TEST in
-		(connectors)
-			MODULES_CONNECTORS="$MODULES_CONNECTORS,flink-connectors/flink-connector-kinesis"
-		;;
-	esac
-fi
 
 MVN_COMPILE_MODULES=""
 MVN_COMPILE_OPTIONS=""
@@ -159,7 +122,7 @@ esac
 # Flink, which however should all be built locally. see FLINK-7230
 MVN_LOGGING_OPTIONS="-Dlog.dir=${ARTIFACTS_DIR} -Dlog4j.configuration=file://$LOG4J_PROPERTIES -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
 MVN_COMMON_OPTIONS="-nsu -Dflink.forkCount=2 -Dflink.forkCountTestPackage=2 -B $MVN_LOGGING_OPTIONS"
-MVN_COMPILE_OPTIONS="$MVN_COMPILE_OPTIONS -DskipTests"
+MVN_COMPILE_OPTIONS="$MVN_COMPILE_OPTIONS -DskipTests -Dcheckstyle.skip -Drat.skip=true -Djapicmp.skip=true"
 
 MVN_COMPILE="mvn $MVN_COMMON_OPTIONS $MVN_COMPILE_OPTIONS $PROFILE $MVN_COMPILE_MODULES clean install"
 MVN_TEST="mvn $MVN_COMMON_OPTIONS $MVN_TEST_OPTIONS $PROFILE $MVN_TEST_MODULES verify"
