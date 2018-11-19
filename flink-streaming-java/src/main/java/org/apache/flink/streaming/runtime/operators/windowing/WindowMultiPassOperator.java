@@ -119,7 +119,6 @@ public class WindowMultiPassOperator<K, IN1, IN2, ACC2, R, S, W2 extends Window>
 				loopFunction.entry(new LoopContext(mark.getContext(), 0, entry.getKey()), entry.getValue(), collector);
 			}
 			entryBuffer.remove(mark.getContext()); //entry is done for that context
-			entryBuffer.remove(mark.getContext()); //entry is done for that context
 		}
 		output.emitWatermark(mark);
 		lastLocalEndPerContext.put(mark.getContext(), System.currentTimeMillis());
