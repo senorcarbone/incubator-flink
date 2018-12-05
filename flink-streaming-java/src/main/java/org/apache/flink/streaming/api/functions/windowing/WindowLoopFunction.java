@@ -2,13 +2,11 @@ package org.apache.flink.streaming.api.functions.windowing;
 
 import org.apache.flink.annotation.Public;
 import org.apache.flink.api.common.functions.Function;
-import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.streaming.api.windowing.windows.Window;
 import org.apache.flink.types.Either;
 import org.apache.flink.util.Collector;
 
 import java.io.Serializable;
-import java.util.List;
 
 /**
  * Contains User Defined Functions for a bulk synchronous iteration on WindowedStreams on input and feedback:
@@ -35,5 +33,5 @@ import java.util.List;
 public interface WindowLoopFunction<IN,F_IN,OUT,R,KEY,W_IN extends Window> extends Function, Serializable {
 	void entry(LoopContext<KEY> ctx, Iterable<IN> input, Collector<Either<R,OUT>> out) throws Exception;
 	void step(LoopContext<KEY> ctx, Iterable<F_IN> input, Collector<Either<R,OUT>> out) throws Exception;
-	void onTermination(List<Long> timeContext, long superstep, Collector<Either<R,OUT>> out) throws Exception;
+	void onTermination(LoopContext<KEY> ctx, Collector<Either<R,OUT>> out) throws Exception;
 }

@@ -116,7 +116,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, ACC2, R, S, W2 extends Window>
 		if(entryBuffer.containsKey(mark.getContext())){
 			for(Map.Entry<K, List<IN1>> entry : entryBuffer.get(mark.getContext()).entrySet()){
 				collector.setAbsoluteTimestamp(mark.getContext(),0);
-				loopFunction.entry(new LoopContext(mark.getContext(), 0, entry.getKey()), entry.getValue(), collector);
+				loopFunction.entry(new LoopContext(mark.getContext(), 0, entry.getKey(), getRuntimeContext()), entry.getValue(), collector);
 			}
 			entryBuffer.remove(mark.getContext()); //entry is done for that context
 		}
@@ -130,7 +130,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, ACC2, R, S, W2 extends Window>
 		if(mark.iterationDone()) {
 			activeIterations.remove(mark.getContext());
 			if(mark.getContext().get(mark.getContext().size()-1) != Long.MAX_VALUE ) {
-				loopFunction.onTermination(mark.getContext(), mark.getTimestamp(), collector);
+				loopFunction.onTermination(new LoopContext(mark.getContext(), mark.getTimestamp(), null, getRuntimeContext()), collector);
 			}
 			winOp2.processWatermark(new Watermark(mark.getContext(), Long.MAX_VALUE, false, mark.iterationOnly()));
 		} else {

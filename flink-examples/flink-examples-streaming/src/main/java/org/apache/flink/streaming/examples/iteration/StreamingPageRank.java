@@ -1,7 +1,12 @@
 package org.apache.flink.streaming.examples.iteration;
 
 import com.google.common.collect.Lists;
+import org.apache.flink.api.common.state.ListStateDescriptor;
+import org.apache.flink.api.common.state.MapState;
+import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.common.typeutils.base.DoubleSerializer;
+import org.apache.flink.api.common.typeutils.base.LongSerializer;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -52,7 +57,7 @@ public class StreamingPageRank {
 	 */
 	public StreamingPageRank(int numWindows, long windSize, int parallelism, String inputDir, String outputDir) throws Exception {
 		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-		env.setParallelism(8);
+		env.setParallelism(2);
 
 		DataStream<Tuple2<Long, List<Long>>> inputStream = env.addSource(new PageRankSampleSrc());
 		WindowedStream<Tuple2<Long, List<Long>>, Long, TimeWindow> winStream =
@@ -145,7 +150,10 @@ public class StreamingPageRank {
 		new Tuple3<>(2l, (List<Long>) Lists.newArrayList(3l), 3000l),
 		new Tuple3<>(1l, (List<Long>) Lists.newArrayList(3l), 3000l),
 		new Tuple3<>(4l, (List<Long>) Lists.newArrayList(1l), 4000l),
-		new Tuple3<>(1l, (List<Long>) Lists.newArrayList(4l), 4000l)
+		new Tuple3<>(1l, (List<Long>) Lists.newArrayList(4l), 4000l),
+		new Tuple3<>(1l, (List<Long>) Lists.newArrayList(2l), 4000l),
+		new Tuple3<>(3l, (List<Long>) Lists.newArrayList(1l), 4000l),
+		new Tuple3<>(5l, (List<Long>) Lists.newArrayList(1l), 5000l)
 
 	);
 
@@ -212,18 +220,29 @@ public class StreamingPageRank {
 		Map<List<Long>, Map<Long, List<Long>>> neighboursPerContext = new HashMap<>();
 		Map<List<Long>, Map<Long, Double>> pageRanksPerContext = new HashMap<>();
 
+		MapState<Long, List<Long>> persistentGraph = null;
+		MapState<Long, Double> persistentRanks = null;
+		
+		private final ListStateDescriptor<Long> listStateDesc =
+			new ListStateDescriptor<>("test", BasicTypeInfo.LONG_TYPE_INFO);
+		
 		public List<Long> getNeighbours(List<Long> timeContext, Long pageID) {
 			return neighboursPerContext.get(timeContext).get(pageID);
 		}
 
 		@Override
-		public void entry(LoopContext<Long> ctx, Iterable<Tuple2<Long, List<Long>>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) {
-//			System.err.println("Entry Called for "+ ctx);
+		public void entry(LoopContext<Long> ctx, Iterable<Tuple2<Long, List<Long>>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) throws Exception {
+			
+			checkAndInitState(ctx);
+			
+			System.err.println("[state]:: "+ctx.getRuntimeContext().getIndexOfThisSubtask()+", ctx:"+ctx+" NEW ITERATION - EXISTING STATE Keys:"+ persistentGraph.keys() + ", Ranks:"+persistentRanks.keys());
+			
 			Map<Long, List<Long>> adjacencyList = neighboursPerContext.get(ctx.getContext());
+			
 			if (adjacencyList == null) {
 				adjacencyList = new HashMap<>();
 				neighboursPerContext.put(ctx.getContext(), adjacencyList);
-			}
+			}                                                      	
 
 			Map<Long, Double> pageRanks = pageRanksPerContext.get(ctx.getContext());
 			if (pageRanks == null) {
@@ -241,6 +260,16 @@ public class StreamingPageRank {
 			collector.collect(new Either.Left(new Tuple2<>(ctx.getKey(), 1.0)));
 
 			System.err.println("ENTRY (" + ctx.getKey() + "):: " + Arrays.toString(ctx.getContext().toArray()) + " -> " + adjacencyList);
+		}
+
+		private void checkAndInitState(LoopContext<Long> ctx) {
+			if(!listStateDesc.isSerializerInitialized()){
+				listStateDesc.initializeSerializerUnlessSet(ctx.getRuntimeContext().getExecutionConfig());
+			}
+			if(persistentGraph == null){
+				persistentGraph = ctx.getRuntimeContext().getMapState(new MapStateDescriptor<>("graph", LongSerializer.INSTANCE, listStateDesc.getSerializer()));
+				persistentRanks = ctx.getRuntimeContext().getMapState(new MapStateDescriptor<>("ranks", LongSerializer.INSTANCE, DoubleSerializer.INSTANCE));	
+			}
 		}
 
 		@Override
@@ -269,18 +298,33 @@ public class StreamingPageRank {
 					collector.collect(new Either.Left(new Tuple2<>(neighbourID, rankToDistribute)));
 				}
 			}
-			System.err.println("POST-STEP:: " + Arrays.toString(ctx.getContext().toArray()) + " (" + ctx.getSuperstep() + ")" + pageRanksPerContext.get(ctx.getContext()));
+			System.err.println("POST-STEP:: ,ctx:"+ctx+ " -- "+ pageRanksPerContext.get(ctx.getContext()));
 		}
 
 		@Override
-		public void onTermination(List<Long> timeContext, long superstep, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> out) {
-			Map<Long, Double> vertexStates = pageRanksPerContext.get(timeContext);
-			System.err.println("ON TERMINATION:: " + timeContext + "::" + vertexStates);
+		public void onTermination(LoopContext<Long> ctx, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> out) throws Exception {
+			Map<Long, Double> vertexStates = pageRanksPerContext.get(ctx.getContext());
+			System.err.println("ON TERMINATION:: ctx: " + ctx + " :: " + vertexStates);
+			
+			
 			if(vertexStates != null){
-				for (Map.Entry<Long, Double> rank : pageRanksPerContext.get(timeContext).entrySet()) {
+				for (Map.Entry<Long, Double> rank : pageRanksPerContext.get(ctx.getContext()).entrySet()) {
 					out.collect(new Either.Right(new Tuple2(rank.getKey(), rank.getValue())));
 				}	
 			}
+
+			//TEST - BACK UP Snapshot to persistent state
+			checkAndInitState(ctx);
+			
+			if(neighboursPerContext.containsKey(ctx.getContext())){
+				System.err.println("[state]:: "+ctx.getRuntimeContext().getIndexOfThisSubtask()+" , ctx:"+ctx+" UPDATING Persistent State");
+				persistentGraph.putAll(neighboursPerContext.get(ctx.getContext()));
+				persistentRanks.putAll(pageRanksPerContext.get(ctx.getContext()));
+
+				System.err.println("[state]:: "+ctx.getRuntimeContext().getIndexOfThisSubtask()+" , ctx:"+ctx+" Current State is #Vertices:"+ persistentGraph.keys() + ", #Ranks:"+persistentRanks.values());
+			}
+
+			
 		}
 	}
 }
