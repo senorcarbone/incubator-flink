@@ -195,13 +195,13 @@ public class StreamingConnectedComponents {
 		}
 
 		@Override
-		public void onTermination(List<Long> timeContext, long superstep, Collector<Either<Tuple2<Long, Long>, Tuple2<Long, Long>>> out) {
-			Map<Long, Long> vertexStates = componentIdsPerContext.get(timeContext);
-			System.err.println("ON TERMINATION:: " + timeContext + "::" + vertexStates);
+		public void onTermination(LoopContext<Long> ctx, Collector<Either<Tuple2<Long, Long>, Tuple2<Long, Long>>> out) throws Exception {
+			Map<Long, Long> vertexStates = componentIdsPerContext.get(ctx.getContext());
+			System.err.println("ON TERMINATION:: " + ctx + "::" + vertexStates);
 			if(vertexStates != null){
-				for (Map.Entry<Long, Long> compId : componentIdsPerContext.get(timeContext).entrySet()) {
+				for (Map.Entry<Long, Long> compId : componentIdsPerContext.get(ctx.getContext()).entrySet()) {
 					out.collect(new Either.Right(new Tuple2(compId.getKey(), compId.getValue())));
-				}	
+				}
 			}
 		}
 	}
