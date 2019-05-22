@@ -234,15 +234,15 @@ public class StreamingPageRankExample {
 		public void entry(LoopContext<Long> ctx, Iterable<Tuple2<Long, List<Long>>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) throws Exception {
 			
 			checkAndInitState(ctx);
-			
+
 			System.err.println("[state]:: "+ctx.getRuntimeContext().getIndexOfThisSubtask()+", ctx:"+ctx+" NEW ITERATION - EXISTING STATE Keys:"+ persistentGraph.keys() + ", Ranks:"+persistentRanks.keys());
-			
+
 			Map<Long, List<Long>> adjacencyList = neighboursPerContext.get(ctx.getContext());
-			
+
 			if (adjacencyList == null) {
 				adjacencyList = new HashMap<>();
 				neighboursPerContext.put(ctx.getContext(), adjacencyList);
-			}                                                      	
+			}
 
 			Map<Long, Double> pageRanks = pageRanksPerContext.get(ctx.getContext());
 			if (pageRanks == null) {
