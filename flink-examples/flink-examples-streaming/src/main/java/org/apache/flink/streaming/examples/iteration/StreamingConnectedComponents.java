@@ -51,6 +51,8 @@ public class StreamingConnectedComponents {
 				@Override
 				public Long getKey(Tuple2<Long, List<Long>> value) throws Exception {
 					return value.f0;
+					
+					
 				}
 			}).timeWindow(Time.milliseconds(1000));
 		

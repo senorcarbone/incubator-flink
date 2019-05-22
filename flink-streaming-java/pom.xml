@@ -35,6 +35,16 @@ under the License.
 	<packaging>jar</packaging>
 
 	<dependencies>
+		
+		<!-- time-killer dependencies -->
+		
+		<!--<dependency>-->
+			<!--<groupId>org.aeonbits.owner</groupId>-->
+			<!--<artifactId>owner</artifactId>-->
+			<!--<version>1.0.10</version>-->
+		<!--</dependency>-->
+		
+		
 
 		<!-- core dependencies -->
 

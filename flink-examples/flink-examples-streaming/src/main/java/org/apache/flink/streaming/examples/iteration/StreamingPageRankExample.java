@@ -32,7 +32,7 @@ import java.io.FileReader;
 import java.io.Serializable;
 import java.util.*;
 
-public class StreamingPageRank {
+public class StreamingPageRankExample {
 	StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
 	public static void main(String[] args) throws Exception {
@@ -42,7 +42,7 @@ public class StreamingPageRank {
 		String outputDir = args[3];
 		String inputDir = args.length > 4 ? args[4] : "";
 
-		StreamingPageRank example = new StreamingPageRank(numWindows, windSize, parallelism, inputDir, outputDir);
+		StreamingPageRankExample example = new StreamingPageRankExample(numWindows, windSize, parallelism, inputDir, outputDir);
 		example.run();
 	}
 
@@ -55,7 +55,7 @@ public class StreamingPageRank {
 	 * @param parallelism
 	 * @throws Exception
 	 */
-	public StreamingPageRank(int numWindows, long windSize, int parallelism, String inputDir, String outputDir) throws Exception {
+	public StreamingPageRankExample(int numWindows, long windSize, int parallelism, String inputDir, String outputDir) throws Exception {
 		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 		env.setParallelism(2);
 
@@ -298,7 +298,7 @@ public class StreamingPageRank {
 					collector.collect(new Either.Left(new Tuple2<>(neighbourID, rankToDistribute)));
 				}
 			}
-			System.err.println("POST-STEP:: ,ctx:"+ctx+ " -- "+ pageRanksPerContext.get(ctx.getContext()));
+			System.err.println("POST-STEP:: ,ctx:"+ctx+ " -- "+ pageRanksPerContext.get(ctx.getContext()));         
 		}
 
 		@Override

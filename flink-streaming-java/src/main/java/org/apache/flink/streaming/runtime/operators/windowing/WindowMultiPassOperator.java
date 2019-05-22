@@ -23,7 +23,7 @@ import java.io.Serializable;
 import java.util.*;
 
 @Internal
-public class WindowMultiPassOperator<K, IN1, IN2, ACC2, R, S, W2 extends Window>
+public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 	extends AbstractStreamOperator<Either<R,S>>
 	implements TwoInputStreamOperator<IN1, IN2, Either<R,S>>, Serializable {
 
@@ -31,7 +31,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, ACC2, R, S, W2 extends Window>
 	private final KeySelector<IN1, K> entryKeying;
 	private final KeySelector<IN2, K> feedbackKeying;
 	
-	WindowOperator<K, IN2, ACC2, Either<R,S>, W2> winOp2;
+	private WindowOperator<K, IN2, ?, Either<R,S>, W2> superstepWindow;
 	
 	//UDF
 	WindowLoopFunction loopFunction;
@@ -47,10 +47,10 @@ public class WindowMultiPassOperator<K, IN1, IN2, ACC2, R, S, W2 extends Window>
 	private Map<List<Long>, Long> lastWinStartPerContext = new HashMap<>();
 	private Map<List<Long>, Long> lastLocalEndPerContext = new HashMap<>();
 
-	public WindowMultiPassOperator(KeySelector<IN1,K> entryKeySelector, KeySelector<IN2,K> feedbackKeySelector, WindowOperator winOp2, WindowLoopFunction loopFunction) {
+	public WindowMultiPassOperator(KeySelector<IN1,K> entryKeySelector, KeySelector<IN2,K> feedbackKeySelector, WindowOperator superstepWindow, WindowLoopFunction loopFunction) {
 		this.entryKeying = entryKeySelector;
 		this.feedbackKeying = feedbackKeySelector;
-		this.winOp2 = winOp2;
+		this.superstepWindow = superstepWindow;
 		this.loopFunction = loopFunction;
 	}
 
@@ -61,7 +61,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, ACC2, R, S, W2 extends Window>
 		// setup() both with own output
 		StreamConfig config2 = new StreamConfig(config.getConfiguration().clone());
 		config2.setOperatorName("WinOp2");
-		winOp2.setup(containingTask, config2, output);
+		superstepWindow.setup(containingTask, config2, output);
 		this.containingTask = containingTask;
 		this.entryBuffer = new HashMap<>();
 	}
@@ -69,21 +69,21 @@ public class WindowMultiPassOperator<K, IN1, IN2, ACC2, R, S, W2 extends Window>
 	@Override
 	public final void open() throws Exception {
 		collector = new TimestampedCollector<>(output);
-		winOp2.getOperatorConfig().setStateKeySerializer(config.getStateKeySerializer(containingTask.getUserCodeClassLoader()));
+		superstepWindow.getOperatorConfig().setStateKeySerializer(config.getStateKeySerializer(containingTask.getUserCodeClassLoader()));
 		super.open();
-		winOp2.open();
+		superstepWindow.open();
 	}
 
 	@Override
 	public final void close() throws Exception {
 		super.close();
-		winOp2.close();
+		superstepWindow.close();
 	}
 
 	@Override
 	public void dispose() throws Exception {
 		super.dispose();
-		winOp2.dispose();
+		superstepWindow.dispose();
 	}
 
 	public void processElement1(StreamRecord<IN1> element) throws Exception {
@@ -104,9 +104,9 @@ public class WindowMultiPassOperator<K, IN1, IN2, ACC2, R, S, W2 extends Window>
 	
 	public void processElement2(StreamRecord<IN2> element) throws Exception {
 		logger.info(getRuntimeContext().getIndexOfThisSubtask() +":: TWOWIN Received from FEEDBACK - "+ element);
-		winOp2.setCurrentKey(feedbackKeying.getKey(element.getValue()));
+		superstepWindow.setCurrentKey(feedbackKeying.getKey(element.getValue()));
 		if(activeIterations.contains(element.getProgressContext())) {
-			winOp2.processElement(element);
+			superstepWindow.processElement(element);
 		}
 	}
 	
@@ -132,9 +132,9 @@ public class WindowMultiPassOperator<K, IN1, IN2, ACC2, R, S, W2 extends Window>
 			if(mark.getContext().get(mark.getContext().size()-1) != Long.MAX_VALUE ) {
 				loopFunction.onTermination(new LoopContext(mark.getContext(), mark.getTimestamp(), null, getRuntimeContext()), collector);
 			}
-			winOp2.processWatermark(new Watermark(mark.getContext(), Long.MAX_VALUE, false, mark.iterationOnly()));
+			superstepWindow.processWatermark(new Watermark(mark.getContext(), Long.MAX_VALUE, false, mark.iterationOnly()));
 		} else {
-			winOp2.processWatermark(mark);
+			superstepWindow.processWatermark(mark);
 		}
 		lastLocalEndPerContext.put(mark.getContext(), System.currentTimeMillis());
 	}
@@ -142,7 +142,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, ACC2, R, S, W2 extends Window>
 	@Override
 	public void initializeState(StateInitializationContext context) throws Exception {
 		super.initializeState(context);
-		winOp2.initializeState();
+		superstepWindow.initializeState();
 	}
 
 	public void processLatencyMarker1(LatencyMarker latencyMarker) throws Exception {}
