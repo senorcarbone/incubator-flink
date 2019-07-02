@@ -110,6 +110,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 		}
 	}
 	
+	//TODO add latch for consistent watermark processing 
 	public void processWatermark1(Watermark mark) throws Exception {
 		logger.info(getRuntimeContext().getIndexOfThisSubtask() +":: TWOWIN Received from IN - "+ mark);
 		lastWinStartPerContext.put(mark.getContext(), System.currentTimeMillis());
@@ -124,6 +125,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 		lastLocalEndPerContext.put(mark.getContext(), System.currentTimeMillis());
 	}
 	
+	//TODO what happens when no accessible context exists in that partition
 	public void processWatermark2(Watermark mark) throws Exception {
 		logger.info(getRuntimeContext().getIndexOfThisSubtask() +":: TWOWIN Received from FEEDBACK - "+ mark);
 		lastWinStartPerContext.put(mark.getContext(), System.currentTimeMillis());

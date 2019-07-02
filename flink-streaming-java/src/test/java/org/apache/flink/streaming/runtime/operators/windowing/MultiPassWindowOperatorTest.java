@@ -41,7 +41,6 @@ import org.apache.flink.streaming.api.windowing.assigners.WindowAssigner;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.triggers.EventTimeTrigger;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
-import org.apache.flink.streaming.runtime.io.ProgressTrackingUtils;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalIterableWindowFunction;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.KeyedTwoInputStreamOperatorTestHarness;
@@ -51,6 +50,8 @@ import org.apache.flink.util.Collector;
 import org.apache.flink.util.TestLogger;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -83,27 +84,30 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 
 				@Override
 				public void entry(LoopContext<String> ctx, Iterable<Tuple2<String, Integer>> input, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
-
 					System.err.println("ENTRY CALLED for key " + ctx.getKey());
-
 					checkAndInitState(ctx);
-
 					for (Tuple2<String, Integer> val : input) {
 						count.put(ctx.getKey(), (count.contains(ctx.getKey()) ? count.get(ctx.getKey()) : 0) + val.f1);
 					}
-
 					out.collect(Either.Left(new Tuple2<>(ctx.getKey(), count.get(ctx.getKey()))));
 				}
 
 				@Override
 				public void step(LoopContext<String> ctx, Iterable<Tuple2<String, Integer>> input, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
-					System.err.println("STEP CALLED");
-
+					System.err.println("STEP "+ctx.getSuperstep()+" INVOKED for key "+ctx.getKey());
+					count.put(ctx.getKey(),count.get(ctx.getKey()) - 1);
+					Integer currentVal = count.get(ctx.getKey());
+					if(currentVal > 0){
+						out.collect(Either.Left(new Tuple2<>(ctx.getKey(), currentVal)));
+					}
 				}
 
 				@Override
 				public void onTermination(LoopContext<String> ctx, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
-					System.err.println("TERMINATION CALLED");
+					System.err.println("TERMINATION called ");
+					for (String entry : count.keys()) {
+						out.collect(Either.Right(new Tuple2<>(entry, Integer.MAX_VALUE)));
+					}
 				}
 
 				private void checkAndInitState(LoopContext ctx) {
@@ -135,56 +139,59 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 		//TEST MULTIPASS
 		TwoInputStreamOperatorTestHarness testHarness = createTestHarness(operator);
 		testHarness.setup(new EitherSerializer<>(STRING_INT_TUPLE.createSerializer(config), STRING_INT_TUPLE.createSerializer(config)));
-
+		
 		ConcurrentLinkedQueue<Object> expectedOutput = new ConcurrentLinkedQueue<>();
-		ConcurrentLinkedQueue<Object> finalOutput = new ConcurrentLinkedQueue<>();
+		ConcurrentLinkedQueue<Object> history = new ConcurrentLinkedQueue<>();
 		
 		testHarness.open();
-
-		//STEP TEST
-		testHarness.processElement1(new StreamRecord<>(new Tuple2<>("1", 1), 3999));
-		testHarness.processElement1(new StreamRecord<>(new Tuple2<>("2", 1), 3999));
-		testHarness.processElement1(new StreamRecord<>(new Tuple2<>("2", 1), 3999));
-		testHarness.processWatermark1(new Watermark(3999));
-
-		System.err.println(testHarness.getOutput());
-
-		//Test contents here
 		
-		progressStep(testHarness, finalOutput);
-
-		//STEP TESTS
-
+		//Entry
+		List<Long> context = new ArrayList<>();
+		context.add(3999l);
+		testHarness.processElement1(new StreamRecord<>(new Tuple2<>("1", 1), context, 0));
+		testHarness.processElement1(new StreamRecord<>(new Tuple2<>("2", 1), context, 0));
+		testHarness.processElement1(new StreamRecord<>(new Tuple2<>("2", 1), context, 0));
+		testHarness.processWatermark1(new Watermark(context,0));
 		System.err.println(testHarness.getOutput());
-		
-		//TODO
-
-		//FINALIZE TESTS
-
-		//TODO
+		//STEP 1
+		progressStep(testHarness, history);
+		System.err.println(testHarness.getOutput());
+		//STEP 2
+		progressStep(testHarness, history);
+		System.err.println(testHarness.getOutput());
+		//FINALIZE STEP
+		progressStep(testHarness, history);
+		//CLEANUP
+		progressStep(testHarness, history);
 		cleanup(testHarness.getOutput());
-
-//		TestHarnessUtil.assertOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new Tuple2ResultSortComparator());
-//		testHarness.close();
-
-		// we close once in the rest...
-
-		//TEST CLOSE
-		//TODO
-//		Assert.assertEquals("Close was not called.", 2, closeCalled.get());
+		testHarness.close();
+		
+		System.err.println(history);
 	}
 
-	private void progressStep(TwoInputStreamOperatorTestHarness testHarness, ConcurrentLinkedQueue<Object> finalOutput) throws Exception {
-		for (Object o : testHarness.getOutput()) {
-			if (o instanceof Watermark) {
-				//TODO mock watermark handling 
-			} else {
-				StreamRecord<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out = (StreamRecord<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>>) o;
-				if (out.getValue().isLeft()) {
-					testHarness.processElement2(ProgressTrackingUtils.adaptTimestamp(new StreamRecord<>(out.getValue().left()), 2).asRecord());
-				}
-				else{
-					finalOutput.add(out);
+	private void progressStep(TwoInputStreamOperatorTestHarness testHarness,ConcurrentLinkedQueue<Object> history) throws Exception {
+		history.addAll(testHarness.getOutput());
+
+		int evtNum = testHarness.getOutput().size();
+		if(evtNum == 1){
+			Watermark last = new Watermark((Watermark) testHarness.getOutput().poll());
+			last.setIterationDone(true);
+			last.forwardTimestamp();
+			testHarness.processWatermark2(last);
+		}
+		else{
+			for(int evtCnt = 0 ; evtCnt < evtNum; evtCnt++) {
+				Object o = testHarness.getOutput().poll();
+				if (o instanceof Watermark) {
+					Watermark next = new Watermark((Watermark) o);
+					next.forwardTimestamp();
+					testHarness.processWatermark2(next);
+				} else {
+					StreamRecord<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out = (StreamRecord<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>>) o;
+					if (out.getValue().isLeft()) {
+						out.forwardTimestamp();
+						testHarness.processElement2(new StreamRecord<>(out.getValue().left(), out.getProgressContext(), out.getTimestamp()));
+					}
 				}
 			}
 		}
