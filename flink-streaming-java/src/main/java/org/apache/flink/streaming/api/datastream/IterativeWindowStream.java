@@ -50,11 +50,12 @@ import java.util.Collections;
  * @param <K>
  * @param <R>
  * @param <S>
+ * @param <S> The state of the iterative window stream
  */
 @Public
-public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S> {
+public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S, STATE> {
 	private DataStream<S> outStream;
-	public IterativeWindowStream(WindowedStream<IN, K, IN_W> input, WindowLoopFunction<IN, F, S, R, K, IN_W> coWinTerm, 
+	public IterativeWindowStream(WindowedStream<IN, K, IN_W> input, WindowLoopFunction<IN, F, S, R, K, STATE> coWinTerm, 
 		StreamIterationTermination terminationStrategy, 
 		FeedbackBuilder<R, K> feedbackBuilder, 
 		TypeInformation<R> feedbackType, long waitTime) throws Exception {
@@ -130,7 +131,7 @@ public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S> {
 	}
 
 	public TwoInputTransformation<IN, F, Either<R, S>> getTransformation(
-		final WindowLoopFunction<IN, F, S, R, K, IN_W> loopFunction,
+		final WindowLoopFunction<IN, F, S, R, K, STATE> loopFunction,
 		WindowedStream<IN, K, IN_W> windowedStream1,
 		WindowedStream<F, K, TimeWindow> windowedStream2,
 		KeySelector<R, K> feedbackSelector, 
@@ -140,7 +141,7 @@ public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S> {
 		TypeInformation<Either<R, S>> eitherTypeInfo = new EitherTypeInfo<>(intermediateFeedbackTypeInfo, outTypeInfo);
 		
 		Tuple2<String, WindowOperator> stepDiscretizer =
-			getWindowOperator(windowedStream2, new WrappedWindowFunction2<>(loopFunction));                                         
+			getWindowOperator(windowedStream2, new StepWindowFunction<>(loopFunction));                                         
 
 		String opName = "WindowMultiPass(" + stepDiscretizer.f0 + ")"; 
 		WindowMultiPassOperator combinedOperator = new WindowMultiPassOperator(windowedStream1.getInput().getKeySelector(),feedbackSelector, stepDiscretizer.f1, loopFunction);
@@ -213,14 +214,20 @@ public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S> {
 	}
 	
 
-	private static class WrappedWindowFunction2<IN, OUT, K, W extends TimeWindow> extends RichWindowFunction<IN,OUT,K,W> {
+	public static class StepWindowFunction<IN, OUT, K, W extends TimeWindow> extends RichWindowFunction<IN,OUT,K,W> {
 
 		WindowLoopFunction coWinTerm;
+		private SharedLoopContext sharedLoopContext;
 
-		public WrappedWindowFunction2(WindowLoopFunction coWinTerm) {
+		public void setSharedLoopContext(SharedLoopContext sharedLoopContext) {
+			this.sharedLoopContext = sharedLoopContext;
+		}
+
+		public StepWindowFunction(WindowLoopFunction coWinTerm) {
 			this.coWinTerm = coWinTerm;
 		}
 
+		//TODO configure state for current window
 		public void apply(K key, W window, Iterable<IN> input, Collector<OUT> out) throws Exception {
 			coWinTerm.step(new LoopContext(window.getTimeContext(), window.getEnd(), key, (StreamingRuntimeContext) getRuntimeContext()), input, out);
 		}

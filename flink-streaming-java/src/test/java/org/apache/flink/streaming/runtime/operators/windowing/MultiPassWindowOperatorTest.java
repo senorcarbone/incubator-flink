@@ -30,10 +30,9 @@ import org.apache.flink.api.common.typeutils.base.StringSerializer;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.runtime.EitherSerializer;
+import org.apache.flink.streaming.api.datastream.IterativeWindowStream;
 import org.apache.flink.streaming.api.functions.windowing.LoopContext;
-import org.apache.flink.streaming.api.functions.windowing.RichWindowFunction;
 import org.apache.flink.streaming.api.functions.windowing.WindowLoopFunction;
-import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.api.operators.TwoInputStreamOperator;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
@@ -50,8 +49,7 @@ import org.apache.flink.util.Collector;
 import org.apache.flink.util.TestLogger;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -74,47 +72,66 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 
 		closeCalled.set(0);
 
-		WindowLoopFunction<Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, String, TimeWindow> loopFun =
-			new WindowLoopFunction<Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, String, TimeWindow>() {
+		WindowLoopFunction<Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, String, Integer> loopFun =
+			new WindowLoopFunction<Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, String, Integer>() {
 
-				private MapState<String, Integer> count;
+				private MapState<String, Integer> persistentCounts;
+				private Map<Long, Map<String, Integer>> localCounts;
 
 				private final MapStateDescriptor<String, Integer> mapStateDesc =
 					new MapStateDescriptor<>("counts", StringSerializer.INSTANCE, IntSerializer.INSTANCE);
-
+				
 				@Override
 				public void entry(LoopContext<String> ctx, Iterable<Tuple2<String, Integer>> input, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
-					System.err.println("ENTRY CALLED for key " + ctx.getKey());
+					System.err.println("ENTRY CALLED for key " + ctx.getKey() + " and context "+ctx.getContext());
 					checkAndInitState(ctx);
-					for (Tuple2<String, Integer> val : input) {
-						count.put(ctx.getKey(), (count.contains(ctx.getKey()) ? count.get(ctx.getKey()) : 0) + val.f1);
+					Long context = ctx.getContext().get(0);
+					if(!localCounts.containsKey(context)){
+						localCounts.put(context, new HashMap<>());
 					}
-					out.collect(Either.Left(new Tuple2<>(ctx.getKey(), count.get(ctx.getKey()))));
+					Map<String, Integer> windowCounts = localCounts.get(context);
+					windowCounts.put(ctx.getKey(), (windowCounts.containsKey(ctx.getKey()) ? windowCounts.get(ctx.getKey()) : 0));
+					for (Tuple2<String, Integer> val : input) {
+						windowCounts.put(ctx.getKey(), windowCounts.get(ctx.getKey()) + val.f1);
+					}
+					persistentCounts.put(ctx.getKey(), windowCounts.get(ctx.getKey()));
+					out.collect(Either.Left(new Tuple2<>(ctx.getKey(), windowCounts.get(ctx.getKey()))));
 				}
 
 				@Override
 				public void step(LoopContext<String> ctx, Iterable<Tuple2<String, Integer>> input, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
-					System.err.println("STEP "+ctx.getSuperstep()+" INVOKED for key "+ctx.getKey());
-					count.put(ctx.getKey(),count.get(ctx.getKey()) - 1);
-					Integer currentVal = count.get(ctx.getKey());
-					if(currentVal > 0){
+					System.err.println("STEP " + ctx.getSuperstep() + " INVOKED for key " + ctx.getKey() + " and context "+ctx.getContext());
+					Map<String, Integer> windowCounts = localCounts.get(ctx.getContext().get(0));
+					windowCounts.put(ctx.getKey(), windowCounts.get(ctx.getKey()) - 1);
+					Integer currentVal = windowCounts.get(ctx.getKey());
+					if (currentVal > 0) {
 						out.collect(Either.Left(new Tuple2<>(ctx.getKey(), currentVal)));
 					}
 				}
 
 				@Override
 				public void onTermination(LoopContext<String> ctx, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
-					System.err.println("TERMINATION called ");
-					for (String entry : count.keys()) {
-						out.collect(Either.Right(new Tuple2<>(entry, Integer.MAX_VALUE)));
+					System.err.println("TERMINATION called "+ " for context "+ctx.getContext());
+					for (String entry : localCounts.get(ctx.getContext().get(0)).keySet()) {
+						Tuple2<String, Integer> output = new Tuple2<>(entry, persistentCounts.get(entry));
+						System.err.println("OUT ["+ctx.getContext()+"] : "+output);
+						out.collect(Either.Right(output));
 					}
+				}
+
+				@Override
+				public TypeInformation<Integer> getStateType() {
+					return TypeInformation.of(Integer.class);
 				}
 
 				private void checkAndInitState(LoopContext ctx) {
 					if (!mapStateDesc.isSerializerInitialized()) {
 						mapStateDesc.initializeSerializerUnlessSet(ctx.getRuntimeContext().getExecutionConfig());
 					}
-					count = ctx.getRuntimeContext().getMapState(mapStateDesc);
+					persistentCounts = ctx.getRuntimeContext().getMapState(mapStateDesc);
+					if (localCounts == null) {
+						localCounts = new HashMap<>();
+					}
 				}
 			};
 
@@ -128,7 +145,7 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 			new TupleKeySelector(),
 			BasicTypeInfo.STRING_TYPE_INFO.createSerializer(config),
 			stateDesc,
-			new InternalIterableWindowFunction<>(new WrappedWindowFunction2<>(loopFun)),
+			new InternalIterableWindowFunction<>(new IterativeWindowStream.StepWindowFunction<>(loopFun)),
 			EventTimeTrigger.create(),
 			0,
 			null);
@@ -139,65 +156,73 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 		//TEST MULTIPASS
 		TwoInputStreamOperatorTestHarness testHarness = createTestHarness(operator);
 		testHarness.setup(new EitherSerializer<>(STRING_INT_TUPLE.createSerializer(config), STRING_INT_TUPLE.createSerializer(config)));
-		
+
 		ConcurrentLinkedQueue<Object> expectedOutput = new ConcurrentLinkedQueue<>();
 		ConcurrentLinkedQueue<Object> history = new ConcurrentLinkedQueue<>();
-		
+
 		testHarness.open();
-		
+
 		//Entry
 		List<Long> context = new ArrayList<>();
 		context.add(3999l);
 		testHarness.processElement1(new StreamRecord<>(new Tuple2<>("1", 1), context, 0));
 		testHarness.processElement1(new StreamRecord<>(new Tuple2<>("2", 1), context, 0));
 		testHarness.processElement1(new StreamRecord<>(new Tuple2<>("2", 1), context, 0));
-		testHarness.processWatermark1(new Watermark(context,0));
+		testHarness.processWatermark1(new Watermark(context, 0));
 		System.err.println(testHarness.getOutput());
 		//STEP 1
 		progressStep(testHarness, history);
 		System.err.println(testHarness.getOutput());
 		//STEP 2
+
+		//Overlapping Window Scenario
+		context.clear();
+		context.add(4999l);
+		testHarness.processElement1(new StreamRecord<>(new Tuple2<>("1", 1), context, 0));
+		testHarness.processElement1(new StreamRecord<>(new Tuple2<>("1", 1), context, 0));
+		testHarness.processElement1(new StreamRecord<>(new Tuple2<>("2", 1), context, 0));
+		testHarness.processWatermark1(new Watermark(context, 0));
+		//------
 		progressStep(testHarness, history);
 		System.err.println(testHarness.getOutput());
-		//FINALIZE STEP
-		progressStep(testHarness, history);
 		//CLEANUP
+		progressStep(testHarness, history);
 		progressStep(testHarness, history);
 		cleanup(testHarness.getOutput());
 		testHarness.close();
-		
+
 		System.err.println(history);
 	}
 
-	private void progressStep(TwoInputStreamOperatorTestHarness testHarness,ConcurrentLinkedQueue<Object> history) throws Exception {
-		history.addAll(testHarness.getOutput());
+	private static void progressStep(TwoInputStreamOperatorTestHarness testHarness, ConcurrentLinkedQueue<Object> history) throws Exception {
 
+		history.addAll(testHarness.getOutput());
+		Set<Long> pending = new HashSet<>();
 		int evtNum = testHarness.getOutput().size();
-		if(evtNum == 1){
-			Watermark last = new Watermark((Watermark) testHarness.getOutput().poll());
-			last.setIterationDone(true);
-			last.forwardTimestamp();
-			testHarness.processWatermark2(last);
-		}
-		else{
-			for(int evtCnt = 0 ; evtCnt < evtNum; evtCnt++) {
-				Object o = testHarness.getOutput().poll();
-				if (o instanceof Watermark) {
-					Watermark next = new Watermark((Watermark) o);
-					next.forwardTimestamp();
-					testHarness.processWatermark2(next);
-				} else {
-					StreamRecord<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out = (StreamRecord<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>>) o;
-					if (out.getValue().isLeft()) {
-						out.forwardTimestamp();
-						testHarness.processElement2(new StreamRecord<>(out.getValue().left(), out.getProgressContext(), out.getTimestamp()));
+		
+		for (int evtCnt = 0; evtCnt < evtNum; evtCnt++) {
+			Object o = testHarness.getOutput().poll();
+			if (o instanceof Watermark) {
+				Watermark next = new Watermark((Watermark) o);
+				next.forwardTimestamp();
+				if (!next.iterationDone()) {
+					if (!pending.contains(((Watermark) o).getContext().get(0))) {
+						next.setIterationDone(true);
 					}
+					testHarness.processWatermark2(next);
+				}
+			} else {
+				StreamRecord<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out = (StreamRecord<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>>) o;
+				if (out.getValue().isLeft()) {
+					pending.add(out.getProgressContext().get(0));
+					out.forwardTimestamp();
+					testHarness.processElement2(new StreamRecord<>(out.getValue().left(), out.getProgressContext(), out.getTimestamp()));
 				}
 			}
 		}
 	}
 
-	private void cleanup(ConcurrentLinkedQueue output) {
+	private static void cleanup(ConcurrentLinkedQueue output) {
 		while (!output.isEmpty()) {
 			output.poll();
 		}
@@ -216,19 +241,7 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 			BasicTypeInfo.STRING_TYPE_INFO);
 	}
 
-
-	private static class WrappedWindowFunction2<IN, OUT, K, W extends TimeWindow> extends RichWindowFunction<IN, OUT, K, W> {
-
-		WindowLoopFunction loopFunction;
-
-		public WrappedWindowFunction2(WindowLoopFunction loopFunction) {
-			this.loopFunction = loopFunction;
-		}
-
-		public void apply(K key, W window, Iterable<IN> input, Collector<OUT> out) throws Exception {
-			loopFunction.step(new LoopContext(window.getTimeContext(), window.getEnd(), key, (StreamingRuntimeContext) getRuntimeContext()), input, out);
-		}
-	}
+	
 
 	private static class TupleKeySelector implements KeySelector<Tuple2<String, Integer>, String> {
 		private static final long serialVersionUID = 1L;

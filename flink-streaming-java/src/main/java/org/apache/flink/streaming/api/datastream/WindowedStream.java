@@ -1544,7 +1544,7 @@ public class WindowedStream<T, K, W extends Window> {
 
 	public <OUT,F,R> DataStream<OUT> iterateSyncFor(
 		int iterationCount,
-		WindowLoopFunction<T,F,OUT,R,K,W> coWinTermFun,
+		WindowLoopFunction coWinTermFun,
 		FeedbackBuilder<R, K> feedbackBuilder,
 		TypeInformation<R> feedbackType) throws Exception {
 		return iterateSync(
@@ -1555,7 +1555,7 @@ public class WindowedStream<T, K, W extends Window> {
 	}
 
 	public <OUT,F,R> DataStream<OUT> iterateSyncDelta(
-		WindowLoopFunction<T,F,OUT,R,K,W> coWinTermFun,
+		WindowLoopFunction coWinTermFun,
 		FeedbackBuilder<R, K> feedbackBuilder,
 		TypeInformation<R> feedbackType) throws Exception {
 		return iterateSync(
@@ -1573,17 +1573,9 @@ public class WindowedStream<T, K, W extends Window> {
 	 * @param <R> 	The type of the feedback stream produced by the entry and step functions of
 	 *           	the CoWindowTerminateFunction
 	 * @param <F>	The type of the feedback after applying the feedbackBuilder function
-	 * @param CoWindowTerminateFunction contains entry, step and onTermination UDFs
-	 * @param StreamIterationTermination decides per iteration when it shall terminate - examples:
-	 *                                   StructuredIterationTermination ("for loop") or
-	 *                                   FixPointIterationTermination ("delta iteration")
-	 * @param FeedbackBuilder	takes a DataStream<R> and produces a KeyedStream<F,K> (same keying like
-	 *                          input windowed stream) for feedback
-	 * @param TypeInformation Type of the feedback coming out of entry/step of CoWindowTerminationFunction
-	 *                             - TODO can this be automated?
 	 * @return The output DataStream.
 	 */
-	public <OUT,F,R> DataStream<OUT> iterateSync(WindowLoopFunction<T,F,OUT,R,K,W> coWinTermFun,
+	public <OUT,F,R> DataStream<OUT> iterateSync(WindowLoopFunction coWinTermFun,
 								StreamIterationTermination terminationStrategy, 
 								FeedbackBuilder<R, K> feedbackBuilder, 
 								TypeInformation<R> feedbackType) throws Exception {
@@ -1604,7 +1596,7 @@ public class WindowedStream<T, K, W extends Window> {
 				new ScopeTransformation<>(preWindowedStream.getTransformation(), ScopeTransformation.SCOPE_TYPE.INGRESS)),
 				preWindowedStream.getKeySelector(), preWindowedStream.getKeyType()), getWindowAssigner());
 
-		IterativeWindowStream<T,W,F,K,R,OUT> iterativeStream = new IterativeWindowStream<>(
+		IterativeWindowStream iterativeStream = new IterativeWindowStream<>(
 			scopedWindowStream, coWinTermFun, terminationStrategy, feedbackBuilder, feedbackType, 15000);
 
 		DataStream<OUT> outStream = iterativeStream.loop();

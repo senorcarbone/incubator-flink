@@ -135,7 +135,7 @@ public class StreamingConnectedComponents {
 	}
 
 
-	private static class MyWindowLoopFunction implements WindowLoopFunction<Tuple2<Long, List<Long>>, Tuple2<Long, Long>, Tuple2<Long, Long>, Tuple2<Long, Long>, Long, TimeWindow>, Serializable {
+	private static class MyWindowLoopFunction implements WindowLoopFunction<Tuple2<Long, List<Long>>, Tuple2<Long, Long>, Tuple2<Long, Long>, Tuple2<Long, Long>, Long>, Serializable {
 		// context -> (vertex -> neighbors)
 		Map<List<Long>, Map<Long, List<Long>>> neighboursPerContext = new HashMap<>();
 		Map<List<Long>, Map<Long, Long>> componentIdsPerContext = new HashMap<>();

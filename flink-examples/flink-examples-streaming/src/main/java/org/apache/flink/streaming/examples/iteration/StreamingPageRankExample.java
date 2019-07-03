@@ -5,6 +5,8 @@ import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.MapState;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.common.typeinfo.TypeHint;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.base.DoubleSerializer;
 import org.apache.flink.api.common.typeutils.base.LongSerializer;
 import org.apache.flink.api.java.functions.KeySelector;
@@ -216,7 +218,7 @@ public class StreamingPageRankExample {
 		}
 	}
 
-	private static class MyWindowLoopFunction implements WindowLoopFunction<Tuple2<Long, List<Long>>, Tuple2<Long, Double>, Tuple2<Long, Double>, Tuple2<Long, Double>, Long, TimeWindow>, Serializable {
+	private static class MyWindowLoopFunction implements WindowLoopFunction<Tuple2<Long, List<Long>>, Tuple2<Long, Double>, Tuple2<Long, Double>, Tuple2<Long, Double>, Long, Tuple2<List<Long>, Double>>, Serializable {
 		Map<List<Long>, Map<Long, List<Long>>> neighboursPerContext = new HashMap<>();
 		Map<List<Long>, Map<Long, Double>> pageRanksPerContext = new HashMap<>();
 
@@ -326,5 +328,11 @@ public class StreamingPageRankExample {
 
 			
 		}
+
+		@Override
+		public TypeInformation<Tuple2<List<Long>, Double>> getStateType() { 
+			return TypeInformation.of(new TypeHint<Tuple2<List<Long>, Double>>(){});
+		}
+
 	}
 }

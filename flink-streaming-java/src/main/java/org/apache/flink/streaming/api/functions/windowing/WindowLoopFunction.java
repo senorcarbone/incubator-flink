@@ -2,7 +2,7 @@ package org.apache.flink.streaming.api.functions.windowing;
 
 import org.apache.flink.annotation.Public;
 import org.apache.flink.api.common.functions.Function;
-import org.apache.flink.streaming.api.windowing.windows.Window;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.types.Either;
 import org.apache.flink.util.Collector;
 
@@ -27,11 +27,14 @@ import java.io.Serializable;
  * @param <OUT>   The type of the iteration output (likely produced by onTermination, but also entry&step can output)
  * @param <R> 	  The type of the feedback output (as produced by entry or step)
  * @param <KEY>   The key type of both input and feedback windows (should be keyed the same way anyways)
- * @param <W_IN>  The Window type if the input
+ * @param <S>     The type of state used in the iteration
+
  */
 @Public
-public interface WindowLoopFunction<IN,F_IN,OUT,R,KEY,W_IN extends Window> extends Function, Serializable {
+public interface WindowLoopFunction<IN,F_IN,OUT,R,KEY, S> extends Function, Serializable {
 	void entry(LoopContext<KEY> ctx, Iterable<IN> input, Collector<Either<R,OUT>> out) throws Exception;
 	void step(LoopContext<KEY> ctx, Iterable<F_IN> input, Collector<Either<R,OUT>> out) throws Exception;
 	void onTermination(LoopContext<KEY> ctx, Collector<Either<R,OUT>> out) throws Exception;
+	TypeInformation<S> getStateType();
+
 }
