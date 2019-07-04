@@ -217,19 +217,18 @@ public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S, STATE> {
 	public static class StepWindowFunction<IN, OUT, K, W extends TimeWindow> extends RichWindowFunction<IN,OUT,K,W> {
 
 		WindowLoopFunction coWinTerm;
-		private SharedLoopContext sharedLoopContext;
+		private ManagedLoopStateHandl managedLoopStateHandl;
 
-		public void setSharedLoopContext(SharedLoopContext sharedLoopContext) {
-			this.sharedLoopContext = sharedLoopContext;
+		public void setManagedLoopStateHandl(ManagedLoopStateHandl managedLoopStateHandl) {
+			this.managedLoopStateHandl = managedLoopStateHandl;
 		}
 
 		public StepWindowFunction(WindowLoopFunction coWinTerm) {
 			this.coWinTerm = coWinTerm;
 		}
 
-		//TODO configure state for current window
 		public void apply(K key, W window, Iterable<IN> input, Collector<OUT> out) throws Exception {
-			coWinTerm.step(new LoopContext(window.getTimeContext(), window.getEnd(), key, (StreamingRuntimeContext) getRuntimeContext()), input, out);
+			coWinTerm.step(new LoopContext(window.getTimeContext(), window.getEnd(), key, (StreamingRuntimeContext) getRuntimeContext(), managedLoopStateHandl), input, out);
 		}
 	}
 }

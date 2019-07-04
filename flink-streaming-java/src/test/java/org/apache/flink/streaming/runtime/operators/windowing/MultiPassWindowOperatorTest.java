@@ -20,13 +20,9 @@ package org.apache.flink.streaming.runtime.operators.windowing;
 
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.state.ListStateDescriptor;
-import org.apache.flink.api.common.state.MapState;
-import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.common.typeutils.base.IntSerializer;
-import org.apache.flink.api.common.typeutils.base.StringSerializer;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.runtime.EitherSerializer;
@@ -49,7 +45,10 @@ import org.apache.flink.util.Collector;
 import org.apache.flink.util.TestLogger;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -75,64 +74,48 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 		WindowLoopFunction<Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, String, Integer> loopFun =
 			new WindowLoopFunction<Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, String, Integer>() {
 
-				private MapState<String, Integer> persistentCounts;
-				private Map<Long, Map<String, Integer>> localCounts;
+//				private MapState<String, Integer> persistentCounts;
+//				private Map<Long, Map<String, Integer>> localCounts;
 
-				private final MapStateDescriptor<String, Integer> mapStateDesc =
-					new MapStateDescriptor<>("counts", StringSerializer.INSTANCE, IntSerializer.INSTANCE);
-				
 				@Override
-				public void entry(LoopContext<String> ctx, Iterable<Tuple2<String, Integer>> input, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
+				public void entry(LoopContext<String, Integer> ctx, Iterable<Tuple2<String, Integer>> input, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
 					System.err.println("ENTRY CALLED for key " + ctx.getKey() + " and context "+ctx.getContext());
-					checkAndInitState(ctx);
-					Long context = ctx.getContext().get(0);
-					if(!localCounts.containsKey(context)){
-						localCounts.put(context, new HashMap<>());
-					}
-					Map<String, Integer> windowCounts = localCounts.get(context);
-					windowCounts.put(ctx.getKey(), (windowCounts.containsKey(ctx.getKey()) ? windowCounts.get(ctx.getKey()) : 0));
+
+					int sum = 0;
 					for (Tuple2<String, Integer> val : input) {
-						windowCounts.put(ctx.getKey(), windowCounts.get(ctx.getKey()) + val.f1);
+					    sum += val.f1;
 					}
-					persistentCounts.put(ctx.getKey(), windowCounts.get(ctx.getKey()));
-					out.collect(Either.Left(new Tuple2<>(ctx.getKey(), windowCounts.get(ctx.getKey()))));
+					sum = (ctx.persistentState() != null) ? ctx.persistentState() + sum  : sum;
+					ctx.loopState(sum);
+					ctx.persistentState(sum);
+					out.collect(Either.Left(new Tuple2<>(ctx.getKey(), ctx.loopState())));
 				}
 
 				@Override
-				public void step(LoopContext<String> ctx, Iterable<Tuple2<String, Integer>> input, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
+				public void step(LoopContext<String, Integer> ctx, Iterable<Tuple2<String, Integer>> input, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
 					System.err.println("STEP " + ctx.getSuperstep() + " INVOKED for key " + ctx.getKey() + " and context "+ctx.getContext());
-					Map<String, Integer> windowCounts = localCounts.get(ctx.getContext().get(0));
-					windowCounts.put(ctx.getKey(), windowCounts.get(ctx.getKey()) - 1);
-					Integer currentVal = windowCounts.get(ctx.getKey());
-					if (currentVal > 0) {
-						out.collect(Either.Left(new Tuple2<>(ctx.getKey(), currentVal)));
+					ctx.loopState(ctx.loopState() - 1);
+					if (ctx.loopState() > 0) {
+						out.collect(Either.Left(new Tuple2<>(ctx.getKey(), ctx.loopState())));
 					}
 				}
 
 				@Override
-				public void onTermination(LoopContext<String> ctx, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
-					System.err.println("TERMINATION called "+ " for context "+ctx.getContext());
-					for (String entry : localCounts.get(ctx.getContext().get(0)).keySet()) {
-						Tuple2<String, Integer> output = new Tuple2<>(entry, persistentCounts.get(entry));
-						System.err.println("OUT ["+ctx.getContext()+"] : "+output);
-						out.collect(Either.Right(output));
-					}
+				public void finalize(LoopContext<String, Integer> ctx, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
+					System.err.println("TERMINATION called "+ " for context "+ctx.getContext() + " and key "+ctx.getKey());
+//					for (String entry : localCounts.get(ctx.getContext().get(0)).keySet()) {
+//						Tuple2<String, Integer> output = new Tuple2<>(entry, persistentCounts.get(entry));
+//						System.err.println("OUT ["+ctx.getContext()+"] : "+output);
+//						out.collect(Either.Right(output));
+//					}
+					out.collect(Either.Right(new Tuple2<>(ctx.getKey(), ctx.persistentState())));
 				}
 
 				@Override
 				public TypeInformation<Integer> getStateType() {
 					return TypeInformation.of(Integer.class);
 				}
-
-				private void checkAndInitState(LoopContext ctx) {
-					if (!mapStateDesc.isSerializerInitialized()) {
-						mapStateDesc.initializeSerializerUnlessSet(ctx.getRuntimeContext().getExecutionConfig());
-					}
-					persistentCounts = ctx.getRuntimeContext().getMapState(mapStateDesc);
-					if (localCounts == null) {
-						localCounts = new HashMap<>();
-					}
-				}
+				
 			};
 
 

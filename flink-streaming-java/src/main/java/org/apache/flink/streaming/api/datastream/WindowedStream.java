@@ -1568,7 +1568,7 @@ public class WindowedStream<T, K, W extends Window> {
 	/**
 	 * Bulk synchronous iteration
 	 *
-	 * @param <OUT> The type of the iteration output (as produced by the onTermination function of
+	 * @param <OUT> The type of the iteration output (as produced by the finalize function of
 	 *                the CoWindowTerminateFunction)
 	 * @param <R> 	The type of the feedback stream produced by the entry and step functions of
 	 *           	the CoWindowTerminateFunction

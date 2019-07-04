@@ -233,7 +233,7 @@ public class StreamingPageRankExample {
 		}
 
 		@Override
-		public void entry(LoopContext<Long> ctx, Iterable<Tuple2<Long, List<Long>>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) throws Exception {
+		public void entry(LoopContext<Long, Tuple2<List<Long>, Double>> ctx, Iterable<Tuple2<Long, List<Long>>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) throws Exception {
 			
 			checkAndInitState(ctx);
 			
@@ -264,7 +264,7 @@ public class StreamingPageRankExample {
 			System.err.println("ENTRY (" + ctx.getKey() + "):: " + Arrays.toString(ctx.getContext().toArray()) + " -> " + adjacencyList);
 		}
 
-		private void checkAndInitState(LoopContext<Long> ctx) {
+		private void checkAndInitState(LoopContext<Long, Tuple2<List<Long>, Double>> ctx) {
 			if(!listStateDesc.isSerializerInitialized()){
 				listStateDesc.initializeSerializerUnlessSet(ctx.getRuntimeContext().getExecutionConfig());
 			}
@@ -275,7 +275,7 @@ public class StreamingPageRankExample {
 		}
 
 		@Override
-		public void step(LoopContext<Long> ctx, Iterable<Tuple2<Long, Double>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) {
+		public void step(LoopContext<Long, Tuple2<List<Long>, Double>> ctx, Iterable<Tuple2<Long, Double>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) {
 			Map<Long, Double> summed = new HashMap<>();
 			for (Tuple2<Long, Double> entry : iterable) {
 				Double current = summed.get(entry.f0);
@@ -304,7 +304,7 @@ public class StreamingPageRankExample {
 		}
 
 		@Override
-		public void onTermination(LoopContext<Long> ctx, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> out) throws Exception {
+		public void finalize(LoopContext<Long, Tuple2<List<Long>, Double>> ctx, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> out) throws Exception {
 			Map<Long, Double> vertexStates = pageRanksPerContext.get(ctx.getContext());
 			System.err.println("ON TERMINATION:: ctx: " + ctx + " :: " + vertexStates);
 			

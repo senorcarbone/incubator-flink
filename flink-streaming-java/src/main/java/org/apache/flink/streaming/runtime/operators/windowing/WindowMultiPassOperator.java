@@ -9,7 +9,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.runtime.state.StateInitializationContext;
 import org.apache.flink.streaming.api.datastream.IterativeWindowStream;
-import org.apache.flink.streaming.api.datastream.SharedLoopContext;
+import org.apache.flink.streaming.api.datastream.ManagedLoopStateHandl;
 import org.apache.flink.streaming.api.functions.windowing.LoopContext;
 import org.apache.flink.streaming.api.functions.windowing.WindowLoopFunction;
 import org.apache.flink.streaming.api.graph.StreamConfig;
@@ -56,6 +56,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 	// MY METRICS
 	private Map<List<Long>, Long> lastWinStartPerContext = new HashMap<>();
 	private Map<List<Long>, Long> lastLocalEndPerContext = new HashMap<>();
+	private InnerLoopStateHandl stateHandl;
 
 	public WindowMultiPassOperator(KeySelector<IN1, K> entryKeySelector, KeySelector<IN2, K> feedbackKeySelector, WindowOperator superstepWindow, WindowLoopFunction loopFunction) {
 		this.entryKeying = entryKeySelector;
@@ -64,20 +65,20 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 		this.loopFunction = loopFunction;
 	}
 
-	class InnerLoopContext implements SharedLoopContext<S> {
+	class InnerLoopStateHandl implements ManagedLoopStateHandl<S> {
 
 		private MapState<Long, S> loopState;
 		private ValueState<S> persistentState;
 
 		@Override
-		public MapState<Long, S> getWindowLoopState(LoopContext loopCtx) {
+		public MapState<Long, S> getWindowLoopState() {
 			if (loopState == null)
 				loopState = getRuntimeContext().getMapState(new MapStateDescriptor<>("loopState", TypeInformation.of(Long.class), loopFunction.getStateType()));
 			return loopState;
 		}
 
 		@Override
-		public ValueState<S> getPersistentLoopState(LoopContext loopCtx) {
+		public ValueState<S> getPersistentLoopState() {
 			if (persistentState == null)
 				persistentState = getRuntimeContext().getState(new ValueStateDescriptor<>("persistentState", loopFunction.getStateType()));
 			return persistentState;
@@ -93,7 +94,8 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 		config2.setOperatorName("WinOp2");
 		superstepWindow.setup(containingTask, config2, output);
 
-		((IterativeWindowStream.StepWindowFunction) ((InternalIterableWindowFunction) superstepWindow.getUserFunction()).getWrappedFunction()).setSharedLoopContext(new InnerLoopContext());
+		stateHandl = new InnerLoopStateHandl();
+		((IterativeWindowStream.StepWindowFunction) ((InternalIterableWindowFunction) superstepWindow.getUserFunction()).getWrappedFunction()).setManagedLoopStateHandl(stateHandl);
 
 		this.containingTask = containingTask;
 		this.entryBuffer = new HashMap<>();
@@ -151,7 +153,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 		if (entryBuffer.containsKey(mark.getContext())) {
 			for (Map.Entry<K, List<IN1>> entry : entryBuffer.get(mark.getContext()).entrySet()) {
 				collector.setAbsoluteTimestamp(mark.getContext(), 0);
-				loopFunction.entry(new LoopContext(mark.getContext(), 0, entry.getKey(), getRuntimeContext()), entry.getValue(), collector);
+				loopFunction.entry(new LoopContext(mark.getContext(), 0, entry.getKey(), getRuntimeContext(), stateHandl), entry.getValue(), collector);
 			}
 			activeKeys.put(mark.getContext(), entryBuffer.get(mark.getContext()).keySet());
 			entryBuffer.remove(mark.getContext()); //entry is done for that context
@@ -167,8 +169,8 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 		if (mark.iterationDone()) {
 			activeIterations.remove(mark.getContext());
 			if (mark.getContext().get(mark.getContext().size() - 1) != Long.MAX_VALUE) {
-				//TODO trigger per key and cleanup
-				loopFunction.onTermination(new LoopContext(mark.getContext(), mark.getTimestamp(), null, getRuntimeContext()), collector);
+				//TODO scope and trigger per key and cleanup
+				loopFunction.finalize(new LoopContext(mark.getContext(), mark.getTimestamp(), null, getRuntimeContext(), stateHandl), collector);
 			}
 			superstepWindow.processWatermark(new Watermark(mark.getContext(), Long.MAX_VALUE, true, mark.iterationOnly()));
 		} else {
