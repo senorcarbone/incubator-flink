@@ -162,15 +162,18 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 		lastLocalEndPerContext.put(mark.getContext(), System.currentTimeMillis());
 	}
 
-	//TODO what happens when no accessible context exists in that partition
 	public void processWatermark2(Watermark mark) throws Exception {
 		logger.info(getRuntimeContext().getIndexOfThisSubtask() + ":: TWOWIN Received from FEEDBACK - " + mark);
 		lastWinStartPerContext.put(mark.getContext(), System.currentTimeMillis());
 		if (mark.iterationDone()) {
 			activeIterations.remove(mark.getContext());
 			if (mark.getContext().get(mark.getContext().size() - 1) != Long.MAX_VALUE) {
-				//TODO scope and trigger per key and cleanup
-				loopFunction.finalize(new LoopContext(mark.getContext(), mark.getTimestamp(), null, getRuntimeContext(), stateHandl), collector);
+				for(K activeKey : activeKeys.get(mark.getContext())){
+					this.setCurrentKey(activeKey);
+					loopFunction.finalize(new LoopContext(mark.getContext(), mark.getTimestamp(), activeKey, getRuntimeContext(), stateHandl), collector);
+					stateHandl.loopState.remove(mark.getContext().get(mark.getContext().size() - 1));  
+				}
+				activeKeys.remove(mark.getContext());
 			}
 			superstepWindow.processWatermark(new Watermark(mark.getContext(), Long.MAX_VALUE, true, mark.iterationOnly()));
 		} else {

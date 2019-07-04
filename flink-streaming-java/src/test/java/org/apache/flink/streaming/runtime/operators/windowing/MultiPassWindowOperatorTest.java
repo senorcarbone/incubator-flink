@@ -74,13 +74,10 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 		WindowLoopFunction<Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, String, Integer> loopFun =
 			new WindowLoopFunction<Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, String, Integer>() {
 
-//				private MapState<String, Integer> persistentCounts;
-//				private Map<Long, Map<String, Integer>> localCounts;
-
 				@Override
 				public void entry(LoopContext<String, Integer> ctx, Iterable<Tuple2<String, Integer>> input, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
 					System.err.println("ENTRY CALLED for key " + ctx.getKey() + " and context "+ctx.getContext());
-
+					
 					int sum = 0;
 					for (Tuple2<String, Integer> val : input) {
 					    sum += val.f1;
@@ -103,11 +100,6 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 				@Override
 				public void finalize(LoopContext<String, Integer> ctx, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
 					System.err.println("TERMINATION called "+ " for context "+ctx.getContext() + " and key "+ctx.getKey());
-//					for (String entry : localCounts.get(ctx.getContext().get(0)).keySet()) {
-//						Tuple2<String, Integer> output = new Tuple2<>(entry, persistentCounts.get(entry));
-//						System.err.println("OUT ["+ctx.getContext()+"] : "+output);
-//						out.collect(Either.Right(output));
-//					}
 					out.collect(Either.Right(new Tuple2<>(ctx.getKey(), ctx.persistentState())));
 				}
 
