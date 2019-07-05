@@ -65,11 +65,11 @@ public class StreamingPageRankExample {
 					return value.f0;
 				}
 			}).timeWindow(Time.milliseconds(1000));
-		
-			winStream.iterateSyncFor(4,
-				new MyWindowLoopFunction(),
-				new MyFeedbackBuilder(),
-				new TupleTypeInfo<>(BasicTypeInfo.LONG_TYPE_INFO, BasicTypeInfo.DOUBLE_TYPE_INFO))
+
+		winStream.iterateSyncFor(4,
+			new MyWindowLoopFunction(),
+			new MyFeedbackBuilder(),
+			new TupleTypeInfo<>(BasicTypeInfo.LONG_TYPE_INFO, BasicTypeInfo.DOUBLE_TYPE_INFO))
 			.print();
 		env.getConfig().setExperimentConstants(numWindows, windSize, outputDir);
 	}
@@ -214,24 +214,24 @@ public class StreamingPageRankExample {
 	}
 
 	private static class MyWindowLoopFunction implements WindowLoopFunction<Tuple2<Long, List<Long>>, Tuple2<Long, Double>, Tuple2<Long, Double>, Tuple2<Long, Double>, Long, Tuple2<Set<Long>, Double>>, Serializable {
-		
+
 		@Override
 		public void entry(LoopContext<Long, Tuple2<Set<Long>, Double>> ctx, Iterable<Tuple2<Long, List<Long>>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) throws Exception {
-			System.err.println("PRE-ENTRY:: "+ctx);
-			
+			System.err.println("PRE-ENTRY:: " + ctx);
+
 			//add all neighbors in one set (if more than one adjacency lists exist in window)
-			
+
 			//starting state
 			Set<Long> neighborsInWindow = new HashSet<>();
 			double rank = 1.0;
 			for (Tuple2<Long, List<Long>> entry : iterable) {
 				neighborsInWindow.addAll(entry.f1);
 			}
-			
+
 			//merge local and persistent state if it exists
-			Tuple2<Set<Long> , Double> existingState = ctx.persistentState();
-			
-			if(existingState != null){
+			Tuple2<Set<Long>, Double> existingState = ctx.persistentState();
+
+			if (existingState != null) {
 				neighborsInWindow.addAll(existingState.f0);
 				rank = ctx.persistentState().f1;
 			}
@@ -239,15 +239,15 @@ public class StreamingPageRankExample {
 			ctx.loopState(updatedState);
 			ctx.persistentState(updatedState);
 			//initiate algorithm
-			for(Long neighbor : neighborsInWindow){
+			for (Long neighbor : neighborsInWindow) {
 				collector.collect(new Either.Left(new Tuple2<>(neighbor, rank)));
 			}
-			System.err.println("POST-ENTRY:: "+ctx);
+			System.err.println("POST-ENTRY:: " + ctx);
 		}
 
 		@Override
-		public void step(LoopContext<Long, Tuple2<Set<Long>, Double>> ctx, Iterable<Tuple2<Long, Double>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) throws Exception{
-			System.err.println("PRE-STEP:: "+ctx);
+		public void step(LoopContext<Long, Tuple2<Set<Long>, Double>> ctx, Iterable<Tuple2<Long, Double>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) throws Exception {
+			System.err.println("PRE-STEP:: " + ctx);
 			Map<Long, Double> summed = new HashMap<>();
 			for (Tuple2<Long, Double> entry : iterable) {
 				Double current = summed.get(entry.f0);
@@ -257,49 +257,51 @@ public class StreamingPageRankExample {
 					summed.put(entry.f0, current + entry.f1);
 				}
 			}
-			
+
 			//derive rank from messages
 			double newrank = 0.0;
 			for (Tuple2<Long, Double> msg : iterable) {
 				newrank += msg.f1;
 			}
 			//if vertex was not initiated do so from persistent state
-			Tuple2<Set<Long>, Double> vertexState = ctx.loopState();
-			if(vertexState == null){
+			Tuple2<Set<Long>, Double> vertexState = null;
+			if (ctx.hasLoopState()) {
+				vertexState = ctx.loopState();
+			} else {
 				vertexState = ctx.persistentState();
 			}
-			
 			double rank = newrank / (double) vertexState.f0.size();
-			
+
 			// progress if there has been change
-			if(rank != vertexState.f1){
+			if (rank != vertexState.f1) {
 				//update local state with new rank
 				vertexState = new Tuple2<>(vertexState.f0, rank);
 				ctx.loopState(vertexState);
 				//send rank forward
-				for(Long neighbor : vertexState.f0){
+				for (Long neighbor : vertexState.f0) {
 					collector.collect(new Either.Left(new Tuple2<>(neighbor, rank)));
-				}	
+				}
 			}
-			
-			System.err.println("POST-STEP:: "+ctx);         
+
+			System.err.println("POST-STEP:: " + ctx);
 		}
 
 		@Override
 		public void finalize(LoopContext<Long, Tuple2<Set<Long>, Double>> ctx, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> out) throws Exception {
-			System.err.println("PRE-TERMINATION:: "+ctx);
-			
+			System.err.println("PRE-TERMINATION:: " + ctx);
+
 			//update persistent state and output updated ranks
-			if(ctx.loopState() != null) {
+			if (ctx.hasLoopState()) {
 				ctx.persistentState(ctx.loopState());
 				out.collect(new Either.Right(new Tuple2(ctx.getKey(), ctx.loopState().f1)));
 			}
-			System.err.println("POST-TERMINATION:: "+ctx);
+			System.err.println("POST-TERMINATION:: " + ctx);
 		}
 
 		@Override
-		public TypeInformation<Tuple2<Set<Long>, Double>> getStateType() { 
-			return TypeInformation.of(new TypeHint<Tuple2<Set<Long>, Double>>(){});
+		public TypeInformation<Tuple2<Set<Long>, Double>> getStateType() {
+			return TypeInformation.of(new TypeHint<Tuple2<Set<Long>, Double>>() {
+			});
 		}
 
 	}
