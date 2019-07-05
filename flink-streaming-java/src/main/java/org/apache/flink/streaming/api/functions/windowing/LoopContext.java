@@ -75,7 +75,11 @@ public class LoopContext<K, S> {
 	}
 
 	@Override
-	public String toString() {
-		return super.toString() + " :: [ctx: " + context + ", step: " + superstep + ", key: " + key + "]";
+	public String toString()  {
+		try {
+			return super.toString() + " :: [ctx: " + context + ", partition: "+getRuntimeContext().getIndexOfThisSubtask()+ ", step: " + superstep + ", key: " + key + ", STATE[ LOOP: "+ loopState() + ", PERSISTENT: " + persistentState()+"] ]";
+		} catch (Exception e) {
+			return super.toString() + " :: [ctx: " + context + ", partition: "+getRuntimeContext().getIndexOfThisSubtask()+ ", step: " + superstep + ", key: " + key + ", [UNINITIALIZED STATE] ]";
+		}
 	}
 }
