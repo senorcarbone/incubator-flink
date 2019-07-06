@@ -65,7 +65,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 		this.loopFunction = loopFunction;
 	}
 
-	class InnerLoopStateHandl implements ManagedLoopStateHandl<S> {
+	class InnerLoopStateHandl implements ManagedLoopStateHandl<K, S> {
 
 		private MapState<Long, S> loopState;
 		private ValueState<S> persistentState;
@@ -83,6 +83,14 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 				persistentState = getRuntimeContext().getState(new ValueStateDescriptor<>("persistentState", loopFunction.getStateType()));
 			return persistentState;
 		}
+
+		@Override
+		public void markActive(List<Long> context, K key) {
+			if(activeKeys.get(context) != null){
+				activeKeys.get(context).add(key);
+			}
+		}
+
 	}
 
 	@Override
@@ -146,7 +154,6 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 		}
 	}
 
-	//TODO add latch for consistent watermark processing 
 	public void processWatermark1(Watermark mark) throws Exception {
 		logger.info(getRuntimeContext().getIndexOfThisSubtask() + ":: TWOWIN Received from IN - " + mark);
 		lastWinStartPerContext.put(mark.getContext(), System.currentTimeMillis());
@@ -156,7 +163,9 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 				this.setCurrentKey(entry.getKey());
 				loopFunction.entry(new LoopContext(mark.getContext(), 0, entry.getKey(), getRuntimeContext(), stateHandl), entry.getValue(), collector);
 			}
-			activeKeys.put(mark.getContext(), entryBuffer.get(mark.getContext()).keySet());
+			Set<K> tmp = new HashSet<>();
+			tmp.addAll(entryBuffer.get(mark.getContext()).keySet());
+			activeKeys.put(mark.getContext(), tmp);
 			entryBuffer.remove(mark.getContext()); //entry is done for that context
 		}
 		output.emitWatermark(mark);
@@ -187,7 +196,6 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 	public void initializeState(StateInitializationContext context) throws Exception {
 		super.initializeState(context);
 		superstepWindow.initializeState();
-		//TODO initialize state
 	}
 
 	public void processLatencyMarker1(LatencyMarker latencyMarker) throws Exception {

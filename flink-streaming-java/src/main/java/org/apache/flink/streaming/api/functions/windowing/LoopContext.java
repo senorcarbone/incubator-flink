@@ -11,16 +11,9 @@ public class LoopContext<K, S> {
 	final long superstep;
 	final K key;
 	private final StreamingRuntimeContext ctx;
-	private ManagedLoopStateHandl<S> managedStateHandle;
+	private ManagedLoopStateHandl<K, S> managedStateHandle;
 
-	public LoopContext(List<Long> context, long superstep, K key, StreamingRuntimeContext ctx) {
-		this.context = context;
-		this.superstep = superstep;
-		this.key = key;
-		this.ctx = ctx;
-	}
-
-	public LoopContext(List<Long> context, long superstep, K key, StreamingRuntimeContext ctx, ManagedLoopStateHandl<S> managedStateHandle) {
+	public LoopContext(List<Long> context, long superstep, K key, StreamingRuntimeContext ctx, ManagedLoopStateHandl<K, S> managedStateHandle) {
 		this.context = context;
 		this.superstep = superstep;
 		this.key = key;
@@ -62,6 +55,7 @@ public class LoopContext<K, S> {
 	public void loopState(S newVal) throws Exception {
 		checkInitialization();
 		managedStateHandle.getWindowLoopState().put(context.get(context.size()-1), newVal);
+		managedStateHandle.markActive(this.context, this.key);
 	}
 
 	public S persistentState() throws Exception {
@@ -72,6 +66,7 @@ public class LoopContext<K, S> {
 	public void persistentState(S newVal) throws Exception {
 		checkInitialization();
 		managedStateHandle.getPersistentLoopState().update(newVal);
+		managedStateHandle.markActive(this.context, this.key);
 	}
 
 	@Override
