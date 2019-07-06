@@ -288,14 +288,14 @@ public class StreamingPageRankExample {
 
 		@Override
 		public void finalize(LoopContext<Long, Tuple2<Set<Long>, Double>> ctx, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> out) throws Exception {
-			System.err.println("PRE-TERMINATION:: " + ctx);
+			System.err.println("PRE-FINALIZE:: " + ctx);
 
 			//update persistent state and output updated ranks
 			if (ctx.hasLoopState()) {
 				ctx.persistentState(ctx.loopState());
 				out.collect(new Either.Right(new Tuple2(ctx.getKey(), ctx.loopState().f1)));
 			}
-			System.err.println("POST-TERMINATION:: " + ctx);
+			System.err.println("POST-FINALIZE:: " + ctx);
 		}
 
 		@Override

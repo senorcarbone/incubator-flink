@@ -76,7 +76,7 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 
 				@Override
 				public void entry(LoopContext<String, Integer> ctx, Iterable<Tuple2<String, Integer>> input, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
-					System.err.println("ENTRY CALLED for key " + ctx.getKey() + " and context "+ctx.getContext());
+					System.err.println("PRE-ENTRY:: " + ctx);
 					
 					int sum = 0;
 					for (Tuple2<String, Integer> val : input) {
@@ -86,21 +86,24 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 					ctx.loopState(sum);
 					ctx.persistentState(sum);
 					out.collect(Either.Left(new Tuple2<>(ctx.getKey(), ctx.loopState())));
+					System.err.println("POST-ENTRY:: " + ctx);
 				}
 
 				@Override
 				public void step(LoopContext<String, Integer> ctx, Iterable<Tuple2<String, Integer>> input, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
-					System.err.println("STEP " + ctx.getSuperstep() + " INVOKED for key " + ctx.getKey() + " and context "+ctx.getContext());
+					System.err.println("PRE-STEP:: " + ctx);
 					ctx.loopState(ctx.loopState() - 1);
 					if (ctx.loopState() > 0) {
 						out.collect(Either.Left(new Tuple2<>(ctx.getKey(), ctx.loopState())));
 					}
+					System.err.println("POST-STEP:: " + ctx);
 				}
 
 				@Override
 				public void finalize(LoopContext<String, Integer> ctx, Collector<Either<Tuple2<String, Integer>, Tuple2<String, Integer>>> out) throws Exception {
-					System.err.println("TERMINATION called "+ " for context "+ctx.getContext() + " and key "+ctx.getKey());
+					System.err.println("PRE-FINALIZE:: " + ctx);
 					out.collect(Either.Right(new Tuple2<>(ctx.getKey(), ctx.persistentState())));
+					System.err.println("POST-FINALIZE:: " + ctx);
 				}
 
 				@Override

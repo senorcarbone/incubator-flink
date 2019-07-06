@@ -153,6 +153,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 		if (entryBuffer.containsKey(mark.getContext())) {
 			for (Map.Entry<K, List<IN1>> entry : entryBuffer.get(mark.getContext()).entrySet()) {
 				collector.setAbsoluteTimestamp(mark.getContext(), 0);
+				this.setCurrentKey(entry.getKey());
 				loopFunction.entry(new LoopContext(mark.getContext(), 0, entry.getKey(), getRuntimeContext(), stateHandl), entry.getValue(), collector);
 			}
 			activeKeys.put(mark.getContext(), entryBuffer.get(mark.getContext()).keySet());
@@ -167,7 +168,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 		lastWinStartPerContext.put(mark.getContext(), System.currentTimeMillis());
 		if (mark.iterationDone()) {
 			activeIterations.remove(mark.getContext());
-			if (mark.getContext().get(mark.getContext().size() - 1) != Long.MAX_VALUE) {
+			if (mark.getContext().get(mark.getContext().size() - 1) != Long.MAX_VALUE && activeKeys.get(mark.getContext()) != null) {
 				for(K activeKey : activeKeys.get(mark.getContext())){
 					this.setCurrentKey(activeKey);
 					loopFunction.finalize(new LoopContext(mark.getContext(), mark.getTimestamp(), activeKey, getRuntimeContext(), stateHandl), collector);
