@@ -21,48 +21,95 @@ public class LoopContext<K, S> {
 		this.managedStateHandle = managedStateHandle;
 	}
 
+	/**
+	 * The current key on which computation is invoked  
+	 * @return 
+	 */
 	public K getKey() {
 		return key;
 	}
 
+	/**
+	 * The encapsulating context identifier where computation is invoked
+	 * @return
+	 */
 	public List<Long> getContext() {
 		return context;
 	}
 
+	/**
+	 * The current superstep of the computation, i.e. progress identifier in current scope 
+	 * @return
+	 */
 	public long getSuperstep() {
 		return superstep;
 	}
-
+	
 	public StreamingRuntimeContext getRuntimeContext() {
 		return ctx;
 	}
 
+	/**
+	 * Checks if there is a managed state entry for loop state in current key under current context 
+	 * @return true if temporary loop state exists in current context for key
+	 * @throws Exception
+	 */
 	public boolean hasLoopState() throws Exception {
 		checkInitialization();
 		return managedStateHandle.getWindowLoopState().contains(context.get(context.size() - 1));
 	}
 
+	/**
+	 * Used for sanity checks when an iterative stream application has been initiated
+	 * @throws IllegalStateException
+	 */
 	private void checkInitialization() throws IllegalStateException{
 		if (managedStateHandle == null)
 			throw new IllegalStateException("Managed State not Initialized");
 	}
 
+	/**
+	 * Returns temporary in-loop state for current key and encapsulating context.
+	 * This managed state entry is active only during a window iteration and gets garbage collected
+	 * when the iteration has been finalized for the given key.
+	 * @return stored loop state (null if empty)
+	 * @throws Exception
+	 */
 	public S loopState() throws Exception {
 		checkInitialization();
 		return managedStateHandle.getWindowLoopState().get(context.get(context.size() - 1));
 	}
-	
+
+	/**
+	 * Sets temporary in-loop state for current key and encapsulating context to the given value.
+	 * This managed state entry is active only during a window iteration and gets garbage collected
+	 * when the iteration has been finalized for the given key.
+	 * @param newVal
+	 * @throws Exception
+	 */
 	public void loopState(S newVal) throws Exception {
 		checkInitialization();
 		managedStateHandle.getWindowLoopState().put(context.get(context.size()-1), newVal);
 		managedStateHandle.markActive(this.context, this.key);
 	}
 
+	/**
+	 * Returns persistent state for current key. 
+	 * This managed state entry is shared among all active contexts (loop computations)
+	 * @return stored persistent state (null if empty)
+	 * @throws Exception
+	 */
 	public S persistentState() throws Exception {
 		checkInitialization();
 		return managedStateHandle.getPersistentLoopState().value();
 	}
 
+	/**
+	 * Sets persistent state for current key to the given value.
+	 * This managed state entry is shared among all active contexts (loop computations)
+	 * @param newVal
+	 * @throws Exception
+	 */
 	public void persistentState(S newVal) throws Exception {
 		checkInitialization();
 		managedStateHandle.getPersistentLoopState().update(newVal);
