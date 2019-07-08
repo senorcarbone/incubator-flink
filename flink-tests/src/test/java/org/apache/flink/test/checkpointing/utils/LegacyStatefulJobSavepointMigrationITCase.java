@@ -53,6 +53,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -553,7 +554,7 @@ public class LegacyStatefulJobSavepointMigrationITCase extends SavepointMigratio
 
 			state.update(element.getValue().f1);
 
-			timerService.registerEventTimeTimer(element.getValue().f0, timerService.currentWatermark() + 10);
+			timerService.registerEventTimeTimer(element.getValue().f0, new ArrayList<>(), timerService.currentWatermark(new ArrayList<>()) + 10);
 			timerService.registerProcessingTimeTimer(element.getValue().f0, timerService.currentProcessingTime() + 30_000);
 
 			output.collect(element);
