@@ -248,16 +248,6 @@ public class StreamingPageRankExample {
 		@Override
 		public void step(LoopContext<Long, Tuple2<Set<Long>, Double>> ctx, Iterable<Tuple2<Long, Double>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) throws Exception {
 			System.err.println("PRE-STEP:: " + ctx);
-			Map<Long, Double> summed = new HashMap<>();
-			for (Tuple2<Long, Double> entry : iterable) {
-				Double current = summed.get(entry.f0);
-				if (current == null) {
-					summed.put(entry.f0, entry.f1);
-				} else {
-					summed.put(entry.f0, current + entry.f1);
-				}
-			}
-
 			//derive rank from messages
 			double newrank = 0.0;
 			for (Tuple2<Long, Double> msg : iterable) {
