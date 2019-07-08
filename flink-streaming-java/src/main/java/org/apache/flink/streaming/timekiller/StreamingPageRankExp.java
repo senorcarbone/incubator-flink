@@ -1,10 +1,31 @@
-package org.apache.flink.streaming.examples.iteration;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+package org.apache.flink.streaming.timekiller;
 
 import com.google.common.collect.Lists;
 import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.MapState;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.common.typeinfo.TypeHint;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.base.DoubleSerializer;
 import org.apache.flink.api.common.typeutils.base.LongSerializer;
 import org.apache.flink.api.java.functions.KeySelector;
@@ -24,40 +45,25 @@ import org.apache.flink.streaming.api.functions.windowing.WindowLoopFunction;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.streaming.timekiller.core.ExperimentConfiguration;
 import org.apache.flink.types.Either;
 import org.apache.flink.util.Collector;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
 
-public class StreamingPageRank {
+public class StreamingPageRankExp {
+	
 	StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
-	public static void main(String[] args) throws Exception {
-		int numWindows = Integer.parseInt(args[0]);
-		long windSize = Long.parseLong(args[1]);
-		int parallelism = Integer.parseInt(args[2]);
-		String outputDir = args[3];
-		String inputDir = args.length > 4 ? args[4] : "";
-
-		StreamingPageRank example = new StreamingPageRank(numWindows, windSize, parallelism, inputDir, outputDir);
-		example.run();
-	}
-
-
 	/**
-	 * TODO configure the windSize parameter and generalize the evaluation framework
 	 *
-	 * @param numWindows
-	 * @param windSize
-	 * @param parallelism
 	 * @throws Exception
 	 */
-	public StreamingPageRank(int numWindows, long windSize, int parallelism, String inputDir, String outputDir) throws Exception {
+	public StreamingPageRankExp(ExperimentConfiguration conf) throws Exception {
 		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-		env.setParallelism(2);
+//		env.setParallelism(conf.parallelism());
+		
 
 		DataStream<Tuple2<Long, List<Long>>> inputStream = env.addSource(new PageRankSampleSrc());
 		WindowedStream<Tuple2<Long, List<Long>>, Long, TimeWindow> winStream =
@@ -74,7 +80,7 @@ public class StreamingPageRank {
 				new MyFeedbackBuilder(),
 				new TupleTypeInfo<>(BasicTypeInfo.LONG_TYPE_INFO, BasicTypeInfo.DOUBLE_TYPE_INFO))
 			.print();
-		env.getConfig().setExperimentConstants(numWindows, windSize, outputDir);
+//		env.getConfig().setExperimentConstants(numWindows, windSize, outputDir);
 	}
 
 	protected void run() throws Exception {
@@ -216,7 +222,7 @@ public class StreamingPageRank {
 		}
 	}
 
-	private static class MyWindowLoopFunction implements WindowLoopFunction<Tuple2<Long, List<Long>>, Tuple2<Long, Double>, Tuple2<Long, Double>, Tuple2<Long, Double>, Long, TimeWindow>, Serializable {
+	private static class MyWindowLoopFunction implements WindowLoopFunction<Tuple2<Long, List<Long>>, Tuple2<Long, Double>, Tuple2<Long, Double>, Tuple2<Long, Double>, Long, Tuple2<List<Long>, Double>>, Serializable {
 		Map<List<Long>, Map<Long, List<Long>>> neighboursPerContext = new HashMap<>();
 		Map<List<Long>, Map<Long, Double>> pageRanksPerContext = new HashMap<>();
 
@@ -231,7 +237,7 @@ public class StreamingPageRank {
 		}
 
 		@Override
-		public void entry(LoopContext<Long> ctx, Iterable<Tuple2<Long, List<Long>>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) throws Exception {
+		public void entry(LoopContext<Long,Tuple2<List<Long>, Double>> ctx, Iterable<Tuple2<Long, List<Long>>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) throws Exception {
 			
 			checkAndInitState(ctx);
 			
@@ -262,7 +268,7 @@ public class StreamingPageRank {
 			System.err.println("ENTRY (" + ctx.getKey() + "):: " + Arrays.toString(ctx.getContext().toArray()) + " -> " + adjacencyList);
 		}
 
-		private void checkAndInitState(LoopContext<Long> ctx) {
+		private void checkAndInitState(LoopContext<Long,Tuple2<List<Long>, Double>> ctx) {
 			if(!listStateDesc.isSerializerInitialized()){
 				listStateDesc.initializeSerializerUnlessSet(ctx.getRuntimeContext().getExecutionConfig());
 			}
@@ -273,7 +279,7 @@ public class StreamingPageRank {
 		}
 
 		@Override
-		public void step(LoopContext<Long> ctx, Iterable<Tuple2<Long, Double>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) {
+		public void step(LoopContext<Long, Tuple2<List<Long>, Double>> ctx, Iterable<Tuple2<Long, Double>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) {
 			Map<Long, Double> summed = new HashMap<>();
 			for (Tuple2<Long, Double> entry : iterable) {
 				Double current = summed.get(entry.f0);
@@ -298,11 +304,11 @@ public class StreamingPageRank {
 					collector.collect(new Either.Left(new Tuple2<>(neighbourID, rankToDistribute)));
 				}
 			}
-			System.err.println("POST-STEP:: ,ctx:"+ctx+ " -- "+ pageRanksPerContext.get(ctx.getContext()));
+			System.err.println("POST-STEP:: ,ctx:"+ctx+ " -- "+ pageRanksPerContext.get(ctx.getContext()));         
 		}
 
 		@Override
-		public void onTermination(LoopContext<Long> ctx, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> out) throws Exception {
+		public void finalize(LoopContext<Long, Tuple2<List<Long>, Double>> ctx, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> out) throws Exception {
 			Map<Long, Double> vertexStates = pageRanksPerContext.get(ctx.getContext());
 			System.err.println("ON TERMINATION:: ctx: " + ctx + " :: " + vertexStates);
 			
@@ -326,5 +332,17 @@ public class StreamingPageRank {
 
 			
 		}
+
+		@Override
+		public TypeInformation<Tuple2<List<Long>, Double>> getStateType() {
+			return TypeInformation.of(new TypeHint<Tuple2<List<Long>, Double>>(){});
+		}
+
+	}
+	
+	public static void main(String[] args) throws IOException {
+		ExperimentConfiguration config = new ExperimentConfiguration();
+		config.load(new FileInputStream("experiments/test1.properties"));
+//		System.out.println(config.parallelism());
 	}
 }

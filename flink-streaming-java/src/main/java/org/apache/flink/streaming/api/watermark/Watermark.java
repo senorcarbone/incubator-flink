@@ -70,6 +70,8 @@ public final class Watermark extends StreamElement implements Comparable<Waterma
 	public Watermark(Watermark watermark) {
 		this.timestamp = watermark.getTimestamp();
 		this.context = new LinkedList<>(watermark.getContext());
+		this.iterationOnly = watermark.iterationOnly;
+		this.iterationDone = watermark.iterationDone;
 	}
 
 	/**
@@ -150,7 +152,7 @@ public final class Watermark extends StreamElement implements Comparable<Waterma
 
 	@Override
 	public String toString() {
-		return "Watermark @ [" + StringUtils.join(context, ", ") + ", " + timestamp + "]";
+		return "Watermark @ [" + StringUtils.join(context, ", ") + ", " + timestamp + "]"+ (iterationDone() ? "#" : "");
 	}
 
 	@Override

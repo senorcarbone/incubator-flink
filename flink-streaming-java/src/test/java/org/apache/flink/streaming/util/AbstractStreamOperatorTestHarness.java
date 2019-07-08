@@ -582,7 +582,7 @@ public class AbstractStreamOperatorTestHarness<OUT> implements AutoCloseable {
 				outputSerializer = TypeExtractor.getForObject(element.getValue()).createSerializer(executionConfig);
 			}
 			if (element.hasTimestamp()) {
-				outputList.add(new StreamRecord<>(outputSerializer.copy(element.getValue()), element.getTimestamp()));
+				outputList.add(new StreamRecord<>(outputSerializer.copy(element.getValue()), element.getProgressContext(), element.getTimestamp()));
 			} else {
 				outputList.add(new StreamRecord<>(outputSerializer.copy(element.getValue())));
 			}

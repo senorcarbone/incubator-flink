@@ -1,7 +1,28 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
 package org.apache.flink.streaming.examples.iteration;
 
 import com.google.common.collect.Lists;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.common.typeinfo.TypeHint;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -22,10 +43,7 @@ import org.apache.flink.types.Either;
 import org.apache.flink.util.Collector;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class StreamingConnectedComponents {
 	StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -37,7 +55,6 @@ public class StreamingConnectedComponents {
 
 
 	/**
-	 *
 	 * @throws Exception
 	 */
 	public StreamingConnectedComponents() throws Exception {
@@ -51,13 +68,15 @@ public class StreamingConnectedComponents {
 				@Override
 				public Long getKey(Tuple2<Long, List<Long>> value) throws Exception {
 					return value.f0;
+
+
 				}
 			}).timeWindow(Time.milliseconds(1000));
-		
-			winStream.iterateSyncFor(4,
-				new MyWindowLoopFunction(),
-				new MyFeedbackBuilder(),
-				new TupleTypeInfo<>(BasicTypeInfo.LONG_TYPE_INFO, BasicTypeInfo.LONG_TYPE_INFO))
+
+		winStream.iterateSyncDelta(
+			new MyWindowLoopFunction(),
+			new MyFeedbackBuilder(),
+			new TupleTypeInfo<>(BasicTypeInfo.LONG_TYPE_INFO, BasicTypeInfo.LONG_TYPE_INFO))
 			.print();
 	}
 
@@ -80,7 +99,7 @@ public class StreamingConnectedComponents {
 
 	private static final List<Tuple3<Long, List<Long>, Long>> sampleStream = Lists.newArrayList(
 
-			// vertexId - List of neighbors - timestamp
+		// vertexId - List of neighbors - timestamp
 		new Tuple3<>(1l, (List<Long>) Lists.newArrayList(2l, 3l), 1000l),
 		new Tuple3<>(3l, (List<Long>) Lists.newArrayList(1l), 1000l),
 		new Tuple3<>(2l, (List<Long>) Lists.newArrayList(1l), 1000l),
@@ -133,76 +152,88 @@ public class StreamingConnectedComponents {
 	}
 
 
-	private static class MyWindowLoopFunction implements WindowLoopFunction<Tuple2<Long, List<Long>>, Tuple2<Long, Long>, Tuple2<Long, Long>, Tuple2<Long, Long>, Long, TimeWindow>, Serializable {
-		// context -> (vertex -> neighbors)
-		Map<List<Long>, Map<Long, List<Long>>> neighboursPerContext = new HashMap<>();
-		Map<List<Long>, Map<Long, Long>> componentIdsPerContext = new HashMap<>();
+	private static class MyWindowLoopFunction implements WindowLoopFunction<Tuple2<Long, List<Long>>, Tuple2<Long, Long>, Tuple2<Long, Long>, Tuple2<Long, Long>, Long, Tuple2<Set<Long>, Long>>, Serializable {
 
-		public List<Long> getNeighbours(List<Long> timeContext, Long nodeID) {
-			return neighboursPerContext.get(timeContext).get(nodeID);
+		@Override
+		public void entry(LoopContext<Long, Tuple2<Set<Long>, Long>> ctx, Iterable<Tuple2<Long, List<Long>>> input, Collector<Either<Tuple2<Long, Long>, Tuple2<Long, Long>>> out) throws Exception {
+			System.err.println("PRE-ENTRY:: " + ctx);
+
+			//starting state
+			Set<Long> neighborsInWindow = new HashSet<>();
+			long component = ctx.getKey();
+			for (Tuple2<Long, List<Long>> entry : input) {
+				neighborsInWindow.addAll(entry.f1);
+			}
+
+			//merge local and persistent state if it exists
+			Tuple2<Set<Long>, Long> existingState = ctx.persistentState();
+
+			if (existingState != null) {
+				neighborsInWindow.addAll(existingState.f0);
+				component = ctx.persistentState().f1;
+			}
+			Tuple2<Set<Long>, Long> updatedState = new Tuple2<>(neighborsInWindow, component);
+			ctx.loopState(updatedState);
+			ctx.persistentState(updatedState);
+			//initiate algorithm
+			for (Long neighbor : neighborsInWindow) {
+				out.collect(new Either.Left(new Tuple2<>(neighbor, component)));
+			}
+			System.err.println("POST-ENTRY:: " + ctx);
 		}
 
 		@Override
-		public void entry(LoopContext<Long> ctx, Iterable<Tuple2<Long, List<Long>>> iterable, Collector<Either<Tuple2<Long, Long>, Tuple2<Long, Long>>> collector) {
-			Map<Long, List<Long>> adjacencyList = neighboursPerContext.get(ctx.getContext());
-			if (adjacencyList == null) {
-				adjacencyList = new HashMap<>();
-				neighboursPerContext.put(ctx.getContext(), adjacencyList);
+		public void step(LoopContext<Long, Tuple2<Set<Long>, Long>> ctx, Iterable<Tuple2<Long, Long>> input, Collector<Either<Tuple2<Long, Long>, Tuple2<Long, Long>>> out) throws Exception {
+			System.err.println("PRE-STEP:: " + ctx);
+
+			//derive component id from messages
+			long componentID = ctx.getKey();
+			for (Tuple2<Long, Long> msg : input) {
+				if(msg.f1 < componentID){
+					componentID = msg.f1;
+				}
+			}
+			
+			//retrieve stored state
+			Tuple2<Set<Long>, Long> vertexState = null;
+			if (ctx.hasLoopState()) {
+				vertexState = ctx.loopState();
+			} else {
+				vertexState = ctx.persistentState();
 			}
 
-			Map<Long, Long> components = componentIdsPerContext.get(ctx.getContext());
-			if (components == null) {
-				components = new HashMap<>();
-				componentIdsPerContext.put(ctx.getContext(), components);
+			// expand if component ID needs to update
+			if (componentID < vertexState.f1) {
+				//update local state with new component ID
+				vertexState = new Tuple2<>(vertexState.f0, componentID);
+				ctx.loopState(vertexState);
+				//send updated component ID
+				for (Long neighbor : vertexState.f0) {
+					out.collect(new Either.Left(new Tuple2<>(neighbor, componentID)));
+				}
 			}
 
-			Tuple2<Long, List<Long>> next = iterable.iterator().next();
-			adjacencyList.put(next.f0, next.f1);
-			// save component id to local state
-			components.put(next.f0, next.f0);
-
-			// send compId into feedback loop
-			collector.collect(new Either.Left(new Tuple2<>(ctx.getKey(),  ctx.getKey())));
-
-			System.err.println("ENTRY (" + ctx.getKey() + "):: " + Arrays.toString(ctx.getContext().toArray()) + " -> " + adjacencyList);
+			System.err.println("POST-STEP:: " + ctx);
 		}
 
+
 		@Override
-		public void step(LoopContext<Long> ctx, Iterable<Tuple2<Long, Long>> iterable, Collector<Either<Tuple2<Long, Long>, Tuple2<Long, Long>>> collector) {
-			Map<Long, Long> minIds = componentIdsPerContext.get(ctx.getContext());
-			for (Tuple2<Long, Long> entry : iterable) {
-				Long current = minIds.get(entry.f0);
-				if (current == null) {
-					minIds.put(entry.f0, entry.f1);
-				} else {
-					minIds.put(entry.f0, Math.min(current, entry.f1));
-				}
+		public void finalize(LoopContext<Long, Tuple2<Set<Long>, Long>> ctx, Collector<Either<Tuple2<Long, Long>, Tuple2<Long, Long>>> out) throws Exception {
+			System.err.println("PRE-FINALIZE:: " + ctx);
+
+			//back up to persistent state and flush updated component IDs
+			if (ctx.hasLoopState()) {
+				ctx.persistentState(ctx.loopState());
+				out.collect(new Either.Right(new Tuple2(ctx.getKey(), ctx.loopState().f1)));
 			}
-
-			for (Map.Entry<Long, Long> entry : minIds.entrySet()) {
-				List<Long> neighbourIDs = getNeighbours(ctx.getContext(), entry.getKey());
-				Long currentId = entry.getValue();
-
-				// update current component Id
-				componentIdsPerContext.get(ctx.getContext()).put(entry.getKey(), currentId);
-
-				// distributed new component Id
-				for (Long neighbourID : neighbourIDs) {
-					collector.collect(new Either.Left(new Tuple2<>(neighbourID, currentId)));
-				}
-			}
-			System.err.println("POST-STEP:: " + Arrays.toString(ctx.getContext().toArray()) + " (" + ctx.getSuperstep() + ")" + componentIdsPerContext.get(ctx.getContext()));
+			System.err.println("POST-FINALIZE:: " + ctx);
 		}
-
+		
+		
 		@Override
-		public void onTermination(LoopContext<Long> ctx, Collector<Either<Tuple2<Long, Long>, Tuple2<Long, Long>>> out) throws Exception {
-			Map<Long, Long> vertexStates = componentIdsPerContext.get(ctx.getContext());
-			System.err.println("ON TERMINATION:: " + ctx + "::" + vertexStates);
-			if(vertexStates != null){
-				for (Map.Entry<Long, Long> compId : componentIdsPerContext.get(ctx.getContext()).entrySet()) {
-					out.collect(new Either.Right(new Tuple2(compId.getKey(), compId.getValue())));
-				}
-			}
+		public TypeInformation<Tuple2<Set<Long>, Long>> getStateType() {
+			return TypeInformation.of(new TypeHint<Tuple2<Set<Long>, Long>>() {
+			});
 		}
 	}
 }

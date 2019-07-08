@@ -50,11 +50,12 @@ import java.util.Collections;
  * @param <K>
  * @param <R>
  * @param <S>
+ * @param <S> The state of the iterative window stream
  */
 @Public
-public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S> {
+public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S, STATE> {
 	private DataStream<S> outStream;
-	public IterativeWindowStream(WindowedStream<IN, K, IN_W> input, WindowLoopFunction<IN, F, S, R, K, IN_W> coWinTerm, 
+	public IterativeWindowStream(WindowedStream<IN, K, IN_W> input, WindowLoopFunction<IN, F, S, R, K, STATE> coWinTerm, 
 		StreamIterationTermination terminationStrategy, 
 		FeedbackBuilder<R, K> feedbackBuilder, 
 		TypeInformation<R> feedbackType, long waitTime) throws Exception {
@@ -62,24 +63,24 @@ public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S> {
 		WindowedStream<IN, K, IN_W> windowedStream1 = input;
 		
 		// create feedback edge
-		CoFeedbackTransformation<R> coFeedbackTransformation = new CoFeedbackTransformation<>(windowedStream1.getInput().getParallelism(),
+		CoFeedbackTransformation<R> loopTransformation = new CoFeedbackTransformation<>(windowedStream1.getInput().getParallelism(),
 			feedbackType, waitTime, windowedStream1.getInput().getTransformation().getScope(), terminationStrategy);
 
 		// create feedback source
-		KeyedStream<R, K> feedbackSourceStream = feedbackBuilder.feedback(new DataStream<>(windowedStream1.getExecutionEnvironment(), coFeedbackTransformation));
+		KeyedStream<R, K> backStream = feedbackBuilder.feedback(new DataStream<>(windowedStream1.getExecutionEnvironment(), loopTransformation));
 		WindowAssigner assigner = TumblingEventTimeWindows.of(Time.milliseconds(1));
-		WindowedStream<F, K, TimeWindow> windowedStream2 = new WindowedStream<>(feedbackSourceStream, assigner);
+		WindowedStream<F, K, TimeWindow> stepWindow = new WindowedStream<>(backStream, assigner);
 
 		// create feedback sink
-		Tuple2<DataStream<R>, DataStream<S>> streams = applyCoWinTerm(coWinTerm, windowedStream1, windowedStream2, feedbackSourceStream.getKeySelector());
-		coFeedbackTransformation.addFeedbackEdge(streams.f0.getTransformation());
-		outStream = streams.f1;
+		Tuple2<DataStream<R>, DataStream<S>> loopStreams = constructLoop(coWinTerm, windowedStream1, stepWindow, backStream.getKeySelector());
+		loopTransformation.addFeedbackEdge(loopStreams.f0.getTransformation());
+		outStream = loopStreams.f1;
 	}
 
-	public Tuple2<DataStream<R>, DataStream<S>> applyCoWinTerm(WindowLoopFunction coWinTerm,
-															   WindowedStream<IN, K, IN_W> windowedStream1,
-															   WindowedStream<F, K, TimeWindow> windowedStream2, 
-															   KeySelector<R, K> feedbackKeySelector) throws Exception {
+	public Tuple2<DataStream<R>, DataStream<S>> constructLoop(WindowLoopFunction coWinTerm,
+															  WindowedStream<IN, K, IN_W> windowedStream1,
+															  WindowedStream<F, K, TimeWindow> windowedStream2,
+															  KeySelector<R, K> feedbackKeySelector) throws Exception {
 
 		TypeInformation<S> outTypeInfo = TypeExtractor.createTypeInfo(coWinTerm,
 			WindowLoopFunction.class, coWinTerm.getClass(), 2);
@@ -93,7 +94,6 @@ public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S> {
 			feedbackKeySelector,
 			outTypeInfo,
 			intermediateFeedbackTypeInfo);
-		// TODO check if this is necessary
 		transformation.setStateKeySelectors(windowedStream1.getInput().getKeySelector(), windowedStream2.getInput().getKeySelector());
 		transformation.setStateKeyType(windowedStream1.getInput().getKeyType());
 
@@ -131,7 +131,7 @@ public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S> {
 	}
 
 	public TwoInputTransformation<IN, F, Either<R, S>> getTransformation(
-		final WindowLoopFunction<IN, F, S, R, K, IN_W> coWinTerm,
+		final WindowLoopFunction<IN, F, S, R, K, STATE> loopFunction,
 		WindowedStream<IN, K, IN_W> windowedStream1,
 		WindowedStream<F, K, TimeWindow> windowedStream2,
 		KeySelector<R, K> feedbackSelector, 
@@ -141,10 +141,10 @@ public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S> {
 		TypeInformation<Either<R, S>> eitherTypeInfo = new EitherTypeInfo<>(intermediateFeedbackTypeInfo, outTypeInfo);
 		
 		Tuple2<String, WindowOperator> stepDiscretizer =
-			getWindowOperator(windowedStream2, new WrappedWindowFunction2<F, Either<R, S>, K, TimeWindow>(coWinTerm), eitherTypeInfo);
+			getWindowOperator(windowedStream2, new StepWindowFunction<>(loopFunction));                                         
 
 		String opName = "WindowMultiPass(" + stepDiscretizer.f0 + ")"; 
-		WindowMultiPassOperator combinedOperator = new WindowMultiPassOperator(windowedStream1.getInput().getKeySelector(),feedbackSelector, stepDiscretizer.f1, coWinTerm);
+		WindowMultiPassOperator combinedOperator = new WindowMultiPassOperator(windowedStream1.getInput().getKeySelector(),feedbackSelector, stepDiscretizer.f1, loopFunction);
 		return new TwoInputTransformation<>(
 			windowedStream1.getInput().getTransformation(),
 			windowedStream2.getInput().getTransformation(),
@@ -157,7 +157,7 @@ public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S> {
 
 	// rougly the same like WindowedStream#apply(Windowfunction, resultType) but for two window inputs
 	public <T, WIN extends Window> Tuple2<String, WindowOperator>
-	getWindowOperator(WindowedStream<T, K, WIN> windowedStream, WindowFunction<T, Either<R, S>, K, WIN> function, TypeInformation<Either<R, S>> resultType) {
+	getWindowOperator(WindowedStream<T, K, WIN> windowedStream, WindowFunction<T, Either<R, S>, K, WIN> function) {
 		KeyedStream<T, K> input = windowedStream.getInput();
 		WindowAssigner windowAssigner = windowedStream.getWindowAssigner();
 		StreamExecutionEnvironment environment = windowedStream.getExecutionEnvironment();
@@ -214,16 +214,21 @@ public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S> {
 	}
 	
 
-	private static class WrappedWindowFunction2<IN, OUT, K, W extends TimeWindow> extends RichWindowFunction<IN,OUT,K,W> {
+	public static class StepWindowFunction<IN, OUT, K, W extends TimeWindow> extends RichWindowFunction<IN,OUT,K,W> {
 
 		WindowLoopFunction coWinTerm;
+		private ManagedLoopStateHandl managedLoopStateHandl;
 
-		public WrappedWindowFunction2(WindowLoopFunction coWinTerm) {
+		public void setManagedLoopStateHandl(ManagedLoopStateHandl managedLoopStateHandl) {
+			this.managedLoopStateHandl = managedLoopStateHandl;
+		}
+
+		public StepWindowFunction(WindowLoopFunction coWinTerm) {
 			this.coWinTerm = coWinTerm;
 		}
 
 		public void apply(K key, W window, Iterable<IN> input, Collector<OUT> out) throws Exception {
-			coWinTerm.step(new LoopContext(window.getTimeContext(), window.getEnd(), key, (StreamingRuntimeContext) getRuntimeContext()), input, out);
+			coWinTerm.step(new LoopContext(window.getTimeContext(), window.getEnd(), key, (StreamingRuntimeContext) getRuntimeContext(), managedLoopStateHandl), input, out);
 		}
 	}
 }
