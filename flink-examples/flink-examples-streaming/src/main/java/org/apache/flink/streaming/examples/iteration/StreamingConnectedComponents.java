@@ -204,10 +204,10 @@ public class StreamingConnectedComponents {
 
 			// expand if component ID needs to update
 			if (componentID < vertexState.f1) {
-				//update local state with new rank
+				//update local state with new component ID
 				vertexState = new Tuple2<>(vertexState.f0, componentID);
 				ctx.loopState(vertexState);
-				//send rank forward
+				//send updated component ID
 				for (Long neighbor : vertexState.f0) {
 					out.collect(new Either.Left(new Tuple2<>(neighbor, componentID)));
 				}

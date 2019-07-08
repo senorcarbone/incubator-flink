@@ -137,10 +137,11 @@ public class LoopContext<K, S> {
 
 	@Override
 	public String toString()  {
+		String stepString = (superstep == Long.MAX_VALUE) ? "FINAL" : String.valueOf(superstep);
 		try {
-			return super.toString() + " :: [ctx: " + context + ", partition: "+getRuntimeContext().getIndexOfThisSubtask()+ ", step: " + superstep + ", key: " + key + ", STATE[ LOOP: "+ loopState() + ", PERSISTENT: " + persistentState()+"] ]";
+			return super.toString() + " :: [ctx: " + context + ", partition: "+getRuntimeContext().getIndexOfThisSubtask()+ ", step: " + stepString + ", key: " + key + ", STATE[ LOOP: "+ loopState() + ", PERSISTENT: " + persistentState()+"] ]";
 		} catch (Exception e) {
-			return super.toString() + " :: [ctx: " + context + ", partition: "+getRuntimeContext().getIndexOfThisSubtask()+ ", step: " + superstep + ", key: " + key + ", [UNINITIALIZED STATE] ]";
+			return super.toString() + " :: [ctx: " + context + ", partition: "+getRuntimeContext().getIndexOfThisSubtask()+ ", step: " + stepString + ", key: " + key + ", [UNINITIALIZED STATE] ]";
 		}
 	}
 }
