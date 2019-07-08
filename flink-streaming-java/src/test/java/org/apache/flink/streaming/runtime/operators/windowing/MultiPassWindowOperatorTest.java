@@ -43,6 +43,7 @@ import org.apache.flink.streaming.util.TwoInputStreamOperatorTestHarness;
 import org.apache.flink.types.Either;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.TestLogger;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -134,8 +135,15 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 		//TEST MULTIPASS
 		TwoInputStreamOperatorTestHarness testHarness = createTestHarness(operator);
 		testHarness.setup(new EitherSerializer<>(STRING_INT_TUPLE.createSerializer(config), STRING_INT_TUPLE.createSerializer(config)));
-
-		ConcurrentLinkedQueue<Object> expectedOutput = new ConcurrentLinkedQueue<>();
+		
+		String lazyCheck = 
+			"[Record @ [3999, 1] : Left((1,1)), Record @ [3999, 1] : Left((2,2)), Watermark @ [3999, 0], " +
+			"Record @ [3999, 2] : Left((1,1)), Watermark @ [3999, 1], " +
+			"Record @ [4999, 1] : Left((1,3)), Record @ [4999, 1] : Left((2,3)), Watermark @ [4999, 0], Watermark @ [3999, 2], " +
+			"Record @ [4999, 2] : Left((1,2)), Record @ [4999, 2] : Left((2,1)), Watermark @ [4999, 1], " +
+			"Record @ [4999, 0] : Right((1,3)), Record @ [4999, 0] : Right((2,3)), Watermark @ [3999, 9223372036854775807]#, Watermark @ [4999, 2], " +
+			"Record @ [4999, 0] : Right((1,3)), Record @ [4999, 0] : Right((2,3)), Watermark @ [4999, 9223372036854775807]#]";
+		
 		ConcurrentLinkedQueue<Object> history = new ConcurrentLinkedQueue<>();
 
 		testHarness.open();
@@ -166,9 +174,11 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 		//CLEANUP
 		progressStep(testHarness, history);
 		progressStep(testHarness, history);
+		progressStep(testHarness, history);
 		cleanup(testHarness.getOutput());
 		testHarness.close();
 
+		Assert.assertEquals(lazyCheck, history.toString());
 		System.err.println(history);
 	}
 
