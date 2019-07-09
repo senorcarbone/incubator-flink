@@ -123,6 +123,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 
 		stateHandl = new InnerLoopStateHandl();
 		((IterativeWindowStream.StepWindowFunction) ((InternalIterableWindowFunction) superstepWindow.getUserFunction()).getWrappedFunction()).setManagedLoopStateHandl(stateHandl);
+		((IterativeWindowStream.StepWindowFunction) ((InternalIterableWindowFunction) superstepWindow.getUserFunction()).getWrappedFunction()).setWindowMultiPassOperator(this);
 
 		this.containingTask = containingTask;
 		this.entryBuffer = new HashMap<>();
