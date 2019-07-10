@@ -138,10 +138,11 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 		
 		String lazyCheck = 
 			"[Record @ [3999, 1] : Left((1,1)), Record @ [3999, 1] : Left((2,2)), Watermark @ [3999, 0], " +
-			"Record @ [3999, 2] : Left((1,1)), Watermark @ [3999, 1], " +
+			"Record @ [3999, 2] : Left((2,1)), Watermark @ [3999, 1], " +
 			"Record @ [4999, 1] : Left((1,3)), Record @ [4999, 1] : Left((2,3)), Watermark @ [4999, 0], Watermark @ [3999, 2], " +
-			"Record @ [4999, 2] : Left((1,2)), Record @ [4999, 2] : Left((2,1)), Watermark @ [4999, 1], " +
-			"Record @ [4999, 0] : Right((1,3)), Record @ [4999, 0] : Right((2,3)), Watermark @ [3999, 9223372036854775807]#, Watermark @ [4999, 2], " +
+			"Record @ [4999, 2] : Left((1,2)), Record @ [4999, 2] : Left((2,2)), Watermark @ [4999, 1], " +
+			"Record @ [4999, 0] : Right((1,3)), Record @ [4999, 0] : Right((2,3)), Watermark @ [3999, 9223372036854775807]#, " +
+			"Record @ [4999, 3] : Left((1,1)), Record @ [4999, 3] : Left((2,1)), Watermark @ [4999, 2], Watermark @ [4999, 3], " +
 			"Record @ [4999, 0] : Right((1,3)), Record @ [4999, 0] : Right((2,3)), Watermark @ [4999, 9223372036854775807]#]";
 		
 		ConcurrentLinkedQueue<Object> history = new ConcurrentLinkedQueue<>();
@@ -172,6 +173,7 @@ public class MultiPassWindowOperatorTest extends TestLogger {
 		progressStep(testHarness, history);
 		System.err.println(testHarness.getOutput());
 		//CLEANUP
+		progressStep(testHarness, history);
 		progressStep(testHarness, history);
 		progressStep(testHarness, history);
 		progressStep(testHarness, history);
