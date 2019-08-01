@@ -81,7 +81,7 @@ object IterateExample {
         (iteration: DataStream[(Int, Int, Int, Int, Int)]) => {
           // calculates the next Fibonacci number and increment the counter
           val step = iteration.map(value =>
-            (value._1, value._2, value._4, value._3 + value._4, value._5 + 1))
+            (value._1, value._2, value._4, value._3 + value._4, value._5 + 1)).name("STEP")
           // testing which tuple needs to be iterated again
           val feedback = step.filter(value => withinBound(value._3, value._4))
           // giving back the input pair and the counter
@@ -89,7 +89,7 @@ object IterateExample {
             .filter(value => !withinBound(value._3, value._4))
             .map(value => ((value._1, value._2), value._5))
           (feedback, output)
-        }
+        }  
         // timeout after 5 seconds
         , 5000L
       )
@@ -100,7 +100,7 @@ object IterateExample {
       println("Printing result to stdout. Use --output to specify output path.")
       numbers.print()
     }
-
+    println(env.getExecutionPlan)
     env.execute("Streaming Iteration Example")
   }
 

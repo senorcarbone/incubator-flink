@@ -47,11 +47,11 @@ import org.apache.flink.streaming.runtime.streamstatus.StatusWatermarkValve;
 import org.apache.flink.streaming.runtime.streamstatus.StreamStatus;
 import org.apache.flink.streaming.runtime.streamstatus.StreamStatusMaintainer;
 import org.apache.flink.streaming.runtime.tasks.StreamTask;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -122,8 +122,15 @@ public class StreamInputProcessor<IN> {
 			OneInputStreamOperator<IN, ?> streamOperator,
 			TaskIOMetricGroup metrics,
 			WatermarkGauge watermarkGauge) throws IOException {
-
-		InputGate inputGate = InputGateUtil.createInputGate(inputGates);
+		
+		//TODO  Probably that is only accessible within iterations
+		InputGate inputGate = null;
+		if(inputGates.length == 2){				
+			 inputGate = InputGateUtil.createInputGatePrioritized(Arrays.asList(inputGates[0]), Arrays.asList(inputGates[1]));
+		}
+		else{
+			 inputGate = InputGateUtil.createInputGate(inputGates);
+		}
 
 		this.barrierHandler = InputProcessorUtil.createCheckpointBarrierHandler(
 			checkpointedTask, checkpointMode, ioManager, inputGate, taskManagerConfig);
@@ -170,7 +177,6 @@ public class StreamInputProcessor<IN> {
 		while (true) {
 			if (currentRecordDeserializer != null) {
 				DeserializationResult result = currentRecordDeserializer.getNextRecord(deserializationDelegate);
-
 				if (result.isBufferConsumed()) {
 					currentRecordDeserializer.getCurrentBuffer().recycleBuffer();
 					currentRecordDeserializer = null;
@@ -178,7 +184,6 @@ public class StreamInputProcessor<IN> {
 
 				if (result.isFullRecord()) {
 					StreamElement recordOrMark = deserializationDelegate.getInstance();
-
 					if (recordOrMark.isWatermark()) {
 						// handle watermark
 						statusWatermarkValve.inputWatermark(recordOrMark.asWatermark(), currentChannel);

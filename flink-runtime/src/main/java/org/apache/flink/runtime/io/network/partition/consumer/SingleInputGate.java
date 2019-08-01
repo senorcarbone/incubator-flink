@@ -400,10 +400,6 @@ public class SingleInputGate implements InputGate {
 		}
 	}
 
-	public String getOwningTaskName() {
-		return owningTaskName;
-	}
-
 	public JobID getJobId() {
 		return jobId;
 	}
