@@ -218,9 +218,14 @@ public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S, STATE> {
 
 		WindowLoopFunction coWinTerm;
 		private ManagedLoopStateHandl managedLoopStateHandl;
+		private WindowMultiPassOperator windowMultiPassOperator;
 
 		public void setManagedLoopStateHandl(ManagedLoopStateHandl managedLoopStateHandl) {
 			this.managedLoopStateHandl = managedLoopStateHandl;
+		}
+
+		public void setWindowMultiPassOperator(WindowMultiPassOperator windowMultiPassOperator) {
+			this.windowMultiPassOperator = windowMultiPassOperator;
 		}
 
 		public StepWindowFunction(WindowLoopFunction coWinTerm) {
@@ -228,6 +233,7 @@ public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S, STATE> {
 		}
 
 		public void apply(K key, W window, Iterable<IN> input, Collector<OUT> out) throws Exception {
+			windowMultiPassOperator.setCurrentKey(key);
 			coWinTerm.step(new LoopContext(window.getTimeContext(), window.getEnd(), key, (StreamingRuntimeContext) getRuntimeContext(), managedLoopStateHandl), input, out);
 		}
 	}

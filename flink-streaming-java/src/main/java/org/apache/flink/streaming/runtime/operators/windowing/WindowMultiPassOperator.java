@@ -105,9 +105,10 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 
 		@Override
 		public void markActive(List<Long> context, K key) {
-			if(activeKeys.get(context) != null){
-				activeKeys.get(context).add(key);
+			if(activeKeys.get(context) == null){
+				activeKeys.put(context, new HashSet<>());
 			}
+			activeKeys.get(context).add(key);
 		}
 
 	}
@@ -123,6 +124,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 
 		stateHandl = new InnerLoopStateHandl();
 		((IterativeWindowStream.StepWindowFunction) ((InternalIterableWindowFunction) superstepWindow.getUserFunction()).getWrappedFunction()).setManagedLoopStateHandl(stateHandl);
+		((IterativeWindowStream.StepWindowFunction) ((InternalIterableWindowFunction) superstepWindow.getUserFunction()).getWrappedFunction()).setWindowMultiPassOperator(this);
 
 		this.containingTask = containingTask;
 		this.entryBuffer = new HashMap<>();
@@ -167,10 +169,9 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 
 	public void processElement2(StreamRecord<IN2> element) throws Exception {
 		logger.info(getRuntimeContext().getIndexOfThisSubtask() + ":: TWOWIN Received from FEEDBACK - " + element);
+		activeIterations.add(element.getProgressContext());
 		superstepWindow.setCurrentKey(feedbackKeying.getKey(element.getValue()));
-		if (activeIterations.contains(element.getProgressContext())) {
-			superstepWindow.processElement(element);
-		}
+		superstepWindow.processElement(element);
 	}
 
 	public void processWatermark1(Watermark mark) throws Exception {
