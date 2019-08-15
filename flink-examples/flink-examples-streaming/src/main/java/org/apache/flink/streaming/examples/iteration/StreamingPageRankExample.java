@@ -1,6 +1,5 @@
 package org.apache.flink.streaming.examples.iteration;
 
-import com.google.common.collect.Lists;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -8,6 +7,7 @@ import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.FeedbackBuilder;
@@ -27,7 +27,10 @@ import org.apache.flink.util.Collector;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.Serializable;
-import java.util.*;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
 public class StreamingPageRankExample {
 	StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();

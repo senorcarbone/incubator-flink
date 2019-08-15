@@ -19,7 +19,7 @@
 
 package org.apache.flink.streaming.timekiller;
 
-import com.google.common.collect.Lists;
+import org.apache.curator.shaded.com.google.common.collect.Lists;
 import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.MapState;
 import org.apache.flink.api.common.state.MapStateDescriptor;

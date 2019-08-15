@@ -931,7 +931,7 @@ if (contents != null) {		TriggerResult triggerResult = triggerContext.onEventTim
 		}
 
 		public TriggerResult onElement(StreamRecord<IN> element) throws Exception {
-			logger.info("WINOP : Received element "+element);
+//			logger.info("WINOP : Received element "+element);
 			return trigger.onElement(
 				element.getValue(),
 				element.getProgressContext(),
@@ -944,7 +944,7 @@ if (contents != null) {		TriggerResult triggerResult = triggerContext.onEventTim
 		}
 
 		public TriggerResult onEventTime(List<Long> timeContext, long time) throws Exception {
-			logger.info("WINOP : Received new Event Time "+time);
+//			logger.info("WINOP : Received new Event Time "+time);
 			return trigger.onEventTime(timeContext, time, window, this);
 		}
 
