@@ -33,11 +33,11 @@ public class StreamingPageRankExample {
 	StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
 	public static void main(String[] args) throws Exception {
-		int numWindows = Integer.parseInt(args[0]);
-		long windSize = Long.parseLong(args[1]);
-		int parallelism = Integer.parseInt(args[2]);
-		String outputDir = args[3];
-		String inputDir = args.length > 4 ? args[4] : "";
+		int numWindows = 0;
+		long windSize = 0;
+		int parallelism = 4;
+		String outputDir = "";
+		String inputDir = "";
 
 		StreamingPageRankExample example = new StreamingPageRankExample(numWindows, windSize, parallelism, inputDir, outputDir);
 		example.run();
@@ -66,7 +66,8 @@ public class StreamingPageRankExample {
 				}
 			}).timeWindow(Time.milliseconds(1000));
 
-		winStream.iterateSyncFor(4,
+		winStream.
+			iterateSyncFor(4,
 			new MyWindowLoopFunction(),
 			new MyFeedbackBuilder(),
 			new TupleTypeInfo<>(BasicTypeInfo.LONG_TYPE_INFO, BasicTypeInfo.DOUBLE_TYPE_INFO))
@@ -248,6 +249,7 @@ public class StreamingPageRankExample {
 		@Override
 		public void step(LoopContext<Long, Tuple2<Set<Long>, Double>> ctx, Iterable<Tuple2<Long, Double>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) throws Exception {
 			System.err.println("PRE-STEP:: " + ctx);
+			
 			//derive rank from messages
 			double newrank = 0.0;
 			for (Tuple2<Long, Double> msg : iterable) {

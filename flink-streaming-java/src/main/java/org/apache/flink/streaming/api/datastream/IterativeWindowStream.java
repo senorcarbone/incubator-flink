@@ -36,6 +36,9 @@ import org.apache.flink.types.Either;
 import org.apache.flink.util.Collector;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 
@@ -219,6 +222,7 @@ public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S, STATE> {
 		WindowLoopFunction coWinTerm;
 		private ManagedLoopStateHandl managedLoopStateHandl;
 		private WindowMultiPassOperator windowMultiPassOperator;
+		private Map<List<Long>, Set<?>> activeKeys;
 
 		public void setManagedLoopStateHandl(ManagedLoopStateHandl managedLoopStateHandl) {
 			this.managedLoopStateHandl = managedLoopStateHandl;
@@ -228,13 +232,20 @@ public class IterativeWindowStream<IN, IN_W extends Window, F, K, R, S, STATE> {
 			this.windowMultiPassOperator = windowMultiPassOperator;
 		}
 
+		public <K> void setActiveKeys(Map<List<Long>, Set<?>> activeKeys) {
+			this.activeKeys = activeKeys;
+		}
+
 		public StepWindowFunction(WindowLoopFunction coWinTerm) {
 			this.coWinTerm = coWinTerm;
 		}
 
 		public void apply(K key, W window, Iterable<IN> input, Collector<OUT> out) throws Exception {
 			windowMultiPassOperator.setCurrentKey(key);
-			coWinTerm.step(new LoopContext(window.getTimeContext(), window.getEnd(), key, (StreamingRuntimeContext) getRuntimeContext(), managedLoopStateHandl), input, out);
+			LoopContext loopCtx = new LoopContext(window.getTimeContext(), window.getEnd(), key, activeKeys.containsKey(window.getTimeContext()) ? activeKeys.get(window.getTimeContext()).size() : 0, (StreamingRuntimeContext) getRuntimeContext(), managedLoopStateHandl);
+			coWinTerm.step(loopCtx, input, out);
 		}
+
+
 	}
 }

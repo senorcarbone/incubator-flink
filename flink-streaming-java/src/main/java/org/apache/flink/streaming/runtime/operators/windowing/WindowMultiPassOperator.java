@@ -110,7 +110,6 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 			}
 			activeKeys.get(context).add(key);
 		}
-
 	}
 
 	@Override
@@ -122,13 +121,14 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 		config2.setOperatorName("WinOp2");
 		superstepWindow.setup(containingTask, config2, output);
 
-		stateHandl = new InnerLoopStateHandl();
-		((IterativeWindowStream.StepWindowFunction) ((InternalIterableWindowFunction) superstepWindow.getUserFunction()).getWrappedFunction()).setManagedLoopStateHandl(stateHandl);
-		((IterativeWindowStream.StepWindowFunction) ((InternalIterableWindowFunction) superstepWindow.getUserFunction()).getWrappedFunction()).setWindowMultiPassOperator(this);
-
 		this.containingTask = containingTask;
 		this.entryBuffer = new HashMap<>();
 		this.activeKeys = new HashMap<>();
+		
+		stateHandl = new InnerLoopStateHandl();
+		((IterativeWindowStream.StepWindowFunction) ((InternalIterableWindowFunction) superstepWindow.getUserFunction()).getWrappedFunction()).setManagedLoopStateHandl(stateHandl);
+		((IterativeWindowStream.StepWindowFunction) ((InternalIterableWindowFunction) superstepWindow.getUserFunction()).getWrappedFunction()).setWindowMultiPassOperator(this);
+		((IterativeWindowStream.StepWindowFunction) ((InternalIterableWindowFunction) superstepWindow.getUserFunction()).getWrappedFunction()).setActiveKeys(this.activeKeys);
 	}
 
 	@Override
@@ -181,7 +181,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 			for (Map.Entry<K, List<IN1>> entry : entryBuffer.get(mark.getContext()).entrySet()) {
 				collector.setAbsoluteTimestamp(mark.getContext(), 0);
 				this.setCurrentKey(entry.getKey());
-				loopFunction.entry(new LoopContext(mark.getContext(), 0, entry.getKey(), getRuntimeContext(), stateHandl), entry.getValue(), collector);
+				loopFunction.entry(new LoopContext(mark.getContext(), 0, entry.getKey(), entryBuffer.get(mark.getContext()).keySet().size(), getRuntimeContext(), stateHandl), entry.getValue(), collector);
 			}
 			Set<K> tmp = new HashSet<>();
 			tmp.addAll(entryBuffer.get(mark.getContext()).keySet());
@@ -200,7 +200,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 			if (mark.getContext().get(mark.getContext().size() - 1) != Long.MAX_VALUE && activeKeys.get(mark.getContext()) != null) {
 				for(K activeKey : activeKeys.get(mark.getContext())){
 					this.setCurrentKey(activeKey);
-					loopFunction.finalize(new LoopContext(mark.getContext(), mark.getTimestamp(), activeKey, getRuntimeContext(), stateHandl), collector);
+					loopFunction.finalize(new LoopContext(mark.getContext(), mark.getTimestamp(), activeKey, activeKeys.get(mark.getContext()).size(), getRuntimeContext(), stateHandl), collector);
 					stateHandl.loopState.remove(mark.getContext().get(mark.getContext().size() - 1));  
 				}
 				activeKeys.remove(mark.getContext());

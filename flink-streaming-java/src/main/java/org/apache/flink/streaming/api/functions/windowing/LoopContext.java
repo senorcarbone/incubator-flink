@@ -29,13 +29,15 @@ public class LoopContext<K, S> {
 	final List<Long> context;
 	final long superstep;
 	final K key;
+	final int activeKeys;
 	private final StreamingRuntimeContext ctx;
 	private ManagedLoopStateHandl<K, S> managedStateHandle;
 
-	public LoopContext(List<Long> context, long superstep, K key, StreamingRuntimeContext ctx, ManagedLoopStateHandl<K, S> managedStateHandle) {
+	public LoopContext(List<Long> context, long superstep, K key, int activeKeys, StreamingRuntimeContext ctx, ManagedLoopStateHandl<K, S> managedStateHandle) {
 		this.context = context;
 		this.superstep = superstep;
 		this.key = key;
+		this.activeKeys = activeKeys;
 		this.ctx = ctx;
 		this.managedStateHandle = managedStateHandle;
 	}
@@ -139,7 +141,7 @@ public class LoopContext<K, S> {
 	public String toString()  {
 		String stepString = (superstep == Long.MAX_VALUE) ? "FINAL" : String.valueOf(superstep);
 		try {
-			return super.toString() + " :: [ctx: " + context + ", partition: "+getRuntimeContext().getIndexOfThisSubtask()+ ", step: " + stepString + ", key: " + key + ", STATE[ LOOP: "+ loopState() + ", PERSISTENT: " + persistentState()+"] ]";
+			return super.toString() + " :: [ctx: " + context + ", partition: "+getRuntimeContext().getIndexOfThisSubtask()+ ", step: " + stepString + ", key: " + key + ", STATE[ LOOP: "+ loopState() + ", PERSISTENT: " + persistentState()+", +ACTIVE KEYS: +"+activeKeys+"]";
 		} catch (Exception e) {
 			return super.toString() + " :: [ctx: " + context + ", partition: "+getRuntimeContext().getIndexOfThisSubtask()+ ", step: " + stepString + ", key: " + key + ", [UNINITIALIZED STATE] ]";
 		}
