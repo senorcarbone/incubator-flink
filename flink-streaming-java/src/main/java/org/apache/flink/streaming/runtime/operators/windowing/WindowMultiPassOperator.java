@@ -42,6 +42,7 @@ import org.apache.flink.streaming.runtime.operators.windowing.functions.Internal
 import org.apache.flink.streaming.runtime.streamrecord.LatencyMarker;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.runtime.tasks.StreamTask;
+import org.apache.flink.streaming.util.IterationsTimer;
 import org.apache.flink.types.Either;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,9 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 	extends AbstractStreamOperator<Either<R, S>>
 	implements TwoInputStreamOperator<IN1, IN2, Either<R, S>>, Serializable {
 
-	public final static Logger logger = LoggerFactory.getLogger(WindowMultiPassOperator.class);
+	private boolean processedWatermarkIsCalled = true;
+	private IterationsTimer syncTimer;
+	final static Logger logger = LoggerFactory.getLogger(WindowMultiPassOperator.class);
 	private final KeySelector<IN1, K> entryKeying;
 	private final KeySelector<IN2, K> feedbackKeying;
 
@@ -63,6 +66,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 	//UDF
 	WindowLoopFunction loopFunction;
 
+	// number of window iterations
 	Set<List<Long>> activeIterations = new HashSet<>();
 	StreamTask<?, ?> containingTask;
 
@@ -105,7 +109,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 
 		@Override
 		public void markActive(List<Long> context, K key) {
-			if(activeKeys.get(context) == null){
+			if (activeKeys.get(context) == null) {
 				activeKeys.put(context, new HashSet<>());
 			}
 			activeKeys.get(context).add(key);
@@ -124,7 +128,7 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 		this.containingTask = containingTask;
 		this.entryBuffer = new HashMap<>();
 		this.activeKeys = new HashMap<>();
-		
+
 		stateHandl = new InnerLoopStateHandl();
 		((IterativeWindowStream.StepWindowFunction) ((InternalIterableWindowFunction) superstepWindow.getUserFunction()).getWrappedFunction()).setManagedLoopStateHandl(stateHandl);
 		((IterativeWindowStream.StepWindowFunction) ((InternalIterableWindowFunction) superstepWindow.getUserFunction()).getWrappedFunction()).setWindowMultiPassOperator(this);
@@ -178,14 +182,15 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 		logger.info(getRuntimeContext().getIndexOfThisSubtask() + ":: TWOWIN Received from IN - " + mark);
 		lastWinStartPerContext.put(mark.getContext(), System.currentTimeMillis());
 		if (entryBuffer.containsKey(mark.getContext())) {
+			Set<K> tmp = new HashSet<>();
+			tmp.addAll(entryBuffer.get(mark.getContext()).keySet());
+			activeKeys.put(mark.getContext(), tmp);
+			logger.info("Number of active keys: " + this.activeKeys.getOrDefault(mark.getContext(), new HashSet<>()).size());
 			for (Map.Entry<K, List<IN1>> entry : entryBuffer.get(mark.getContext()).entrySet()) {
 				collector.setAbsoluteTimestamp(mark.getContext(), 0);
 				this.setCurrentKey(entry.getKey());
 				loopFunction.entry(new LoopContext(mark.getContext(), 0, entry.getKey(), entryBuffer.get(mark.getContext()).keySet().size(), getRuntimeContext(), stateHandl), entry.getValue(), collector);
 			}
-			Set<K> tmp = new HashSet<>();
-			tmp.addAll(entryBuffer.get(mark.getContext()).keySet());
-			activeKeys.put(mark.getContext(), tmp);
 			entryBuffer.remove(mark.getContext()); //entry is done for that context
 		}
 		output.emitWatermark(mark);
@@ -193,21 +198,46 @@ public class WindowMultiPassOperator<K, IN1, IN2, R, S, W2 extends Window>
 	}
 
 	public void processWatermark2(Watermark mark) throws Exception {
+		processedWatermarkIsCalled = !processedWatermarkIsCalled;
+
 		logger.info(getRuntimeContext().getIndexOfThisSubtask() + ":: TWOWIN Received from FEEDBACK - " + mark);
 		lastWinStartPerContext.put(mark.getContext(), System.currentTimeMillis());
 		if (mark.iterationDone()) {
 			activeIterations.remove(mark.getContext());
 			if (mark.getContext().get(mark.getContext().size() - 1) != Long.MAX_VALUE && activeKeys.get(mark.getContext()) != null) {
-				for(K activeKey : activeKeys.get(mark.getContext())){
+				for (K activeKey : activeKeys.get(mark.getContext())) {
 					this.setCurrentKey(activeKey);
 					loopFunction.finalize(new LoopContext(mark.getContext(), mark.getTimestamp(), activeKey, activeKeys.get(mark.getContext()).size(), getRuntimeContext(), stateHandl), collector);
-					stateHandl.loopState.remove(mark.getContext().get(mark.getContext().size() - 1));  
+					stateHandl.loopState.remove(mark.getContext().get(mark.getContext().size() - 1));
 				}
 				activeKeys.remove(mark.getContext());
 			}
+
+			IterationsTimer superStepTimer = new IterationsTimer("SST," + mark.getContext());
 			superstepWindow.processWatermark(new Watermark(mark.getContext(), Long.MAX_VALUE, true, mark.iterationOnly()));
+			superStepTimer.stop();
+			logger.info(superStepTimer.toString());
+
+			// start counting the time until this function is called once again (synchronization time)
+			if (processedWatermarkIsCalled) {
+				syncTimer.stop();
+				logger.info(syncTimer.toString());
+			} else {
+				syncTimer = new IterationsTimer("SYNCT," + mark.getContext());
+			}
 		} else {
+			IterationsTimer superStepTimer = new IterationsTimer("SST," + mark.getContext());
 			superstepWindow.processWatermark(mark);
+			superStepTimer.stop();
+			logger.info(superStepTimer.toString());
+
+			// start counting the time until this function is called once again (synchronization time)
+			if (processedWatermarkIsCalled) {
+				syncTimer.stop();
+				logger.info(syncTimer.toString());
+			} else {
+				syncTimer = new IterationsTimer("SYNCT," + mark.getContext());
+			}
 		}
 		lastLocalEndPerContext.put(mark.getContext(), System.currentTimeMillis());
 	}

@@ -1,6 +1,7 @@
 package org.apache.flink.streaming.examples.iteration;
 
 import com.google.common.collect.Lists;
+import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -21,25 +22,33 @@ import org.apache.flink.streaming.api.functions.windowing.WindowLoopFunction;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.streaming.examples.iteration.config.BenchmarkConfig;
+import org.apache.flink.streaming.util.IterationsTimer;
 import org.apache.flink.types.Either;
 import org.apache.flink.util.Collector;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.Serializable;
-import java.util.*;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class StreamingPageRankExample {
+	final static Logger logger = LogManager.getLogger(StreamingPageRankExample.class);
+	static BenchmarkConfig benchmarkConfig = new BenchmarkConfig();
 	StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
 	public static void main(String[] args) throws Exception {
-		int numWindows = 0;
-		long windSize = 0;
-		int parallelism = 4;
-		String outputDir = "";
-		String inputDir = "";
-
-		StreamingPageRankExample example = new StreamingPageRankExample(numWindows, windSize, parallelism, inputDir, outputDir);
+		// storing err stream output in a file
+		//String errStreamPath = System.getProperty("user.dir") + "/flink-examples/flink-examples-streaming/";
+		//PrintStream errPS = new PrintStream(errStreamPath + "err.txt");
+		//System.setErr(errPS);
+		StreamingPageRankExample example = new StreamingPageRankExample(benchmarkConfig);
 		example.run();
 	}
 
@@ -47,14 +56,11 @@ public class StreamingPageRankExample {
 	/**
 	 * TODO configure the windSize parameter and generalize the evaluation framework
 	 *
-	 * @param numWindows
-	 * @param windSize
-	 * @param parallelism
 	 * @throws Exception
 	 */
-	public StreamingPageRankExample(int numWindows, long windSize, int parallelism, String inputDir, String outputDir) throws Exception {
+	public StreamingPageRankExample(BenchmarkConfig b) throws Exception {
 		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-		env.setParallelism(2);
+		env.setParallelism((Integer) benchmarkConfig.getParam("job.parallelism"));
 
 		DataStream<Tuple2<Long, List<Long>>> inputStream = env.addSource(new PageRankSampleSrc());
 		WindowedStream<Tuple2<Long, List<Long>>, Long, TimeWindow> winStream =
@@ -68,16 +74,22 @@ public class StreamingPageRankExample {
 
 		winStream.
 			iterateSyncFor(4,
-			new MyWindowLoopFunction(),
-			new MyFeedbackBuilder(),
-			new TupleTypeInfo<>(BasicTypeInfo.LONG_TYPE_INFO, BasicTypeInfo.DOUBLE_TYPE_INFO))
+				new MyWindowLoopFunction(),
+				new MyFeedbackBuilder(),
+				new TupleTypeInfo<>(BasicTypeInfo.LONG_TYPE_INFO, BasicTypeInfo.DOUBLE_TYPE_INFO))
 			.print();
-		env.getConfig().setExperimentConstants(numWindows, windSize, outputDir);
+		int numWindows = (Integer) benchmarkConfig.getParam("window.count");
+		int windowSize = (Integer) benchmarkConfig.getParam("window.size");
+		String outputDir = (String) benchmarkConfig.getParam("dir.output");
+
+		env.getConfig().setExperimentConstants(numWindows, windowSize, outputDir);
 	}
 
 	protected void run() throws Exception {
 		System.err.println(env.getExecutionPlan());
-		env.execute("Streaming Sync Iteration Example");
+
+		JobExecutionResult result = env.execute("Streaming Sync Iteration Example");
+		logger.info("Job duration: " + result.getNetRuntime(TimeUnit.MILLISECONDS) + " ms");
 	}
 
 	private static class MyFeedbackBuilder implements FeedbackBuilder<Tuple2<Long, Double>, Long> {
@@ -218,6 +230,8 @@ public class StreamingPageRankExample {
 
 		@Override
 		public void entry(LoopContext<Long, Tuple2<Set<Long>, Double>> ctx, Iterable<Tuple2<Long, List<Long>>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) throws Exception {
+			IterationsTimer entryTimer = new IterationsTimer("ET," + ctx.getKey() + "," + ctx.getContext());
+
 			System.err.println("PRE-ENTRY:: " + ctx);
 
 			//add all neighbors in one set (if more than one adjacency lists exist in window)
@@ -243,13 +257,18 @@ public class StreamingPageRankExample {
 			for (Long neighbor : neighborsInWindow) {
 				collector.collect(new Either.Left(new Tuple2<>(neighbor, rank)));
 			}
+
+			entryTimer.stop();
+			logger.info(entryTimer.toString());
+
 			System.err.println("POST-ENTRY:: " + ctx);
 		}
 
 		@Override
 		public void step(LoopContext<Long, Tuple2<Set<Long>, Double>> ctx, Iterable<Tuple2<Long, Double>> iterable, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> collector) throws Exception {
+			IterationsTimer stepTimer = new IterationsTimer("ST," + ctx.getKey() + "," + ctx.getContext());
+
 			System.err.println("PRE-STEP:: " + ctx);
-			
 			//derive rank from messages
 			double newrank = 0.0;
 			for (Tuple2<Long, Double> msg : iterable) {
@@ -275,11 +294,16 @@ public class StreamingPageRankExample {
 				}
 			}
 
+			stepTimer.stop();
+			logger.info(stepTimer.toString());
+
 			System.err.println("POST-STEP:: " + ctx);
 		}
 
 		@Override
 		public void finalize(LoopContext<Long, Tuple2<Set<Long>, Double>> ctx, Collector<Either<Tuple2<Long, Double>, Tuple2<Long, Double>>> out) throws Exception {
+			IterationsTimer finalizeTimer = new IterationsTimer("FT," + ctx.getKey() + "," + ctx.getContext());
+
 			System.err.println("PRE-FINALIZE:: " + ctx);
 
 			//update persistent state and output updated ranks
@@ -287,6 +311,10 @@ public class StreamingPageRankExample {
 				ctx.persistentState(ctx.loopState());
 				out.collect(new Either.Right(new Tuple2(ctx.getKey(), ctx.loopState().f1)));
 			}
+
+			finalizeTimer.stop();
+			logger.info(finalizeTimer.toString());
+
 			System.err.println("POST-FINALIZE:: " + ctx);
 		}
 

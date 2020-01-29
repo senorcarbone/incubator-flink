@@ -1,0 +1,11 @@
+dir.input: "/a.in"
+dir.output: ""
+job.parallelism: 4
+window.count: 0
+window.size: 0
+window.n_iterations: 4
+dataset: "mydataset"
+toggle.latency_ps: true
+toggle.sync_overhead_ps: true
+toggle.n_active_keys_ps: false
+
