@@ -17,7 +17,7 @@
  */
 
 
-package org.apache.flink.streaming.examples.iteration;
+package org.apache.flink.streaming.loops.graph;
 
 import com.google.common.collect.Lists;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;

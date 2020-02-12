@@ -1,0 +1,11 @@
+bench.id: "default"
+bench.dataset: "mydataset"
+bench.algorithm: "StreamingPageRank"
+bench.parallelism: 4
+window.count: 0
+window.size: 1000
+itereation.n_iterations: 4
+iteration.latency_ps: true
+iteration.sync_overhead_ps: true
+iteration.n_active_keys_ps: false
+

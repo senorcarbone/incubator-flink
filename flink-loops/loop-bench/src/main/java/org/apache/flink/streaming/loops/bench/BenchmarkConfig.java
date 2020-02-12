@@ -1,18 +1,20 @@
-package org.apache.flink.streaming.examples.iteration.config;
+package org.apache.flink.streaming.loops.bench;
 
 import org.yaml.snakeyaml.Yaml;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
 public class BenchmarkConfig<T> {
+	public static final String DEFAULT_CONF_FILE = "bench_config.yml";
 	private HashMap<String, BenchmarkOption<?>> configs = new HashMap<>();
 
-	public BenchmarkConfig() {
+	public BenchmarkConfig(String confFile) {
+		if (!new File(getClass().getClassLoader().getResource(confFile).getFile()).exists()) throw new IllegalArgumentException("Configuration file "+confFile+" could not be found");
 		loadDefaults();
-
-		InputStream inputStream = this.getClass().getResourceAsStream("/bench_config.yml");
+		InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream(confFile);
 		Yaml yaml = new Yaml();
 		Map<String, Object> values = yaml.load(inputStream);
 
@@ -23,14 +25,19 @@ public class BenchmarkConfig<T> {
 				OptionParser<?> op = new OptionParser<>(b);
 				this.configs.put(mp.getKey(), new BenchmarkOption<>(mp.getKey(), op.parse(value)));
 			}
+			else throw new IllegalArgumentException("Configuration parameter "+mp.getKey()+" could not be found in default BenchmarkOptions");
 		}
 	}
 
+	public BenchmarkConfig() {
+		this(DEFAULT_CONF_FILE);
+	}
+
 	public T getParam(String key) {
-		if (this.configs.get(key) != null) {
-			return (T) this.configs.get(key).getValue();
+		if (this.configs.get(key) == null) { 
+			throw new IllegalArgumentException("Parameter "+key+" not set in the benchmark configuration");
 		}
-		return null;
+		return (T) this.configs.get(key).getValue();
 	}
 
 	public void printConfiguration() {
@@ -44,16 +51,4 @@ public class BenchmarkConfig<T> {
 			this.configs.put(t.getKey(), t);
 		}
 	}
-
-//	public static void main(String[] args) {
-//		BenchmarkConfig benchmarkConfig = new BenchmarkConfig();
-//		benchmarkConfig.printConfiguration();
-//		System.out.println(benchmarkConfig.getParam("window.ssize")); // typo was intentional
-//		System.out.println(benchmarkConfig.getParam("window.size"));
-//		System.out.println(benchmarkConfig.getParam("job.parallelism"));
-//		System.out.println(benchmarkConfig.getParam("dataset"));
-//		System.out.println(benchmarkConfig.getParam("toggle.latency_ps"));
-//		System.out.println(benchmarkConfig.getParam("toggle.sync_overhead_ps"));
-//		System.out.println(benchmarkConfig.getParam("toggle.n_active_keys_ps"));
-//	}
 }

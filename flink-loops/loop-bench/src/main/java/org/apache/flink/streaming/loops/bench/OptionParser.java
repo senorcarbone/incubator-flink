@@ -1,4 +1,4 @@
-package org.apache.flink.streaming.examples.iteration.config;
+package org.apache.flink.streaming.loops.bench;
 
 public class OptionParser<T> {
 	BenchmarkOption<T> bo;

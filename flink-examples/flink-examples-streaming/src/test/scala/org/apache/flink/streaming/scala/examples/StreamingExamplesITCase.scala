@@ -24,10 +24,10 @@ import org.apache.commons.io.FileUtils
 import org.apache.flink.core.fs.FileSystem.WriteMode
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.examples.iteration.util.IterateExampleData
 import org.apache.flink.streaming.examples.ml.util.IncrementalLearningSkeletonData
 import org.apache.flink.streaming.examples.twitter.util.TwitterExampleData
 import org.apache.flink.streaming.examples.windowing.util.SessionWindowingData
+import org.apache.flink.streaming.loops.graph.util.IterateExampleData
 import org.apache.flink.streaming.scala.examples.join.WindowJoin
 import org.apache.flink.streaming.scala.examples.join.WindowJoin.{Grade, Salary}
 import org.apache.flink.streaming.scala.examples.ml.IncrementalLearningSkeleton

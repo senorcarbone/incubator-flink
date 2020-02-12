@@ -1542,7 +1542,7 @@ public class WindowedStream<T, K, W extends Window> {
 	}
 
 
-	public <OUT,F,R> DataStream<OUT> iterateSyncFor(
+	public <OUT,F,R> DataStream<OUT> iterateFixpoint(
 		int iterationCount,
 		WindowLoopFunction coWinTermFun,
 		FeedbackBuilder<R, K> feedbackBuilder,

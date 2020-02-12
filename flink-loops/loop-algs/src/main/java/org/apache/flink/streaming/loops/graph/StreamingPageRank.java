@@ -1,4 +1,4 @@
-package org.apache.flink.streaming.examples.iteration;
+package org.apache.flink.streaming.loops.graph;
 
 import com.google.common.collect.Lists;
 import org.apache.flink.api.common.JobExecutionResult;
@@ -22,11 +22,11 @@ import org.apache.flink.streaming.api.functions.windowing.WindowLoopFunction;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
-import org.apache.flink.streaming.examples.iteration.config.BenchmarkConfig;
+import org.apache.flink.streaming.loops.ExperimentSuite;
+import org.apache.flink.streaming.loops.bench.BenchmarkConfig;
 import org.apache.flink.streaming.util.IterationsTimer;
 import org.apache.flink.types.Either;
 import org.apache.flink.util.Collector;
-import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
@@ -36,32 +36,20 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
-public class StreamingPageRankExample {
-	final static Logger logger = LogManager.getLogger(StreamingPageRankExample.class);
-	static BenchmarkConfig benchmarkConfig = new BenchmarkConfig();
+
+public class StreamingPageRank implements LoopExperiment {
+	
 	StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-
-	public static void main(String[] args) throws Exception {
-		// storing err stream output in a file
-		//String errStreamPath = System.getProperty("user.dir") + "/flink-examples/flink-examples-streaming/";
-		//PrintStream errPS = new PrintStream(errStreamPath + "err.txt");
-		//System.setErr(errPS);
-		StreamingPageRankExample example = new StreamingPageRankExample(benchmarkConfig);
-		example.run();
-	}
-
-
+    Logger benchLogger = ExperimentSuite.getLoggerByName("LoopBench");
 	/**
-	 * TODO configure the windSize parameter and generalize the evaluation framework
 	 *
 	 * @throws Exception
 	 */
-	public StreamingPageRankExample(BenchmarkConfig b) throws Exception {
+	public StreamingPageRank(BenchmarkConfig benchmarkConfig) throws Exception {
 		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-		env.setParallelism((Integer) benchmarkConfig.getParam("job.parallelism"));
-
+		env.setParallelism((Integer) benchmarkConfig.getParam("bench.parallelism"));
+	   benchLogger.info("TEST FOO");
 		DataStream<Tuple2<Long, List<Long>>> inputStream = env.addSource(new PageRankSampleSrc());
 		WindowedStream<Tuple2<Long, List<Long>>, Long, TimeWindow> winStream =
 
@@ -70,26 +58,43 @@ public class StreamingPageRankExample {
 				public Long getKey(Tuple2<Long, List<Long>> value) throws Exception {
 					return value.f0;
 				}
-			}).timeWindow(Time.milliseconds(1000));
+			}).timeWindow(Time.milliseconds((long) benchmarkConfig.getParam("window.size")));
 
-		winStream.
-			iterateSyncFor(4,
-				new MyWindowLoopFunction(),
-				new MyFeedbackBuilder(),
-				new TupleTypeInfo<>(BasicTypeInfo.LONG_TYPE_INFO, BasicTypeInfo.DOUBLE_TYPE_INFO))
-			.print();
-		int numWindows = (Integer) benchmarkConfig.getParam("window.count");
-		int windowSize = (Integer) benchmarkConfig.getParam("window.size");
-		String outputDir = (String) benchmarkConfig.getParam("dir.output");
+		Integer numIterations = (Integer) benchmarkConfig.getParam("iteration.count");
+		//TODO add proper sink
+		if(numIterations > 0) {
+			//STATIC SUPERSTEP VERSION
+			winStream.
+				iterateFixpoint(numIterations,
+					new MyWindowLoopFunction(),
+					new MyFeedbackBuilder(),
+					new TupleTypeInfo<>(BasicTypeInfo.LONG_TYPE_INFO, BasicTypeInfo.DOUBLE_TYPE_INFO))
+				.print();
+		}
+		else{
+			//FIXPOINT VERSION
+			winStream.
+				iterateSyncDelta(
+					new MyWindowLoopFunction(),
+					new MyFeedbackBuilder(),
+					new TupleTypeInfo<>(BasicTypeInfo.LONG_TYPE_INFO, BasicTypeInfo.DOUBLE_TYPE_INFO))
+				.print();
+		}
 
-		env.getConfig().setExperimentConstants(numWindows, windowSize, outputDir);
+		env.getConfig().setExperimentConstants(
+			(Integer) benchmarkConfig.getParam("window.count"), 
+			(Long) benchmarkConfig.getParam("window.size"), 
+			(String) benchmarkConfig.getParam("bench.id"));
+
+		//TODO uncomment and add proper logging hooks
+	
+		
 	}
 
-	protected void run() throws Exception {
-		System.err.println(env.getExecutionPlan());
-
+	@Override
+	public void execute() throws Exception {
 		JobExecutionResult result = env.execute("Streaming Sync Iteration Example");
-		logger.info("Job duration: " + result.getNetRuntime(TimeUnit.MILLISECONDS) + " ms");
+//		logger.info("Job duration: " + result.getNetRuntime(TimeUnit.MILLISECONDS) + " ms");
 	}
 
 	private static class MyFeedbackBuilder implements FeedbackBuilder<Tuple2<Long, Double>, Long> {
@@ -103,50 +108,6 @@ public class StreamingPageRankExample {
 			});
 		}
 	}
-
-//	private static class PageRankSource extends RichParallelSourceFunction<Tuple2<Long,List<Long>>> {
-//		private int numberOfGraphs;
-//
-//		public PageRankSource(int numberOfGraphs) {
-//			this.numberOfGraphs = numberOfGraphs;
-//		}
-//
-//		@Override
-//		public void run(SourceContext<Tuple2<Long, List<Long>>> ctx) {
-//			int parallelism = getRuntimeContext().getNumberOfParallelSubtasks();
-//			int parallelTask = getRuntimeContext().getIndexOfThisSubtask();
-//
-//			for(int i=0; i<numberOfGraphs; i++) {
-//				for(Tuple2<Long,List<Long>> entry : getAdjacencyList()) {
-//					if(entry.f0 % parallelism == parallelTask) {
-//						ctx.collectWithTimestamp(entry, i);
-//					}
-//				}
-//				ctx.emitWatermark(new Watermark(i));
-//			}
-//		}
-//
-//		@Override
-//		public void cancel() {}
-
-//		private List<Tuple2<Long,List<Long>>> getAdjacencyList() {
-//			Map<Long,List<Long>> edges = new HashMap<>();
-//			for(Object[] e : PageRankData.EDGES) {
-//				List<Long> currentVertexEdges = edges.get((Long) e[0]);
-//				if(currentVertexEdges == null) {
-//					currentVertexEdges = new LinkedList<>();
-//				}
-//				currentVertexEdges.add((Long) e[1]);
-//				edges.put((Long) e[0], currentVertexEdges);
-//			}
-//			List<Tuple2<Long,List<Long>>> input = new LinkedList<>();
-//			for(Map.Entry<Long, List<Long>> entry : edges.entrySet()) {
-//				input.add(new Tuple2(entry.getKey(), entry.getValue()));
-//			}
-//			return input;
-//		}
-//	}
-
 
 	private static final List<Tuple3<Long, List<Long>, Long>> sampleStream = Lists.newArrayList(
 
@@ -182,7 +143,6 @@ public class StreamingPageRankExample {
 				if (curTime < next.f2) {
 					curTime = next.f2;
 					ctx.emitWatermark(new Watermark(curTime - 1));
-
 				}
 			}
 		}
@@ -191,8 +151,7 @@ public class StreamingPageRankExample {
 		public void cancel() {
 		}
 	}
-
-
+	
 	private static class PageRankFileSource extends RichParallelSourceFunction<Tuple2<Long, List<Long>>> {
 		private int numberOfGraphs;
 		private String directory;
@@ -259,7 +218,7 @@ public class StreamingPageRankExample {
 			}
 
 			entryTimer.stop();
-			logger.info(entryTimer.toString());
+//			logger.info(entryTimer.toString());
 
 			System.err.println("POST-ENTRY:: " + ctx);
 		}
@@ -295,7 +254,7 @@ public class StreamingPageRankExample {
 			}
 
 			stepTimer.stop();
-			logger.info(stepTimer.toString());
+//			logger.info(stepTimer.toString());
 
 			System.err.println("POST-STEP:: " + ctx);
 		}
@@ -313,7 +272,7 @@ public class StreamingPageRankExample {
 			}
 
 			finalizeTimer.stop();
-			logger.info(finalizeTimer.toString());
+//			logger.info(finalizeTimer.toString());
 
 			System.err.println("POST-FINALIZE:: " + ctx);
 		}

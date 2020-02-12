@@ -24,13 +24,13 @@ under the License.
 
 	<parent>
 		<groupId>org.apache.flink</groupId>
-		<artifactId>flink-examples</artifactId>
+		<artifactId>flink-loops</artifactId>
 		<version>1.6-SNAPSHOT</version>
 		<relativePath>..</relativePath>
 	</parent>
 
-	<artifactId>flink-examples-streaming_${scala.binary.version}</artifactId>
-	<name>flink-examples-streaming</name>
+	<artifactId>loop-bench_${scala.binary.version}</artifactId>
+	<name>loop-bench</name>
 
 	<packaging>jar</packaging>
 
@@ -102,7 +102,7 @@ under the License.
 			<version>1.25</version>
 		</dependency>
 
-    </dependencies>
+	</dependencies>
 
 	<build>
 		<plugins>

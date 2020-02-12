@@ -24,13 +24,13 @@ under the License.
 
 	<parent>
 		<groupId>org.apache.flink</groupId>
-		<artifactId>flink-examples</artifactId>
+		<artifactId>flink-loops</artifactId>
 		<version>1.6-SNAPSHOT</version>
 		<relativePath>..</relativePath>
 	</parent>
 
-	<artifactId>flink-examples-streaming_${scala.binary.version}</artifactId>
-	<name>flink-examples-streaming</name>
+	<artifactId>loop-algs_${scala.binary.version}</artifactId>
+	<name>loop-algs</name>
 
 	<packaging>jar</packaging>
 
@@ -55,13 +55,7 @@ under the License.
 			<artifactId>flink-streaming-scala_${scala.binary.version}</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-
-		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-connector-twitter_${scala.binary.version}</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-
+		
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-connector-kafka-0.10_${scala.binary.version}</artifactId>
@@ -101,8 +95,20 @@ under the License.
 			<artifactId>snakeyaml</artifactId>
 			<version>1.25</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>loop-bench_2.11</artifactId>
+			<version>1.6-SNAPSHOT</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>
+			<version>2.11.1</version>
+			<scope>compile</scope>
+		</dependency>
 
-    </dependencies>
+	</dependencies>
 
 	<build>
 		<plugins>

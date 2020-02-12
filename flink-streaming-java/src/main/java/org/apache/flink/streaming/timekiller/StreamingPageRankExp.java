@@ -75,7 +75,7 @@ public class StreamingPageRankExp {
 				}
 			}).timeWindow(Time.milliseconds(1000));
 		
-			winStream.iterateSyncFor(4,
+			winStream.iterateFixpoint(4,
 				new MyWindowLoopFunction(),
 				new MyFeedbackBuilder(),
 				new TupleTypeInfo<>(BasicTypeInfo.LONG_TYPE_INFO, BasicTypeInfo.DOUBLE_TYPE_INFO))

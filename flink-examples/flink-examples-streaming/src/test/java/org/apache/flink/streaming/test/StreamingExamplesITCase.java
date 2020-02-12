@@ -24,7 +24,8 @@ import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.examples.iteration.util.IterateExampleData;
+import org.apache.flink.streaming.loops.graph.IterateExample;
+import org.apache.flink.streaming.loops.graph.util.IterateExampleData;
 import org.apache.flink.streaming.examples.ml.util.IncrementalLearningSkeletonData;
 import org.apache.flink.streaming.examples.twitter.util.TwitterExampleData;
 import org.apache.flink.streaming.examples.windowing.util.SessionWindowingData;
@@ -50,7 +51,7 @@ public class StreamingExamplesITCase extends AbstractTestBase {
 		// the example is inherently non-deterministic. The iteration timeout of 5000 ms
 		// is frequently not enough to make the test run stable on CI infrastructure
 		// with very small containers, so we cannot do a validation here
-		org.apache.flink.streaming.examples.iteration.IterateExample.main(new String[]{
+		IterateExample.main(new String[]{
 			"--input", inputPath,
 			"--output", resultPath});
 	}
